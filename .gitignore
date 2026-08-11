@@ -1,13 +1,34 @@
 node_modules
 .DS_Store
 dist
+dist-ssr
 *.local
 .env
 .env.*
+.nitro
 .tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+todos.json
+
+# Paraglide (generated)
 src/paraglide
-src/routeTree.gen.ts
+
+# Playwright
 playwright-report
 test-results
 blob-report
+
+# TanStack Router (generated)
+src/routeTree.gen.ts
+# Cursor rules (auto-generated from .github/instructions)
+.cursor/rules/
+.cursor/skills/
+
 .pnpm-store
+
+.agents/
+
+skills-lock.json
