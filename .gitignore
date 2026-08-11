@@ -1,0 +1,13 @@
+node_modules
+.DS_Store
+dist
+*.local
+.env
+.env.*
+.tanstack
+src/paraglide
+src/routeTree.gen.ts
+playwright-report
+test-results
+blob-report
+.pnpm-store
