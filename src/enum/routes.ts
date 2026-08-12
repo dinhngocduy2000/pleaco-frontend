@@ -1,0 +1,16 @@
+export enum ROUTES {
+  HOME = '/',
+  LOGIN = '/login',
+  REGISTER = '/register',
+  MEMORIES = '/memories',
+  SAVED_DESTINATIONS = '/saved-destinations',
+  CHATBOX = '/chatbox',
+  INSTRUCTIONS = '/instructions',
+  FEEDBACK = '/feedback',
+  ADMIN_MANAGE_GROUP = '/admin/manage-group',
+  ADMIN_DASHBOARD = '/admin/dashboard',
+  ADMIN_FEEDBACK = '/admin/feedback',
+  SETTINGS = '/settings',
+  SUBSCRIPTIONS = '/subscriptions',
+  OTP = '/otp',
+}
