@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run src/tests/units",
     "test:e2e": "playwright test",
+    "i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
