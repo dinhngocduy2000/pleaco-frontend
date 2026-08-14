@@ -9,7 +9,7 @@ export enum AUTH_ENDPOINTS {
   PROFILE = '/auth/profile',
   REFRESH_TOKEN = '/auth/refresh',
   LOGOUT = '/auth/logout',
-  GOOGLE_LOGIN_URL = '/auth/google',
+  SSO_LOGIN_URL = '/auth/sso',
   VALIDATE_OTP = '/auth/validate-otp',
 }
 

@@ -1,8 +1,23 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import ReactDOM from 'react-dom/client'
+import { Provider as ReduxProvider } from 'react-redux'
+import { RouteLoadingFallback } from './components/layouts/RouteLoadingFallback'
+import { Toaster } from './components/ui/sonner'
+import { queryClient } from './queries'
 import { routeTree } from './routeTree.gen'
+import { store } from './stores'
 
-const router = createRouter({ routeTree, defaultPreload: 'intent', scrollRestoration: true })
+const isTest = import.meta.env.VITE_CI === 'true'
+const router = createRouter({
+  routeTree,
+  defaultPreload: 'intent',
+  scrollRestoration: true,
+  defaultPendingComponent: isTest ? undefined : RouteLoadingFallback,
+  defaultPendingMs: isTest ? 500 : 0,
+  defaultPendingMinMs: isTest ? 500 : 200,
+})
 
 declare module '@tanstack/react-router' {
   interface Register {
@@ -11,5 +26,16 @@ declare module '@tanstack/react-router' {
 }
 
 const rootElement = document.getElementById('app')
-if (rootElement && !rootElement.innerHTML)
-  ReactDOM.createRoot(rootElement).render(<RouterProvider router={router} />)
+
+if (rootElement && !rootElement.innerHTML) {
+  const root = ReactDOM.createRoot(rootElement)
+  root.render(
+    <ReduxProvider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <ReactQueryDevtools initialIsOpen={false} />
+        <Toaster richColors position="top-right" />
+      </QueryClientProvider>
+    </ReduxProvider>,
+  )
+}
