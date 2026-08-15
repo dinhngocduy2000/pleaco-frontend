@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/sidebar'
 import { ROUTES } from '@/enum/routes'
 import { getTranslations } from '@/lib/translation'
-import { getNavGroups, isRouteActive, type NavItem } from './SidebarItem'
+import { getNavGroups, isRouteActive, type NavItem } from './sidebar_item'
 
 function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   return (

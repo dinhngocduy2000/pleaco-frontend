@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import CreateGroupForm, {
   type CreateGroupFormHandle,
-} from '@/components/layouts/SiteHeader/create-group-dialog/create-group-dialog'
+} from '@/components/layouts/site_header/create-group-dialog/create-group-dialog'
 import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { UserStatus } from '@/enum/users'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery, useTrackSessionQuery } from '@/queries/use-auth-query'
-import { ProfileDropdownComponent } from '../ProfileDropdownComponent'
+import { ProfileDropdownComponent } from '../profile_dropdown_component'
 import SelectGroupDropdown from './select-group-dropdown/select-group-dropdown'
 
 const t = getTranslations()

@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
-import { GuestLayout } from '@/components/layouts/GuestLayout/GuestLayout'
+import { GuestLayout } from '@/components/layouts/guest_layout/guest_layout'
 import { KEY_STORAGE } from '@/enum/key-storage'
 import { ROUTES } from '@/enum/routes'
 
