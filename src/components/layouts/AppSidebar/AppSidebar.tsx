@@ -1,17 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import {
-  Bookmark,
-  ChevronRight,
-  Compass,
-  GaugeCircle,
-  HelpCircle,
-  Home,
-  ImageIcon,
-  LayoutDashboard,
-  MessageSquare,
-  MessagesSquare,
-  Users,
-} from 'lucide-react'
+import { ChevronRight, LayoutDashboard } from 'lucide-react'
 import AppLogo from '@/assets/svgs/app-logo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
@@ -30,50 +18,30 @@ import {
 } from '@/components/ui/sidebar'
 import { ROUTES } from '@/enum/routes'
 import { getTranslations } from '@/lib/translation'
+import { getNavGroups, isRouteActive, type NavItem } from './SidebarItem'
 
-const t = getTranslations()
-
-type NavItem = {
-  title: string
-  url: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
-type NavGroup = {
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-  items: NavItem[]
-}
-
-function getNavGroups(): NavGroup[] {
-  return [
-    {
-      label: t.sidebar_platform(),
-      icon: Compass,
-      items: [
-        { title: t.sidebar_home(), url: ROUTES.HOME, icon: Home },
-        { title: t.sidebar_memories(), url: ROUTES.MEMORIES, icon: ImageIcon },
-        { title: t.sidebar_saved_destinations(), url: ROUTES.SAVED_DESTINATIONS, icon: Bookmark },
-        { title: t.sidebar_chatbox(), url: ROUTES.CHATBOX, icon: MessageSquare },
-        { title: t.sidebar_instructions(), url: ROUTES.INSTRUCTIONS, icon: HelpCircle },
-        { title: t.sidebar_feedback(), url: ROUTES.FEEDBACK, icon: MessagesSquare },
-      ],
-    },
-    {
-      label: t.sidebar_admin(),
-      icon: GaugeCircle,
-      items: [
-        { title: t.sidebar_manage_group(), url: ROUTES.ADMIN_MANAGE_GROUP, icon: Users },
-        { title: t.sidebar_dashboard(), url: ROUTES.ADMIN_DASHBOARD, icon: LayoutDashboard },
-        { title: t.sidebar_admin_feedback(), url: ROUTES.ADMIN_FEEDBACK, icon: MessagesSquare },
-      ],
-    },
-  ]
+function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton asChild isActive={isRouteActive(pathname, item.url)}>
+        <Link to={item.url}>
+          <item.icon className="size-4" />
+          <span>{item.title}</span>
+        </Link>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
 }
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation()
   const navGroups = getNavGroups()
+  const t = getTranslations()
+  const dashboardItem: NavItem = {
+    title: t.sidebar_dashboard(),
+    url: ROUTES.HOME,
+    icon: LayoutDashboard,
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -92,6 +60,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === dashboardItem.url}>
+                <Link to={dashboardItem.url}>
+                  <dashboardItem.icon />
+                  <span>{dashboardItem.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
         {navGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -108,14 +89,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {group.items.map((item) => (
-                        <SidebarMenuSubItem key={item.url}>
-                          <SidebarMenuSubButton asChild isActive={location.pathname === item.url}>
-                            <Link to={item.url}>
-                              <item.icon className="size-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                        <SidebarNavLink key={item.url} item={item} pathname={location.pathname} />
                       ))}
                     </SidebarMenuSub>
                   </CollapsibleContent>

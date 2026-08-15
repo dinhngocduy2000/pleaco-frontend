@@ -1,14 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import {
-  Bell,
-  Check,
-  CreditCard,
-  Globe,
-  LogOut,
-  type LucideIcon,
-  Settings,
-  User,
-} from 'lucide-react'
+import { Bell, Check, Globe, LogOut, type LucideIcon, Settings, User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -74,13 +65,7 @@ export function ProfileDropdownComponent({ user }: { user?: IUserProfileDetail }
       type: 'item',
       icon: Settings,
       label: t.header_settings(),
-      onClick: () => navigate({ to: ROUTES.SETTINGS as string }),
-    },
-    {
-      type: 'item',
-      icon: CreditCard,
-      label: t.header_subscriptions(),
-      onClick: () => navigate({ to: ROUTES.SUBSCRIPTIONS as string }),
+      onClick: () => navigate({ to: ROUTES.TENANT_SETTINGS as string }),
     },
     {
       type: 'sub',
