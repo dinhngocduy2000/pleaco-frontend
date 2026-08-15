@@ -2,6 +2,7 @@ import axios, { AxiosError, type AxiosResponse, HttpStatusCode } from 'axios'
 import { KEY_STORAGE } from '@/enum/key-storage'
 import { ENV_CONFIGS } from '@/lib/env-const'
 import { handleLogout } from '@/lib/utils'
+import { refreshTokenAPI } from './auth'
 
 const axiosConfig = axios.create({
   baseURL: `${ENV_CONFIGS.VITE_API_ENDPOINT}`,
@@ -73,7 +74,7 @@ const renewToken = async () => {
     const data = {
       is_save_session: localStorage.getItem(KEY_STORAGE.IS_SAVE_SESSION) === 'true',
     }
-    // await getAuth().refreshTokenApiV1AuthRefreshPost(data)
+    await refreshTokenAPI(data)
     localStorage.setItem(KEY_STORAGE.IS_LOGGED_IN, 'true')
     if (data.is_save_session) {
       localStorage.setItem(KEY_STORAGE.IS_SAVE_SESSION, 'true')
