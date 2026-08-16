@@ -22,6 +22,7 @@ const SelectGroupDropdown = () => {
         .map((item) => ({
           ...item,
           icon: item.label,
+          subLabel: `GRP-${item.value.slice(0, 5)}`,
         }))
         .filter((option) => option.label.toLowerCase().includes(searchValue.toLowerCase())),
     [groupKeyValueListData?.data, searchValue],
@@ -38,6 +39,7 @@ const SelectGroupDropdown = () => {
         setSelectedTeam({
           ...defaultGroup,
           icon: defaultGroup.label,
+          subLabel: `GRP-${defaultGroup.value.slice(0, 5)}`,
         })
       }
     },

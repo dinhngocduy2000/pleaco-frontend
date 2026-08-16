@@ -150,15 +150,24 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
 
     if (!props.multiple && props.value) {
       return (
-        <div className="inline-flex items-center gap-2">
+        <div className="flex max-w-full min-w-0 items-center gap-2">
           {props.value?.icon && typeof props.value.icon === 'string' ? (
             <InitialIcon label={props.value.icon} />
           ) : (
             <span className="shrink-0">{props.value.icon}</span>
           )}
-          <span id={props.value?.value} data-testid="selected-label">
-            {props.value?.label}
-          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span
+              className="block truncate text-sm"
+              id={props.value?.value}
+              data-testid="selected-label"
+            >
+              {props.value?.label}
+            </span>
+            {props.value?.subLabel && (
+              <span className="text-[10px] text-muted-foreground">{props.value.subLabel}</span>
+            )}
+          </div>
         </div>
       )
     }
@@ -176,7 +185,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
           disabled={disabled}
           className={cn('w-full justify-between', className)}
         >
-          <div className="flex-1 text-left">{renderTriggerContent()}</div>
+          <div className="min-w-0 flex-1 text-left">{renderTriggerContent()}</div>
           <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

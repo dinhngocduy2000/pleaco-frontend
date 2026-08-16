@@ -40,7 +40,9 @@ export const logoutAPI = async (): Promise<IResponseData<null>> => {
 export const getSSOLoginURLAPI = async (
   params: GetSsoAuthUrlParams,
 ): Promise<IResponseData<{ url: string }>> => {
-  return await axiosConfigWithoutAuth.post(AUTH_ENDPOINTS.SSO_LOGIN_URL, params)
+  return await axiosConfigWithoutAuth.get(AUTH_ENDPOINTS.SSO_LOGIN_URL, {
+    params,
+  })
 }
 
 export const validateOTPAPI = async (
