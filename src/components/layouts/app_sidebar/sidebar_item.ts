@@ -65,7 +65,7 @@ export function getNavGroups(): NavGroup[] {
     {
       label: t.header_settings(),
       icon: Settings,
-      items: [{ title: t.sidebar_tenant_settings(), url: ROUTES.TENANT_SETTINGS, icon: Settings }],
+      items: [{ title: t.group_members_settings(), url: ROUTES.TENANT_SETTINGS, icon: Settings }],
     },
   ]
 }

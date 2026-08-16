@@ -7,5 +7,5 @@ export const Route = createFileRoute('/_authenticated/settings/tenant-settings')
 const t = getTranslations()
 
 function TenantSettingsPage() {
-  return <h1 className="text-2xl font-bold">{t.sidebar_tenant_settings()}</h1>
+  return <h1 className="text-2xl font-bold">{t.group_members_settings()}</h1>
 }

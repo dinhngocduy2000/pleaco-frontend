@@ -22,3 +22,6 @@ export type IGroupInfo = {
       }[]
     | null
 }
+export type ISwitchGroupRequest = {
+  group_id: string
+}
