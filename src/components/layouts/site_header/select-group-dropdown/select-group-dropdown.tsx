@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import type { IOption } from '@/interface/utils'
 import { useProfileQuery } from '@/queries/use-auth-query'
-import { useListGroupKeyValueQuery } from '@/queries/use-groups-query'
+import { useChangeActiveGroupMutation, useListGroupKeyValueQuery } from '@/queries/use-groups-query'
 
 const SelectGroupDropdown = () => {
   const [selectedTeam, setSelectedTeam] = useState<IOption | undefined>(undefined)
@@ -11,11 +11,13 @@ const SelectGroupDropdown = () => {
     params: null,
   })
   const [searchValue, setSearchValue] = useState<string>('')
-  // const handleChangeActiveGroup = async (group_id: string) => {
-  //   if (!group_id) return
-  //   if (group_id === user?.group_id) return
-  //   await changeActiveGroup({ group_id })
-  // }
+  const user = profileResponse?.data
+  const { mutateAsync: changeActiveGroup } = useChangeActiveGroupMutation({})
+  const handleChangeActiveGroup = async (group_id: string) => {
+    if (!group_id) return
+    if (group_id === user?.group_id) return
+    await changeActiveGroup({ group_id })
+  }
   const listGroupKeyValueWithIcon = useMemo(
     () =>
       (groupKeyValueListData?.data ?? [])
@@ -50,9 +52,8 @@ const SelectGroupDropdown = () => {
     <AppSelectComponent
       options={listGroupKeyValueWithIcon}
       value={selectedTeam}
-      onChange={() => {
-        // handleChangeActiveGroup(value?.value ?? '')
-        return
+      onChange={(value) => {
+        handleChangeActiveGroup(value?.value ?? '')
       }}
       placeholder="Select team..."
       className="w-48"

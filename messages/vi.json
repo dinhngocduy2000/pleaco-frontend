@@ -59,7 +59,7 @@
   "sidebar_users": "Người dùng",
   "sidebar_roles_permissions": "Vai trò & Quyền",
   "sidebar_audit_logs": "Nhật ký kiểm toán",
-  "sidebar_tenant_settings": "Cài đặt tenant",
+  "group_members_settings": "Cài đặt Thành viên",
   "header_notifications": "Thông báo",
   "header_no_notifications": "Không có thông báo mới",
   "header_logout": "Đăng xuất",

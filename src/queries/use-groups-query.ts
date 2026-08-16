@@ -1,11 +1,14 @@
 // @refresh reset
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createGroupApi, getListGroupKeyValue } from '@/api/groups'
+import { useRef } from 'react'
+import { toast } from 'sonner'
+import { changeActiveGroupAPI, createGroupApi, getListGroupKeyValue } from '@/api/groups'
 import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData } from '@/interface/api-response'
-import type { ICreateGroupRequest, IGroupInfo } from '@/interface/groups'
-import type { IMutation, ReactQueryHookParams } from '@/interface/utils'
+import type { ICreateGroupRequest, IGroupInfo, ISwitchGroupRequest } from '@/interface/groups'
+import type { IAxiosError, IMutation, ReactQueryHookParams } from '@/interface/utils'
+import { getErrorMessage } from '@/lib/utils'
 import { GET_PROFILE_QUERY_KEY } from './auth-query-keys'
 
 const getListGroupKeyValueQueryKey = (params: unknown, queryKey: unknown[]) => {
@@ -46,31 +49,31 @@ export const useListGroupKeyValueQuery = ({
   })
 }
 
-// export const useChangeActiveGroupMutation = ({
-//   onSuccess,
-//   onError,
-//   onMutate,
-// }: IMutation<IResponseData<void>, SwitchGroupRequest>) => {
-//   const queryClient = useQueryClient()
-//   const toastID = useRef<string | number>(undefined)
-//   return useMutation({
-//     mutationFn: async (data: SwitchGroupRequest) => {
-//       const res = await getGroups().switchCurrentUserGroupApiV1GroupsSwitchPut(data)
-//       return res
-//     },
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: GET_PROFILE_QUERY_KEY })
-//       toast.success('Active group changed successfully', { id: toastID.current })
-//       onSuccess?.()
-//     },
-//     onError: (error) => {
-//       const errorMessage = getErrorMessage(error as IAxiosError)
-//       toast.error(errorMessage, { id: toastID.current })
-//       onError?.(error)
-//     },
-//     onMutate: () => {
-//       toastID.current = toast.loading('Changing active group...')
-//       onMutate?.()
-//     },
-//   })
-// }
+export const useChangeActiveGroupMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<IResponseData<void>, ISwitchGroupRequest>) => {
+  const queryClient = useQueryClient()
+  const toastID = useRef<string | number>(undefined)
+  return useMutation({
+    mutationFn: async (data: ISwitchGroupRequest) => {
+      const res = await changeActiveGroupAPI(data)
+      return res
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GET_PROFILE_QUERY_KEY })
+      toast.success('Active group changed successfully', { id: toastID.current })
+      onSuccess?.()
+    },
+    onError: (error) => {
+      const errorMessage = getErrorMessage(error as IAxiosError)
+      toast.error(errorMessage, { id: toastID.current })
+      onError?.(error)
+    },
+    onMutate: () => {
+      toastID.current = toast.loading('Changing active group...')
+      onMutate?.()
+    },
+  })
+}
