@@ -27,3 +27,16 @@ export const createGroupFormSchema = () => {
     ),
   })
 }
+
+export const inviteGroupMemberFormSchema = () => {
+  const t = getTranslations()
+  return z.object({
+    email: z.preprocess(
+      toTrimmedString,
+      z.string().min(1, { message: t.validation_email_required() }).email({
+        message: t.validation_email_invalid(),
+      }),
+    ),
+    role: z.string().min(1, { message: t.group_invite_member_role_required() }),
+  })
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { Command as CommandPrimitive } from 'cmdk'
-import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, CircleIcon, SearchIcon, XIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -70,6 +70,34 @@ type MultipleProps = ComboboxSelectBaseProps & {
 }
 
 export type ComboboxSelectProps = SingleProps | MultipleProps
+
+function SelectOptionIndicator({ multiple, selected }: { multiple: boolean; selected: boolean }) {
+  if (multiple) {
+    return (
+      <span
+        aria-hidden
+        className={cn(
+          'ml-auto flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-muted-foreground/40',
+          selected && 'border-primary bg-primary text-primary-foreground',
+        )}
+      >
+        {selected && <CheckIcon className="size-3" />}
+      </span>
+    )
+  }
+
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'ml-auto flex size-3.5 shrink-0 items-center justify-center rounded-full border border-muted-foreground/40',
+        selected && 'border-primary',
+      )}
+    >
+      {selected && <CircleIcon className="size-2 fill-primary text-primary" />}
+    </span>
+  )
+}
 
 export function AppSelectComponent(props: ComboboxSelectProps) {
   const {
@@ -242,14 +270,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
                         </div>
                       </>
                     )}
-                    {multiple && (
-                      <CheckIcon
-                        className={cn(
-                          'ml-auto size-4 shrink-0',
-                          selected ? 'opacity-100' : 'opacity-0',
-                        )}
-                      />
-                    )}
+                    <SelectOptionIndicator multiple={multiple} selected={selected} />
                   </CommandItem>
                 )
               })}

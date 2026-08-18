@@ -5,8 +5,8 @@ export type IResponseData<T> = {
 }
 
 export type IResponseDataWithPage<T> = Omit<IResponseData<T>, 'data'> & {
-  data: {
-    items: T[]
-    total: number
-  }
+  items: T[]
+  page: number
+  page_size: number
+  total: number
 }

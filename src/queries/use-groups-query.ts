@@ -3,10 +3,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { toast } from 'sonner'
-import { changeActiveGroupAPI, createGroupApi, getListGroupKeyValue } from '@/api/groups'
+import {
+  changeActiveGroupAPI,
+  createGroupApi,
+  getGroupMembersApi,
+  getListGroupKeyValue,
+  inviteGroupMembersApi,
+} from '@/api/groups'
 import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
-import type { IResponseData } from '@/interface/api-response'
-import type { ICreateGroupRequest, IGroupInfo, ISwitchGroupRequest } from '@/interface/groups'
+import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
+import type {
+  ICreateGroupRequest,
+  IGroupInfo,
+  IGroupMemberListInfo,
+  IGroupMemberListRequest,
+  IInviteGroupMembersRequest,
+  ISwitchGroupRequest,
+} from '@/interface/groups'
 import type { IAxiosError, IMutation, ReactQueryHookParams } from '@/interface/utils'
 import { getErrorMessage } from '@/lib/utils'
 import { GET_PROFILE_QUERY_KEY } from './auth-query-keys'
@@ -14,6 +27,11 @@ import { GET_PROFILE_QUERY_KEY } from './auth-query-keys'
 const getListGroupKeyValueQueryKey = (params: unknown, queryKey: unknown[]) => {
   return [GROUPS_ENDPOINTS.LIST_KEY_VALUE, GROUPS_ENDPOINTS.LIST_GROUP, params, ...queryKey]
 }
+
+export const getGroupMembersQueryKey = (
+  params: IGroupMemberListRequest,
+  queryKey: unknown[] = [],
+) => [GROUPS_ENDPOINTS.LIST_MEMBERS, params, ...queryKey]
 
 export const useCreateGroupMutation = ({
   onSuccess,
@@ -46,6 +64,32 @@ export const useListGroupKeyValueQuery = ({
       return res
     },
     enabled,
+  })
+}
+
+export const useGroupMembersQuery = ({
+  params,
+  queryKey = [],
+  enabled = true,
+}: ReactQueryHookParams<IGroupMemberListRequest>) => {
+  return useQuery<IResponseDataWithPage<IGroupMemberListInfo>>({
+    queryKey: getGroupMembersQueryKey(params, queryKey),
+    queryFn: async ({ signal }) => await getGroupMembersApi(params, signal),
+    enabled,
+    staleTime: 5000, // 5 seconds
+  })
+}
+
+export const useInviteGroupMembersMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<IResponseData<void>, IInviteGroupMembersRequest> = {}) => {
+  return useMutation({
+    mutationFn: (data) => inviteGroupMembersApi(data?.group_id ?? '', data?.members ?? []),
+    onSuccess,
+    onError,
+    onMutate,
   })
 }
 
