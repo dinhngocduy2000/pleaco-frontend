@@ -25,12 +25,14 @@ export type IDropdownMenuProps = {
   trigger?: string | ReactNode
   items: IDropdownMenuItem[]
   onSearch?: (value: string) => void
+  selectedValue?: string
   dropdownContentClassName?: string
   contentAlign?: 'start' | 'end'
   triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
 }
 export type IDropdownMenuItem = {
   label: string | ReactNode
+  value: string
   onClick: VoidFunction
   disabled?: boolean
 }

@@ -1,4 +1,5 @@
 import type z from 'zod'
+import type { GroupRoleType } from '@/enum/group'
 import type { UserStatusType } from '@/enum/users'
 import type {
   createEmailSchemas,
@@ -34,6 +35,10 @@ export type IVerifyGoogleCodeRequest = {
   redirectUri: string
 }
 
+export type IProfileGroup = IOption & {
+  role: GroupRoleType
+}
+
 /** Profile payload from `GET /auth/profile` (snake_case, distinct from login `IUserProfile`). */
 export type IUserProfileDetail = {
   id: string
@@ -44,7 +49,7 @@ export type IUserProfileDetail = {
   updated_at: string
   image_url: string
   group_id?: string | null
-  group?: IOption | undefined
+  group?: IProfileGroup | null
 }
 
 export type IRefreshTokenRequest = {
