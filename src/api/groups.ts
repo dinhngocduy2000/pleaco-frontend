@@ -5,6 +5,7 @@ import type {
   IGroupInfo,
   IGroupMemberListInfo,
   IGroupMemberListRequest,
+  IInviteGroupMemberRequest,
   ISwitchGroupRequest,
 } from '@/interface/groups'
 import type { IOption } from '@/interface/utils'
@@ -29,6 +30,13 @@ export const getGroupMembersApi = async (
   signal?: AbortSignal,
 ): Promise<IResponseDataWithPage<IGroupMemberListInfo>> => {
   return await axiosConfig.get(GROUPS_ENDPOINTS.LIST_MEMBERS, { params, signal })
+}
+
+export const inviteGroupMembersApi = async (
+  groupId: string,
+  members: IInviteGroupMemberRequest[],
+): Promise<IResponseData<void>> => {
+  return await axiosConfig.post(`${GROUPS_ENDPOINTS.LIST_GROUP}/${groupId}/members`, members)
 }
 
 export const changeActiveGroupAPI = async (

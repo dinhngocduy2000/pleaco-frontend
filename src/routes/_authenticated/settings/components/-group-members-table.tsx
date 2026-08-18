@@ -9,7 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { GroupMemberOrderBy, GroupMemberOrderDirection, type GroupRoleType } from '@/enum/group'
+import {
+  GroupMemberOrderBy,
+  GroupMemberOrderDirection,
+  type GroupRoleType,
+  INVITATION_STATUS,
+  type InvitationStatusType,
+} from '@/enum/group'
 import type { UserStatusType } from '@/enum/users'
 import type { IGroupMemberListRequest } from '@/interface/groups'
 import { getCurrentLanguage, getTranslations } from '@/lib/translation'
@@ -18,7 +24,8 @@ import { useGroupMembersQuery } from '@/queries/use-groups-query'
 import 'dayjs/locale/vi'
 import { useNavigate } from '@tanstack/react-router'
 import { PencilIcon, Trash2Icon, UserIcon } from 'lucide-react'
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Route } from '../tenant-settings'
 import { GroupMembersPagination } from './-group-members-pagination'
 
@@ -73,6 +80,24 @@ export function GroupMembersTable() {
   const total = membersResponse?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const currentPage = Math.min(search.page, totalPages)
+  const invitationStatusBadge: Record<InvitationStatusType, ReactNode> = {
+    [INVITATION_STATUS.PENDING]: (
+      <Badge className="bg-yellow-50 border-yellow-700! text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300">
+        {t.group_members_invitation_pending()}
+      </Badge>
+    ),
+    [INVITATION_STATUS.ACCEPTED]: (
+      <Badge className="bg-green-50 border-green-700! text-green-700 dark:bg-green-950 dark:text-green-300">
+        {t.group_members_invitation_accepted()}
+      </Badge>
+    ),
+    [INVITATION_STATUS.REJECTED]: (
+      <Badge className="bg-red-50 border-red-700! text-red-700 dark:bg-red-950 dark:text-red-300">
+        {t.group_members_invitation_rejected()}
+      </Badge>
+    ),
+  }
+
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">{t.group_members_loading()}</p>
   }
@@ -88,6 +113,7 @@ export function GroupMembersTable() {
               <TableHead className="text-center">{t.group_members_table_index()}</TableHead>
               <TableHead className="pl-16">{t.group_members_table_member()}</TableHead>
               <TableHead className="text-center">{t.group_members_table_role()}</TableHead>
+              <TableHead className="text-center">{t.group_invitation_status()}</TableHead>
               <TableHead className="text-center">{t.group_members_table_joined()}</TableHead>
               <TableHead className="text-center">{t.group_members_table_actions()}</TableHead>
             </TableRow>
@@ -134,6 +160,9 @@ export function GroupMembersTable() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center capitalize">{member.role}</TableCell>
+                    <TableCell className="text-center capitalize">
+                      {invitationStatusBadge[member.invitation_status]}
+                    </TableCell>
                     <TableCell className="text-center">
                       {dayjs(member.joined_at).locale(getCurrentLanguage()).format('MM/DD/YYYY')}
                     </TableCell>

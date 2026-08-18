@@ -23,3 +23,11 @@ export const GroupMemberOrderDirection = {
 
 export type GroupMemberOrderDirectionType =
   (typeof GroupMemberOrderDirection)[keyof typeof GroupMemberOrderDirection]
+
+export const INVITATION_STATUS = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+}
+
+export type InvitationStatusType = (typeof INVITATION_STATUS)[keyof typeof INVITATION_STATUS]

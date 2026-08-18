@@ -3,11 +3,13 @@ import type {
   GroupMemberOrderByType,
   GroupMemberOrderDirectionType,
   GroupRoleType,
+  InvitationStatusType,
 } from '@/enum/group'
 import type { UserStatusType } from '@/enum/users'
-import type { createGroupFormSchema } from '@/schemas/group-schemas'
+import type { createGroupFormSchema, inviteGroupMemberFormSchema } from '@/schemas/group-schemas'
 
 export type ICreateGroupFormType = z.infer<ReturnType<typeof createGroupFormSchema>>
+export type IInviteGroupMemberFormType = z.infer<ReturnType<typeof inviteGroupMemberFormSchema>>
 
 export type ICreateGroupRequest = {
   name: string
@@ -32,6 +34,16 @@ export type ISwitchGroupRequest = {
   group_id: string
 }
 
+export type IInviteGroupMemberRequest = {
+  email: string
+  role: GroupRoleType
+}
+
+export type IInviteGroupMembersRequest = {
+  group_id: string
+  members: IInviteGroupMemberRequest[]
+}
+
 export type IGroupMemberListInfo = {
   member_id: string
   image_url: string | null
@@ -40,6 +52,7 @@ export type IGroupMemberListInfo = {
   joined_at: string
   role: GroupRoleType
   status: UserStatusType
+  invitation_status: InvitationStatusType
 }
 
 export type IGroupMemberListRequest = {
@@ -51,4 +64,5 @@ export type IGroupMemberListRequest = {
   email?: string
   role?: GroupRoleType
   status?: UserStatusType
+  invitation_status?: InvitationStatusType
 }

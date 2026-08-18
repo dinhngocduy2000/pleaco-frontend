@@ -8,6 +8,7 @@ import {
   createGroupApi,
   getGroupMembersApi,
   getListGroupKeyValue,
+  inviteGroupMembersApi,
 } from '@/api/groups'
 import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
@@ -16,6 +17,7 @@ import type {
   IGroupInfo,
   IGroupMemberListInfo,
   IGroupMemberListRequest,
+  IInviteGroupMembersRequest,
   ISwitchGroupRequest,
 } from '@/interface/groups'
 import type { IAxiosError, IMutation, ReactQueryHookParams } from '@/interface/utils'
@@ -74,6 +76,20 @@ export const useGroupMembersQuery = ({
     queryKey: getGroupMembersQueryKey(params, queryKey),
     queryFn: async ({ signal }) => await getGroupMembersApi(params, signal),
     enabled,
+    staleTime: 5000, // 5 seconds
+  })
+}
+
+export const useInviteGroupMembersMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<IResponseData<void>, IInviteGroupMembersRequest> = {}) => {
+  return useMutation({
+    mutationFn: (data) => inviteGroupMembersApi(data?.group_id ?? '', data?.members ?? []),
+    onSuccess,
+    onError,
+    onMutate,
   })
 }
 

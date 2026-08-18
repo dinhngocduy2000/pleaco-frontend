@@ -75,7 +75,7 @@ const AppDialogComponent = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/** biome-ignore lint/a11y/noStaticElementInteractions: temporary*/}
       {/** biome-ignore lint/a11y/useKeyWithClickEvents: temporary*/}
-      <div className={cn(!dialogTrigger && 'hidden')} onClick={() => setOpen(true)}>
+      <div className={cn(!dialogTrigger && 'hidden', 'w-fit')} onClick={() => setOpen(true)}>
         {dialogTrigger && dialogTrigger}
       </div>
       <DialogContent
