@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import AppLogo from '@/assets/svgs/app-logo'
+import AppLogoWithoutText from '@/assets/svgs/app-logo-without-text'
 import {
   Form,
   FormControl,
@@ -40,7 +40,7 @@ export default function CreateGroupForm({
   return (
     <div className="flex flex-col gap-6 pt-6">
       <div className="flex flex-col items-center gap-3 text-center">
-        <AppLogo className="size-16" />
+        <AppLogoWithoutText className="size-20" />
         <TypographyH2 className="text-xl font-semibold">
           {t.create_group_welcome_title()}
         </TypographyH2>

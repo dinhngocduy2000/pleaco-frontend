@@ -1,6 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { ChevronRight, LayoutDashboard } from 'lucide-react'
-import AppLogo from '@/assets/svgs/app-logo'
+import AppLogoHorizontalNegative from '@/assets/svgs/app-logo-horizontal-negative'
+import AppLogoWithoutText from '@/assets/svgs/app-logo-without-text'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Sidebar,
@@ -14,6 +15,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { LIST_ROLES } from '@/enum/group'
 import { ROUTES } from '@/enum/routes'
@@ -36,6 +38,7 @@ function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string })
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { data: userProfileData } = useProfileQuery()
+  const { state } = useSidebar()
   const location = useLocation()
   const navGroups = getNavGroups()
   const t = getTranslations()
@@ -54,9 +57,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               size="lg"
               asChild
-              className="h-20 flex justify-center items-center w-full"
+              className="h-18 flex justify-center items-center w-full"
             >
-              <AppLogo />
+              {state === 'expanded' ? <AppLogoHorizontalNegative /> : <AppLogoWithoutText />}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

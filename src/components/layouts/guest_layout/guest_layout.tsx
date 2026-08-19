@@ -40,8 +40,8 @@ export function GuestLayout({ children }: GuestLayoutProps) {
   return (
     <div className="relative flex min-h-screen flex-col bg-background text-foreground">
       <main className="flex-1">
-        <div className="flex min-h-[calc(100vh-8rem)] flex-col items-center justify-center px-4 py-12">
-          <AppLogo className="lg:mb-12 md:mb-6 mb-2" />
+        <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-8 items-center justify-center px-4 py-12">
+          <AppLogo className="size-40" />
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <CardTitle data-testid={renderCardHeader().testId} className="text-2xl">
