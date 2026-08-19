@@ -13,6 +13,7 @@ export const handleLogout = () => {
   window.location.replace(ROUTES.LOGIN)
   localStorage.removeItem(KEY_STORAGE.IS_LOGGED_IN)
   localStorage.removeItem(KEY_STORAGE.IS_SAVE_SESSION)
+  localStorage.removeItem(KEY_STORAGE.INVITATION_ID)
 }
 
 export const getErrorMessage = (error: IAxiosError) => {

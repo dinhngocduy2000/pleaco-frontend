@@ -3,6 +3,7 @@ import type { IResponseData, IResponseDataWithPage } from '@/interface/api-respo
 import type {
   ICreateGroupRequest,
   IGroupInfo,
+  IGroupInvitationDetail,
   IGroupMemberListInfo,
   IGroupMemberListRequest,
   IInviteGroupMemberRequest,
@@ -44,4 +45,17 @@ export const changeActiveGroupAPI = async (
   signal?: AbortSignal,
 ): Promise<IResponseData<void>> => {
   return await axiosConfig.put(GROUPS_ENDPOINTS.CHANGE_ACTIVE_GROUP, data, { signal })
+}
+
+export const getGroupInvitationAPI = async (
+  invitationID: string,
+  signal: AbortSignal,
+): Promise<IResponseData<IGroupInvitationDetail>> => {
+  return await axiosConfig.get(`${GROUPS_ENDPOINTS.GET_GROUP_INVITATION}/${invitationID}`, {
+    signal,
+  })
+}
+
+export const acceptGroupInvitationAPI = async (invitaitonID: string): Promise<void> => {
+  return await axiosConfig.post(`${GROUPS_ENDPOINTS.ACCEPT_GROUP_INVITATION}/${invitaitonID}`)
 }

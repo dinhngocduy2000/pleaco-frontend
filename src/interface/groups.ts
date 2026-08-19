@@ -44,6 +44,18 @@ export type IInviteGroupMembersRequest = {
   members: IInviteGroupMemberRequest[]
 }
 
+export type IGroupInvitationDetail = {
+  invitation_id: string
+  group_id: string
+  member_id: string
+  email: string
+  role: string
+  group_name: string
+  invited_by: string
+  created_at: string
+  expires_at: string
+}
+
 export type IGroupMemberListInfo = {
   member_id: string
   image_url: string | null

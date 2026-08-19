@@ -19,6 +19,8 @@ export enum GROUPS_ENDPOINTS {
   LIST_GROUP = '/groups',
   LIST_MEMBERS = '/groups/members',
   CHANGE_ACTIVE_GROUP = '/groups/switch',
+  GET_GROUP_INVITATION = '/groups/invitations',
+  ACCEPT_GROUP_INVITATION = '/groups/validation',
 }
 
 export enum EVENTS_ENDPOINTS {

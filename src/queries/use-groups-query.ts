@@ -4,13 +4,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef } from 'react'
 import { toast } from 'sonner'
 import {
+  acceptGroupInvitationAPI,
   changeActiveGroupAPI,
   createGroupApi,
+  getGroupInvitationAPI,
   getGroupMembersApi,
   getListGroupKeyValue,
   inviteGroupMembersApi,
 } from '@/api/groups'
 import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
+import { KEY_STORAGE } from '@/enum/key-storage'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
   ICreateGroupRequest,
@@ -21,6 +24,7 @@ import type {
   ISwitchGroupRequest,
 } from '@/interface/groups'
 import type { IAxiosError, IMutation, ReactQueryHookParams } from '@/interface/utils'
+import { getTranslations } from '@/lib/translation'
 import { getErrorMessage } from '@/lib/utils'
 import { GET_PROFILE_QUERY_KEY } from './auth-query-keys'
 
@@ -118,6 +122,44 @@ export const useChangeActiveGroupMutation = ({
     onMutate: () => {
       toastID.current = toast.loading('Changing active group...')
       onMutate?.()
+    },
+  })
+}
+
+export const useGetGroupInvitationQuery = () => {
+  const invitationID = localStorage.getItem(KEY_STORAGE.INVITATION_ID)
+
+  return useQuery({
+    queryFn: ({ signal }) => getGroupInvitationAPI(invitationID ?? '', signal),
+    enabled: !!invitationID,
+    queryKey: [GROUPS_ENDPOINTS.GET_GROUP_INVITATION, invitationID],
+  })
+}
+
+export const useAcceptGroupInvitationMutation = ({
+  onError,
+  onMutate,
+  onSuccess,
+}: IMutation<void, string>) => {
+  const invitationID = localStorage.getItem(KEY_STORAGE.INVITATION_ID)
+  const queryClient = useQueryClient()
+  const translation = getTranslations()
+  return useMutation({
+    mutationFn: async () => {
+      return await acceptGroupInvitationAPI(invitationID ?? '')
+    },
+    onError: (error) => {
+      onError?.(error)
+      toast.error(getErrorMessage(error as IAxiosError) || translation.group_invite_member_error())
+    },
+    onMutate,
+    onSuccess: () => {
+      onSuccess?.()
+      queryClient.invalidateQueries({ queryKey: GET_PROFILE_QUERY_KEY })
+      queryClient.invalidateQueries({
+        queryKey: [GROUPS_ENDPOINTS.LIST_KEY_VALUE, GROUPS_ENDPOINTS.LIST_GROUP],
+      })
+      localStorage.removeItem(KEY_STORAGE.INVITATION_ID)
     },
   })
 }

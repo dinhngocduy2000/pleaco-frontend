@@ -102,6 +102,7 @@ export const useLogoutMutation = ({
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: GET_PROFILE_QUERY_KEY })
       localStorage.removeItem(KEY_STORAGE.IS_LOGGED_IN)
+      localStorage.removeItem(KEY_STORAGE.INVITATION_ID)
       localStorage.removeItem(KEY_STORAGE.IS_SAVE_SESSION)
       navigate({ to: ROUTES.LOGIN as string })
       onSuccess?.()
