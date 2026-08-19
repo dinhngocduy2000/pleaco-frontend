@@ -66,8 +66,6 @@ export function SiteHeader() {
       <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-
-        <span className="text-lg font-semibold">{t.app_name()}</span>
         <SelectGroupDropdown />
         <ProfileDropdownComponent user={user} />
       </header>
@@ -84,7 +82,7 @@ export function SiteHeader() {
           className: 'w-full',
         }}
         cancelButtonProps={{ className: 'hidden' }}
-        onConfirm={() => formRef.current?.submit()}
+        onConfirm={formRef.current?.submit}
         isFormDirtyRef={isFormDirtyRef}
         disableClickOverlay
       >
@@ -116,7 +114,7 @@ export function SiteHeader() {
             color: 'red',
           },
         }}
-        onConfirm={() => handleAcceptInvitation()}
+        onConfirm={handleAcceptInvitation}
         isFormDirtyRef={isFormDirtyRef}
         disableClickOverlay
         onCancel={() => {}}

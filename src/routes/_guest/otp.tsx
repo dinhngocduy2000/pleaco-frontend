@@ -132,5 +132,3 @@ function OTPSignup() {
     </Form>
   )
 }
-
-export default OTPSignup
