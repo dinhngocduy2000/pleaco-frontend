@@ -59,7 +59,7 @@ export default function GroupInviteMember({ setOpen }: GroupInviteMemberProps) {
     reset,
   } = form
 
-  const { mutate: inviteMember, isPending } = useInviteGroupMembersMutation({
+  const { mutateAsync: inviteMember, isPending } = useInviteGroupMembersMutation({
     onSuccess: () => {
       reset()
       setOpen(false)
@@ -80,13 +80,13 @@ export default function GroupInviteMember({ setOpen }: GroupInviteMemberProps) {
     },
   })
 
-  const onSubmit = (data: IInviteGroupMemberFormType) => {
+  const onSubmit = async (data: IInviteGroupMemberFormType) => {
     if (!groupId) {
       toast.error(t.group_members_no_active_group())
       return
     }
 
-    inviteMember({
+    await inviteMember({
       group_id: groupId,
       members: [
         {
@@ -101,13 +101,13 @@ export default function GroupInviteMember({ setOpen }: GroupInviteMemberProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 px-6 pb-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="gap-[2px]">
+              <FormLabel className="gap-0.5">
                 {t.group_invite_member_email_label()}
                 <span className="text-destructive">*</span>
               </FormLabel>
@@ -130,7 +130,7 @@ export default function GroupInviteMember({ setOpen }: GroupInviteMemberProps) {
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="gap-[2px]">
+              <FormLabel className="gap-0.5">
                 {t.group_invite_member_role_label()} <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>

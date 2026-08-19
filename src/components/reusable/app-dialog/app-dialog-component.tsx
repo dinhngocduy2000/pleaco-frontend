@@ -40,6 +40,7 @@ interface Props extends PropsWithChildren {
   isFormDirty?: boolean
   disableClickOverlay?: boolean
   isFormDirtyRef?: RefObject<boolean>
+  onCancel?: VoidFunction
 }
 
 const AppDialogComponent = ({
@@ -58,9 +59,13 @@ const AppDialogComponent = ({
   disableClickOverlay,
   isFormDirtyRef,
   header = true,
+  onCancel,
 }: Props) => {
   const [openConfirmClose, setOpenConfirmClose] = useState<boolean>(false)
-  const onClose = () => setOpen(false)
+  const onClose = () => {
+    onCancel?.()
+    setOpen(false)
+  }
 
   const onOpenChange = (open: boolean) => {
     if (disableClickOverlay) {

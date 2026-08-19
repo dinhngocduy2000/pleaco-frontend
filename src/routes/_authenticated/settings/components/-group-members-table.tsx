@@ -12,6 +12,7 @@ import {
 import {
   GroupMemberOrderBy,
   GroupMemberOrderDirection,
+  GroupRole,
   type GroupRoleType,
   INVITATION_STATUS,
   type InvitationStatusType,
@@ -71,7 +72,11 @@ export function GroupMembersTable() {
       order_by: GroupMemberOrderBy.JOINED_DATE,
       order_direction: GroupMemberOrderDirection.DESC,
     },
-    enabled: Boolean(memberParams),
+    enabled:
+      Boolean(memberParams) &&
+      [GroupRole.ADMIN, GroupRole.OWNER].includes(
+        profileResponse?.data?.group?.role as GroupRoleType,
+      ),
   })
   const setPage = (page: number) => {
     navigate({ search: (previous) => ({ ...previous, page }) })
