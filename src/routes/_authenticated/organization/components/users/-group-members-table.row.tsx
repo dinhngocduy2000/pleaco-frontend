@@ -130,7 +130,6 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
           <GroupEditMember
             groupId={groupId}
             member={selectedMember.current}
-            open={openEditModal}
             setOpen={setOpenEditModal}
           />
         ) : null}

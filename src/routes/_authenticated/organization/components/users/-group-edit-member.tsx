@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { type Dispatch, type SetStateAction, useEffect } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { type Resolver, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
@@ -26,7 +26,6 @@ import { updateGroupMemberFormSchema } from '@/schemas/group-schemas'
 type GroupEditMemberProps = {
   groupId: string
   member: IGroupMemberListInfo
-  open: boolean
   setOpen: Dispatch<SetStateAction<boolean>>
 }
 
@@ -37,7 +36,7 @@ const roleOptions: IOption[] = LIST_ROLES.map((role) => ({
   value: role,
 }))
 
-export default function GroupEditMember({ groupId, member, open, setOpen }: GroupEditMemberProps) {
+export default function GroupEditMember({ groupId, member, setOpen }: GroupEditMemberProps) {
   const queryClient = useQueryClient()
   const form = useForm<IUpdateGroupMemberFormType>({
     mode: 'onChange',
@@ -51,10 +50,6 @@ export default function GroupEditMember({ groupId, member, open, setOpen }: Grou
     handleSubmit,
     reset,
   } = form
-
-  // useEffect(() => {
-  //   if (open) reset({ role: member.role })
-  // }, [member, open, reset])
 
   const { mutateAsync: updateMember, isPending } = useUpdateMemberMutation({
     onSuccess: () => {

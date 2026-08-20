@@ -13,7 +13,7 @@ import { UserStatus } from '@/enum/users'
 import { useDebounce } from '@/hooks/use-debounce'
 import type { IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
-import { Route } from '../tenant-settings'
+import { Route } from '../../users'
 import GroupInviteMember from './-group-invite-member'
 
 const t = getTranslations()
