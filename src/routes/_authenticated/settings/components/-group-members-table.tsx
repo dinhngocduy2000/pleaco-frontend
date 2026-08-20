@@ -118,6 +118,7 @@ export function GroupMembersTable() {
                   <GroupMembersTableRowComponent
                     member={member}
                     key={member.member_id}
+                    groupId={groupId}
                     index={(currentPage - 1) * PAGE_SIZE + index + 1}
                   />
                 )

@@ -7,21 +7,25 @@ import {
   acceptGroupInvitationAPI,
   changeActiveGroupAPI,
   createGroupApi,
+  deleteGroupMemberAPI,
   getGroupInvitationAPI,
   getGroupMembersApi,
   getListGroupKeyValue,
   inviteGroupMembersApi,
+  updateGroupMemberAPI,
 } from '@/api/groups'
 import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
 import { KEY_STORAGE } from '@/enum/key-storage'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
   ICreateGroupRequest,
+  IDeleteMemberRequest,
   IGroupInfo,
   IGroupMemberListInfo,
   IGroupMemberListRequest,
   IInviteGroupMembersRequest,
   ISwitchGroupRequest,
+  IUpdateGroupMemberRequest,
 } from '@/interface/groups'
 import type { IAxiosError, IMutation, ReactQueryHookParams } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
@@ -161,5 +165,38 @@ export const useAcceptGroupInvitationMutation = ({
       })
       localStorage.removeItem(KEY_STORAGE.INVITATION_ID)
     },
+  })
+}
+
+export const useDeleteMemberMutation = ({
+  onError,
+  onMutate,
+  onSuccess,
+}: IMutation<void, IDeleteMemberRequest>) => {
+  return useMutation({
+    mutationFn: async (data: IDeleteMemberRequest) => {
+      return await deleteGroupMemberAPI(data)
+    },
+    onError: (error) => {
+      onError?.(error)
+      toast.error(getErrorMessage(error as IAxiosError))
+    },
+    onMutate,
+    onSuccess,
+  })
+}
+
+export const useUpdateMemberMutation = ({
+  onError,
+  onMutate,
+  onSuccess,
+}: IMutation<IResponseData<void>, IUpdateGroupMemberRequest> = {}) => {
+  return useMutation({
+    mutationFn: async (data: IUpdateGroupMemberRequest) => {
+      return await updateGroupMemberAPI(data)
+    },
+    onError,
+    onMutate,
+    onSuccess,
   })
 }

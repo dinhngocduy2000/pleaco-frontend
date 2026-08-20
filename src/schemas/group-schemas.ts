@@ -40,3 +40,10 @@ export const inviteGroupMemberFormSchema = () => {
     role: z.string().min(1, { message: t.group_invite_member_role_required() }),
   })
 }
+
+export const updateGroupMemberFormSchema = () => {
+  const t = getTranslations()
+  return z.object({
+    role: z.string().min(1, { message: t.group_invite_member_role_required() }),
+  })
+}

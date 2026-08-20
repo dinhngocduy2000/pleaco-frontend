@@ -2,12 +2,14 @@ import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
   ICreateGroupRequest,
+  IDeleteMemberRequest,
   IGroupInfo,
   IGroupInvitationDetail,
   IGroupMemberListInfo,
   IGroupMemberListRequest,
   IInviteGroupMemberRequest,
   ISwitchGroupRequest,
+  IUpdateGroupMemberRequest,
 } from '@/interface/groups'
 import type { IOption } from '@/interface/utils'
 import axiosConfig from '.'
@@ -58,4 +60,19 @@ export const getGroupInvitationAPI = async (
 
 export const acceptGroupInvitationAPI = async (invitaitonID: string): Promise<void> => {
   return await axiosConfig.post(`${GROUPS_ENDPOINTS.ACCEPT_GROUP_INVITATION}/${invitaitonID}`)
+}
+
+export const deleteGroupMemberAPI = async (data: IDeleteMemberRequest): Promise<void> => {
+  return await axiosConfig.delete(
+    `${GROUPS_ENDPOINTS.LIST_GROUP}/${data.group_id}/members/${data.member_id}`,
+  )
+}
+
+export const updateGroupMemberAPI = async (
+  data: IUpdateGroupMemberRequest,
+): Promise<IResponseData<void>> => {
+  return await axiosConfig.put(
+    `${GROUPS_ENDPOINTS.LIST_GROUP}/${data.group_id}/members/${data.member_id}`,
+    { role: data.role },
+  )
 }
