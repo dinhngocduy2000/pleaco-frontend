@@ -24,7 +24,7 @@ import { getErrorMessage } from '@/lib/utils'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useInviteGroupMembersMutation } from '@/queries/use-groups-query'
 import { inviteGroupMemberFormSchema } from '@/schemas/group-schemas'
-import { Route } from '../tenant-settings'
+import { Route } from '../../users'
 
 type GroupInviteMemberProps = {
   setOpen: Dispatch<SetStateAction<boolean>>

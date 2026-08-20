@@ -99,7 +99,7 @@ export function getNavGroups(): NavGroup[] {
       icon: Settings,
       items: [
         {
-          title: t.group_members_settings(),
+          title: t.group_settings(),
           url: ROUTES.TENANT_SETTINGS,
           icon: Settings,
           roles: [GroupRole.OWNER, GroupRole.ADMIN],

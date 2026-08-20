@@ -20,7 +20,7 @@ import { useGroupMembersQuery } from '@/queries/use-groups-query'
 import 'dayjs/locale/vi'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { Route } from '../tenant-settings'
+import { Route } from '../../users'
 import { GroupMembersPagination } from './-group-members-pagination'
 import GroupMembersTableRowComponent from './-group-members-table.row'
 

@@ -59,6 +59,7 @@
   "sidebar_users": "Users",
   "sidebar_roles_permissions": "Roles & Permissions",
   "sidebar_audit_logs": "Audit Logs",
+  "group_settings": "Groups Setting",
   "group_members_settings": "Members Setting",
   "group_members_search_placeholder": "Search by email",
   "group_members_order_newest": "Newest joined",
