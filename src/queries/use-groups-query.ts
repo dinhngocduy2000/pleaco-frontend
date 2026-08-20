@@ -7,6 +7,7 @@ import {
   acceptGroupInvitationAPI,
   changeActiveGroupAPI,
   createGroupApi,
+  deleteGroupMemberAPI,
   getGroupInvitationAPI,
   getGroupMembersApi,
   getListGroupKeyValue,
@@ -17,6 +18,7 @@ import { KEY_STORAGE } from '@/enum/key-storage'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
   ICreateGroupRequest,
+  IDeleteMemberRequest,
   IGroupInfo,
   IGroupMemberListInfo,
   IGroupMemberListRequest,
@@ -161,5 +163,23 @@ export const useAcceptGroupInvitationMutation = ({
       })
       localStorage.removeItem(KEY_STORAGE.INVITATION_ID)
     },
+  })
+}
+
+export const useDeleteMemberMutation = ({
+  onError,
+  onMutate,
+  onSuccess,
+}: IMutation<void, IDeleteMemberRequest>) => {
+  return useMutation({
+    mutationFn: async (data: IDeleteMemberRequest) => {
+      return await deleteGroupMemberAPI(data)
+    },
+    onError: (error) => {
+      onError?.(error)
+      toast.error(getErrorMessage(error as IAxiosError))
+    },
+    onMutate,
+    onSuccess,
   })
 }

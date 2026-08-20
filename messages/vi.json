@@ -82,6 +82,7 @@
   "group_members_invitation_accepted": "Đã chấp nhận",
   "group_members_invitation_rejected": "Đã từ chối",
   "group_invitation_status": "Trạng thái lời mời",
+  "group_delete_member_success": "Thành viên {email} đã được xoá khỏi nhóm",
   "group_invite_members": "Mời thành viên",
   "group_invite_member_email_label": "Email",
   "group_invite_member_email_placeholder": "thanhvien@example.com",

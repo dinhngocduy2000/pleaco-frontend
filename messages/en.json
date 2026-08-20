@@ -96,6 +96,7 @@
   "group_members_invitation_accepted": "Accepted",
   "group_members_invitation_rejected": "Rejected",
   "group_invitation_status": "Invitation Status",
+  "group_delete_member_success": "Member {email} has been successfully removed from the group",
   "header_notifications": "Notifications",
   "header_no_notifications": "No new notifications",
   "header_logout": "Logout",

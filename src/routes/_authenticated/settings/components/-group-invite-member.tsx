@@ -15,10 +15,10 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
 import { GroupRole, type GroupRoleType, LIST_ROLES } from '@/enum/group'
 import type { IInviteGroupMemberFormType } from '@/interface/groups'
 import type { IAxiosError, IOption } from '@/interface/utils'
+import { refreshGroupMembersList } from '@/lib/group-members'
 import { getTranslations } from '@/lib/translation'
 import { getErrorMessage } from '@/lib/utils'
 import { useProfileQuery } from '@/queries/use-auth-query'
@@ -64,16 +64,13 @@ export default function GroupInviteMember({ setOpen }: GroupInviteMemberProps) {
       reset()
       setOpen(false)
       toast.success(t.group_invite_member_success())
-      if (search.page === 1) {
-        queryClient.invalidateQueries({ queryKey: [GROUPS_ENDPOINTS.LIST_MEMBERS] })
-        return
-      }
-
-      queryClient.invalidateQueries({
-        queryKey: [GROUPS_ENDPOINTS.LIST_MEMBERS],
-        refetchType: 'none',
+      refreshGroupMembersList({
+        page: search.page,
+        queryClient,
+        resetPage: () => {
+          navigate({ search: (previous) => ({ ...previous, page: 1 }) })
+        },
       })
-      navigate({ search: (previous) => ({ ...previous, page: 1 }) })
     },
     onError: (error) => {
       toast.error(getErrorMessage(error as IAxiosError) || t.group_invite_member_error())

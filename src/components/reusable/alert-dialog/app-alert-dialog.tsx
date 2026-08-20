@@ -24,7 +24,7 @@ interface Props extends PropsWithChildren {
 }
 
 const AlertDialogComponent = ({
-  dialogTrigger = 'Open',
+  dialogTrigger = <></>,
   onConfirm = () => {},
   title = 'Are you absolutely sure?',
   text = 'Are you sure you want to continue with this action? ',

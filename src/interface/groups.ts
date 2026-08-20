@@ -78,3 +78,8 @@ export type IGroupMemberListRequest = {
   status?: UserStatusType
   invitation_status?: InvitationStatusType
 }
+
+export type IDeleteMemberRequest = {
+  member_id: string
+  group_id: string
+}

@@ -2,6 +2,7 @@ import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
   ICreateGroupRequest,
+  IDeleteMemberRequest,
   IGroupInfo,
   IGroupInvitationDetail,
   IGroupMemberListInfo,
@@ -58,4 +59,10 @@ export const getGroupInvitationAPI = async (
 
 export const acceptGroupInvitationAPI = async (invitaitonID: string): Promise<void> => {
   return await axiosConfig.post(`${GROUPS_ENDPOINTS.ACCEPT_GROUP_INVITATION}/${invitaitonID}`)
+}
+
+export const deleteGroupMemberAPI = async (data: IDeleteMemberRequest): Promise<void> => {
+  return await axiosConfig.delete(
+    `${GROUPS_ENDPOINTS.LIST_GROUP}/${data.group_id}/members/${data.member_id}`,
+  )
 }
