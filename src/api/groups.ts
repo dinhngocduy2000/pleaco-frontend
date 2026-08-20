@@ -9,6 +9,7 @@ import type {
   IGroupMemberListRequest,
   IInviteGroupMemberRequest,
   ISwitchGroupRequest,
+  IUpdateGroupMemberRequest,
 } from '@/interface/groups'
 import type { IOption } from '@/interface/utils'
 import axiosConfig from '.'
@@ -64,5 +65,14 @@ export const acceptGroupInvitationAPI = async (invitaitonID: string): Promise<vo
 export const deleteGroupMemberAPI = async (data: IDeleteMemberRequest): Promise<void> => {
   return await axiosConfig.delete(
     `${GROUPS_ENDPOINTS.LIST_GROUP}/${data.group_id}/members/${data.member_id}`,
+  )
+}
+
+export const updateGroupMemberAPI = async (
+  data: IUpdateGroupMemberRequest,
+): Promise<IResponseData<void>> => {
+  return await axiosConfig.put(
+    `${GROUPS_ENDPOINTS.LIST_GROUP}/${data.group_id}/members/${data.member_id}`,
+    { role: data.role },
   )
 }

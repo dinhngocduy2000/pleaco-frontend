@@ -4,13 +4,17 @@ import { PencilIcon, Trash2Icon, UserIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AlertDialogComponent from '@/components/reusable/alert-dialog/app-alert-dialog'
+import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { GROUPS_ENDPOINTS } from '@/enum/endpoints'
+import { INVITATION_STATUS } from '@/enum/group'
 import type { IGroupMemberListInfo } from '@/interface/groups'
 import { getCurrentLanguage, getTranslations } from '@/lib/translation'
+import { useProfileQuery } from '@/queries/use-auth-query'
 import { useDeleteMemberMutation } from '@/queries/use-groups-query'
+import GroupEditMember from './-group-edit-member'
 import GroupMemberInvitationStatusBadge from './-group-members-invitation-status'
 
 type Props = {
@@ -29,18 +33,26 @@ function getInitials(name: string): string {
 
 const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
   const [openConfirmDeleteModal, setOpenConfirmDeleteModal] = useState<boolean>(false)
-  const deletedMember = useRef<IGroupMemberListInfo>(null)
+  const selectedMember = useRef<IGroupMemberListInfo | null>(null)
   const queryClient = useQueryClient()
+  const [openEditModal, setOpenEditModal] = useState<boolean>(false)
+  const { data: profileResponse } = useProfileQuery()
   const { mutateAsync: deleteMember, isPending: isDeleting } = useDeleteMemberMutation({
     onSuccess: () => {
       toast.success(t.group_delete_member_success({ email: member.email }))
       queryClient.invalidateQueries({ queryKey: [GROUPS_ENDPOINTS.LIST_MEMBERS] })
+      selectedMember.current = null
     },
   })
 
   const onDeleteMember = () => {
-    deletedMember.current = member
+    selectedMember.current = member
     setOpenConfirmDeleteModal(true)
+  }
+
+  const onEditMember = () => {
+    selectedMember.current = member
+    setOpenEditModal(true)
   }
   const onConfirmDeleteMember = async () => {
     await deleteMember({ group_id: groupId, member_id: member.member_id })
@@ -48,7 +60,7 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
   const avatarSrc = member.image_url?.trim() || undefined
   return (
     <>
-      <TableRow key={member.member_id}>
+      <TableRow>
         <TableCell className="text-center">{index}</TableCell>
         <TableCell>
           <div className="flex gap-4 pl-12">
@@ -66,21 +78,25 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
         </TableCell>
         <TableCell className="text-center capitalize">{member.role}</TableCell>
         <TableCell className="text-center capitalize">
-          <GroupMemberInvitationStatusBadge status={member.status} />
+          <GroupMemberInvitationStatusBadge status={member.invitation_status} />
         </TableCell>
         <TableCell className="text-center">
           {dayjs(member.joined_at).locale(getCurrentLanguage()).format('MM/DD/YYYY')}
         </TableCell>
         <TableCell>
           <div className="flex justify-center gap-1">
-            <Button
-              aria-label={t.group_members_edit_coming_soon()}
-              size="icon-sm"
-              title={t.group_members_edit_coming_soon()}
-              variant="ghost"
-            >
-              <PencilIcon />
-            </Button>
+            {profileResponse?.data.id !== member.member_id &&
+              member.invitation_status === INVITATION_STATUS.ACCEPTED && (
+                <Button
+                  aria-label={t.group_members_edit()}
+                  size="icon-sm"
+                  title={t.group_members_edit()}
+                  variant="ghost"
+                  onClick={onEditMember}
+                >
+                  <PencilIcon />
+                </Button>
+              )}
             <Button
               aria-label={t.group_members_delete_coming_soon()}
               className="text-destructive"
@@ -100,8 +116,25 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
         setOpen={setOpenConfirmDeleteModal}
         onConfirm={onConfirmDeleteMember}
         loading={isDeleting}
+        text={t.group_delete_member_description({ email: member.email })}
         confirmText="Confirm"
       />
+      <AppDialogComponent
+        dialogTrigger={null}
+        footer={false}
+        open={openEditModal}
+        setOpen={setOpenEditModal}
+        title={t.group_edit_member_title()}
+      >
+        {selectedMember.current ? (
+          <GroupEditMember
+            groupId={groupId}
+            member={selectedMember.current}
+            open={openEditModal}
+            setOpen={setOpenEditModal}
+          />
+        ) : null}
+      </AppDialogComponent>
     </>
   )
 }
