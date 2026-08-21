@@ -1,20 +1,31 @@
 import { createFileRoute } from '@tanstack/react-router'
-import z from 'zod'
 import { GroupMemberOrderDirection } from '@/enum/group'
 import { getTranslations } from '@/lib/translation'
 import { GroupMembersTable } from './components/users/-group-members-table'
 import { GroupMembersToolbar } from './components/users/-group-members-toolbar'
 
-const groupMembersSettingsSearchSchema = z.object({
-  page: z.coerce.number().int().min(1).catch(1),
-  email: z.string().optional(),
-  role: z.string().optional(),
-  status: z.string().optional(),
-  order_direction: z.enum(['asc', 'desc']).catch(GroupMemberOrderDirection.DESC),
-})
+const parsePage = (value: unknown) => {
+  const page = typeof value === 'number' ? value : Number(value)
+
+  return Number.isInteger(page) && page > 0 ? page : 1
+}
+
+const parseOptionalString = (value: unknown) => (typeof value === 'string' ? value : undefined)
+
+const parseOrderDirection = (value: unknown) =>
+  value === GroupMemberOrderDirection.ASC || value === GroupMemberOrderDirection.DESC
+    ? value
+    : GroupMemberOrderDirection.DESC
+
 export const Route = createFileRoute('/_authenticated/organization/users')({
   component: UsersPage,
-  validateSearch: groupMembersSettingsSearchSchema,
+  validateSearch: (search) => ({
+    page: parsePage(search.page),
+    email: parseOptionalString(search.email),
+    role: parseOptionalString(search.role),
+    status: parseOptionalString(search.status),
+    order_direction: parseOrderDirection(search.order_direction),
+  }),
 })
 const translation = getTranslations()
 

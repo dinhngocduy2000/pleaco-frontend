@@ -23,6 +23,29 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'react'
+          }
+
+          if (id.includes('node_modules/scheduler/')) {
+            return 'react'
+          }
+
+          if (id.includes('node_modules/@tanstack/')) {
+            return 'tanstack'
+          }
+
+          if (id.includes('node_modules/zod/')) {
+            return 'zod'
+          }
+        },
+      },
+    },
+  },
   preview: { host: '0.0.0.0', port: 3000 },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') }, dedupe: ['react', 'react-dom'] },
   test: { globals: true, environment: 'jsdom', setupFiles: ['./src/tests/setup.ts'], css: true },

@@ -1,14 +1,12 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
-import z from 'zod'
 import { KEY_STORAGE } from '@/enum/key-storage'
 import { ROUTES } from '@/enum/routes'
 
-const invitationRedirectSearchSchema = z.object({
-  invitation_id: z.string().optional(),
-})
 export const Route = createFileRoute('/_redirect/invitation')({
   component: RouteComponent,
-  validateSearch: invitationRedirectSearchSchema,
+  validateSearch: (search) => ({
+    invitation_id: typeof search.invitation_id === 'string' ? search.invitation_id : undefined,
+  }),
 })
 
 function RouteComponent() {
