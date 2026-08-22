@@ -77,7 +77,7 @@ function SelectOptionIndicator({ multiple, selected }: { multiple: boolean; sele
       <span
         aria-hidden
         className={cn(
-          'ml-auto flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-muted-foreground/40',
+          'ml-auto flex size-4 shrink-0 items-center justify-center rounded-lg border border-muted-foreground/40',
           selected && 'border-primary bg-primary text-primary-foreground',
         )}
       >

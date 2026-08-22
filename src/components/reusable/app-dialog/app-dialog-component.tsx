@@ -111,14 +111,14 @@ const AppDialogComponent = ({
         <Activity mode={footer ? 'visible' : 'hidden'}>
           <DialogFooter>
             <Button
-              className="min-w-[100px]"
+              className="min-w-25"
               variant={'secondary'}
               onClick={onClose}
               {...cancelButtonProps}
             >
               {cancelButtonText}
             </Button>
-            <Button className="min-w-[100px]" onClick={onConfirm} {...confirmButtonProps}>
+            <Button className="min-w-25" onClick={onConfirm} {...confirmButtonProps}>
               {confirmButtonText}
             </Button>
           </DialogFooter>
