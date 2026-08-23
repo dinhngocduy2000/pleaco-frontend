@@ -1,5 +1,9 @@
 import type z from 'zod'
-import type { RobotModelType } from '@/enum/robot'
+import type {
+  RobotConnectionStatusType,
+  RobotModelType,
+  RobotOperationStatusType,
+} from '@/enum/robot'
 import type { createRobotFormSchema } from '@/schemas/robot-schemas'
 
 export type ICreateRobotFormType = z.infer<ReturnType<typeof createRobotFormSchema>>
@@ -12,4 +16,26 @@ export type ICreateRobotRequest = {
   map_id: string | null
   ip_address: string
   tags: string[]
+}
+
+export type IRobotInfo = {
+  map_name?: string
+  serial_num: string
+  name: string
+  model: RobotModelType
+  ip_address: string
+  operational_status: RobotOperationStatusType
+  created_at: string
+  connection_status: RobotConnectionStatusType
+}
+
+export type IRobotListRequest = {
+  group_id: string
+  page: number
+  page_size: number
+  search?: string
+  model?: RobotModelType
+  operational_status?: RobotOperationStatusType
+  connection_status?: RobotConnectionStatusType
+  tag_ids?: string[]
 }

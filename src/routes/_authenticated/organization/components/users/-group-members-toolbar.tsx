@@ -104,7 +104,6 @@ export function GroupMembersToolbar() {
             },
           ]}
           contentAlign="start"
-          selectedValue={search.order_direction}
         />
         <AppSelectComponent
           className="md:w-44"
