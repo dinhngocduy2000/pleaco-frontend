@@ -27,3 +27,7 @@ export enum EVENTS_ENDPOINTS {
   /** `GET` — query: `IEventCalendarRequest`; resolves to `{baseURL}/v1/events` when `baseURL` ends with `/api`. */
   EVENT_CALENDAR = '/events',
 }
+
+export enum BOTS_ENDPOINTS {
+  CREATE = '/bots',
+}
