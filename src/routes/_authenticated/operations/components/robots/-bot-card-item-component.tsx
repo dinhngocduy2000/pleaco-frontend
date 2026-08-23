@@ -12,7 +12,6 @@ import AppDropdownMenu from '@/components/reusable/app-dropdown-menu/dropdown-me
 import { Badge } from '@/components/ui/badge'
 import { Item, ItemContent, ItemFooter, ItemMedia } from '@/components/ui/item'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import { TypographyH2, TypographyMuted, TypographySmall } from '@/components/ui/typography'
 import {
   ROBOT_CONNECTION_STATUS,
@@ -116,8 +115,8 @@ export function BotCardItemComponent({ robot }: BotCardItemComponentProps) {
 
   return (
     <Item className="block overflow-hidden rounded-xl border-border bg-card p-0 shadow-sm">
-      <div className="grid min-w-0 md:grid-cols-[14rem_minmax(0,1fr)]">
-        <ItemMedia className="min-h-52 w-full rounded-none bg-muted p-4 md:min-h-full md:w-auto">
+      <div className="grid min-w-0 xl:grid-cols-[14rem_minmax(0,1fr)]">
+        <ItemMedia className="min-h-52 w-full rounded-none bg-muted p-4 xl:min-h-full xl:w-auto">
           <RobotImageByModel model={robot.model} />
         </ItemMedia>
         <div className="flex min-w-0 flex-col">
@@ -143,33 +142,28 @@ export function BotCardItemComponent({ robot }: BotCardItemComponentProps) {
               </Badge>
             </div>
 
-            <div className="grid gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:gap-4">
+            <div className="flex flex-wrap justify-between text-sm gap-4">
               <dl>
-                <div>
-                  <dt>
-                    <TypographySmall className="text-muted-foreground">
-                      {t.robot_card_map_label()}
-                    </TypographySmall>
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    <TypographySmall>
-                      {robot.map_name ?? t.robot_card_map_unassigned()}
-                    </TypographySmall>
-                  </dd>
-                </div>
+                <dt>
+                  <TypographySmall className="text-muted-foreground">
+                    {t.robot_card_map_label()}
+                  </TypographySmall>
+                </dt>
+                <dd className="mt-1 font-medium">
+                  <TypographySmall>
+                    {robot.map_name ?? t.robot_card_map_unassigned()}
+                  </TypographySmall>
+                </dd>
               </dl>
-              <Separator orientation="vertical" className="hidden self-stretch sm:block" />
               <dl>
-                <div>
-                  <dt>
-                    <TypographySmall className="text-muted-foreground">
-                      {t.robot_card_ip_label()}
-                    </TypographySmall>
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    <TypographySmall>{robot.ip_address}</TypographySmall>
-                  </dd>
-                </div>
+                <dt>
+                  <TypographySmall className="text-muted-foreground">
+                    {t.robot_card_ip_label()}
+                  </TypographySmall>
+                </dt>
+                <dd className="mt-1 font-medium">
+                  <TypographySmall>{robot.ip_address}</TypographySmall>
+                </dd>
               </dl>
             </div>
 

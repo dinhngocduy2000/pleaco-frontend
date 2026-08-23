@@ -28,3 +28,14 @@ export type IRobotInfo = {
   created_at: string
   connection_status: RobotConnectionStatusType
 }
+
+export type IRobotListRequest = {
+  group_id: string
+  page: number
+  page_size: number
+  search?: string
+  model?: RobotModelType
+  operational_status?: RobotOperationStatusType
+  connection_status?: RobotConnectionStatusType
+  tag_ids?: string[]
+}

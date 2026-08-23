@@ -2,14 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import { RobotModel } from '@/enum/robot'
 
+const get = vi.hoisted(() => vi.fn())
 const post = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api', () => ({ default: { post } }))
+vi.mock('@/api', () => ({ default: { get, post } }))
 
-import { createRobotApi } from '@/api/robots'
+import { createRobotApi, getRobotsApi } from '@/api/robots'
 
 describe('createRobotApi', () => {
   beforeEach(() => {
+    get.mockReset()
     post.mockReset()
   })
 
@@ -28,5 +30,24 @@ describe('createRobotApi', () => {
     await createRobotApi(payload)
 
     expect(post).toHaveBeenCalledWith(BOTS_ENDPOINTS.CREATE, payload)
+  })
+
+  it('gets a paginated, filtered bot list with cancellation support', async () => {
+    const params = {
+      group_id: '00000000-0000-4000-8000-000000000010',
+      page: 2,
+      page_size: 10,
+      search: 'Milo',
+      model: RobotModel.PRO,
+      operational_status: 'IDLE' as const,
+      connection_status: 'ONLINE' as const,
+      tag_ids: ['00000000-0000-4000-8000-000000000001'],
+    }
+    const signal = new AbortController().signal
+    get.mockResolvedValue({ items: [], page: 2, page_size: 10, total: 0, message: 'OK' })
+
+    await getRobotsApi(params, signal)
+
+    expect(get).toHaveBeenCalledWith(BOTS_ENDPOINTS.LIST, { params, signal })
   })
 })

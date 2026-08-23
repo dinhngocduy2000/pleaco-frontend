@@ -168,5 +168,21 @@
   "robot_card_menu_label": "Tùy chọn robot",
   "robot_card_menu_delete": "Xóa",
   "robot_card_menu_deactivate": "Vô hiệu hóa",
-  "robot_card_menu_assign_map": "Gán bản đồ"
+  "robot_card_menu_assign_map": "Gán bản đồ",
+  "robots_search_placeholder": "Tìm robot theo tên hoặc số sê-ri",
+  "robots_filters_trigger": "Bộ lọc",
+  "robots_filters_title": "Lọc robot",
+  "robots_filters_description": "Chọn bộ lọc, sau đó áp dụng cho danh sách robot.",
+  "robots_filter_model": "Mẫu robot",
+  "robots_filter_operational_status": "Trạng thái hoạt động",
+  "robots_filter_connection_status": "Trạng thái kết nối",
+  "robots_filter_tags": "Nhãn",
+  "robots_filter_tags_empty": "Chưa có nhãn nào.",
+  "robots_filters_reset": "Đặt lại",
+  "robots_filters_apply": "Áp dụng bộ lọc",
+  "robots_loading": "Đang tải robot…",
+  "robots_no_active_group": "Hãy chọn nhóm đang hoạt động để xem robot.",
+  "robots_error": "Không thể tải robot.",
+  "robots_empty": "Không tìm thấy robot.",
+  "robots_empty_description": "Thử điều chỉnh bộ lọc hoặc tạo robot mới."
 }

@@ -168,5 +168,21 @@
   "robot_card_menu_label": "Robot options",
   "robot_card_menu_delete": "Delete",
   "robot_card_menu_deactivate": "Deactivate",
-  "robot_card_menu_assign_map": "Assign map"
+  "robot_card_menu_assign_map": "Assign map",
+  "robots_search_placeholder": "Search robots by name or serial number",
+  "robots_filters_trigger": "Filters",
+  "robots_filters_title": "Filter robots",
+  "robots_filters_description": "Choose filters, then apply them to the robot list.",
+  "robots_filter_model": "Model",
+  "robots_filter_operational_status": "Operational status",
+  "robots_filter_connection_status": "Connection status",
+  "robots_filter_tags": "Tags",
+  "robots_filter_tags_empty": "No tags are available.",
+  "robots_filters_reset": "Reset",
+  "robots_filters_apply": "Apply filters",
+  "robots_loading": "Loading robots…",
+  "robots_no_active_group": "Select an active group to view robots.",
+  "robots_error": "Unable to load robots.",
+  "robots_empty": "No robots found.",
+  "robots_empty_description": "Try adjusting your filters or create a new robot."
 }
