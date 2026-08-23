@@ -1,10 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, X } from 'lucide-react'
-import { type Dispatch, type SetStateAction, useEffect, useState } from 'react'
+import { X } from 'lucide-react'
+import type { Dispatch, SetStateAction } from 'react'
 import { type Resolver, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import robotImage from '@/assets/images/pleaco-bot-image.png'
-import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import DialogFooterComponent from '@/components/reusable/dialog-footer/dialog-footer'
 import { Button } from '@/components/ui/button'
@@ -17,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { LIST_ROBOT_MODELS, type RobotModelType } from '@/enum/robot'
+import { LIST_ROBOT_MODELS, RobotModel, type RobotModelType } from '@/enum/robot'
 import type { ICreateRobotFormType } from '@/interface/robots'
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
@@ -25,9 +23,9 @@ import { getErrorMessage } from '@/lib/utils'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useCreateRobotMutation } from '@/queries/use-robots-query'
 import { createRobotFormSchema } from '@/schemas/robot-schemas'
+import RobotImageByModel from './-robot-img-model'
 
 type CreateRobotDialogProps = {
-  open: boolean
   setOpen: Dispatch<SetStateAction<boolean>>
 }
 
@@ -43,7 +41,7 @@ const tagOptions: IOption[] = [
   { label: 'High capacity', value: '00000000-0000-4000-8000-000000000002' },
 ]
 
-export function CreateRobotDialog({ open, setOpen }: CreateRobotDialogProps) {
+export function CreateRobotDialog({ setOpen }: CreateRobotDialogProps) {
   const { data: profileResponse } = useProfileQuery()
   const groupId = profileResponse?.data.group_id
   const form = useForm<ICreateRobotFormType>({
@@ -52,7 +50,7 @@ export function CreateRobotDialog({ open, setOpen }: CreateRobotDialogProps) {
     defaultValues: {
       name: '',
       serial_num: '',
-      model: undefined,
+      model: RobotModel.STANDARD,
       map_id: undefined,
       ip_address: '',
       tags: [],
@@ -64,10 +62,6 @@ export function CreateRobotDialog({ open, setOpen }: CreateRobotDialogProps) {
     reset,
     watch,
   } = form
-
-  useEffect(() => {
-    if (!open) reset()
-  }, [open, reset])
 
   const { mutateAsync: createRobot, isPending } = useCreateRobotMutation({
     onSuccess: () => {
@@ -100,196 +94,170 @@ export function CreateRobotDialog({ open, setOpen }: CreateRobotDialogProps) {
   const selectedModel = robotModelOptions.find((option) => option.value === watch('model'))
   const selectedTags = tagOptions.filter((option) => watch('tags').includes(option.value))
   const footerDisabled = !isValid || isPending
-
   return (
-    <AppDialogComponent
-      open={open}
-      setOpen={setOpen}
-      title={t.robot_create_title()}
-      footer={false}
-      header={false}
-      dialogTrigger={null}
-      dialogProps={{
-        className:
-          'max-h-[calc(100vh-2rem)] max-w-6xl overflow-hidden p-0 md:w-[min(92vw,72rem)] lg:h-[85vh] lg:w-[80vw] lg:max-w-none',
-      }}
-    >
-      <div className="grid min-h-0 md:grid-cols-2 lg:h-full">
-        <div className="min-h-56 overflow-hidden bg-muted md:min-h-full">
-          <img src={robotImage} alt="" className="h-full w-full object-cover object-center" />
-        </div>
-        <div className="flex min-h-0 flex-col md:col-span-1">
-          <div className="flex items-start justify-between gap-4 px-6 pt-6">
-            <div>
-              <h2 className="text-2xl font-bold">{t.robot_create_title()}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{t.robot_create_description()}</p>
-            </div>
-            <Button
-              aria-label="Close"
-              variant="ghost"
-              size="icon"
-              type="button"
-              onClick={() => setOpen(false)}
-            >
-              <X />
-            </Button>
-          </div>
-          <Form {...form}>
-            <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col p-4">
-              <div className="grid gap-4 overflow-y-auto px-6 py-6 sm:grid-cols-2">
-                <p className="sm:col-span-2 text-xs font-semibold tracking-wider text-primary uppercase">
-                  {t.robot_create_identity_section()}
-                </p>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t.robot_create_name_label()} <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          autoFocus
-                          maxLength={50}
-                          placeholder={t.robot_create_name_placeholder()}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="serial_num"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t.robot_create_serial_label()} <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          maxLength={50}
-                          placeholder={t.robot_create_serial_placeholder()}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <p className="sm:col-span-2 pt-2 text-xs font-semibold tracking-wider text-primary uppercase">
-                  {t.robot_create_configuration_section()}
-                </p>
-                <FormField
-                  control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t.robot_create_model_label()} <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <AppSelectComponent
-                          options={robotModelOptions}
-                          placeholder={t.robot_create_model_placeholder()}
-                          value={selectedModel}
-                          onChange={(option) => field.onChange(option?.value as RobotModelType)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="map_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t.robot_create_map_label()}</FormLabel>
-                      <FormControl>
-                        <AppSelectComponent
-                          options={[]}
-                          placeholder={t.robot_create_map_placeholder()}
-                          value={undefined}
-                          onChange={(option) => field.onChange(option?.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <p className="sm:col-span-2 pt-2 text-xs font-semibold tracking-wider text-primary uppercase">
-                  {t.robot_create_connectivity_section()}
-                </p>
-                <FormField
-                  control={form.control}
-                  name="ip_address"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>
-                        {t.robot_create_ip_label()} <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder={t.robot_create_ip_placeholder()} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="tags"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <FormLabel>{t.robot_create_tags_label()}</FormLabel>
-                      <FormControl>
-                        <AppSelectComponent
-                          multiple
-                          options={tagOptions}
-                          placeholder={t.robot_create_tags_placeholder()}
-                          value={selectedTags}
-                          onChange={(options) =>
-                            field.onChange(options.map((option) => option.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <DialogFooterComponent
-                cancelButtonText={t.robot_create_cancel()}
-                confirmButtonText={t.robot_create_submit()}
-                cancelButtonProps={{ disabled: isPending }}
-                confirmButtonProps={{
-                  disabled: footerDisabled,
-                  loading: isPending,
-                  type: 'button',
-                }}
-                onCancel={() => setOpen(false)}
-                onConfirm={handleSubmit(onSubmit)}
-              />
-            </form>
-          </Form>
-        </div>
+    <div className="grid min-h-0 md:grid-cols-2 lg:h-full">
+      <div className="min-h-56 overflow-hidden bg-muted md:min-h-full">
+        <RobotImageByModel
+          model={(selectedModel?.value as RobotModelType) ?? RobotModel.STANDARD}
+        />
       </div>
-    </AppDialogComponent>
-  )
-}
-
-export function CreateRobotTrigger() {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <>
-      <Button onClick={() => setOpen(true)}>
-        <Plus />
-        {t.robot_create_trigger()}
-      </Button>
-      <CreateRobotDialog open={open} setOpen={setOpen} />
-    </>
+      <div className="flex min-h-0 flex-col md:col-span-1">
+        <div className="flex items-start justify-between gap-4 px-6 pt-6">
+          <div>
+            <h2 className="text-2xl font-bold">{t.robot_create_title()}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t.robot_create_description()}</p>
+          </div>
+          <Button
+            aria-label="Close"
+            variant="ghost"
+            size="icon"
+            type="button"
+            onClick={() => setOpen(false)}
+          >
+            <X className="size-8 font-light stroke-1" />
+          </Button>
+        </div>
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col p-4">
+            <div className="grid gap-4 overflow-y-auto px-6 py-6 sm:grid-cols-2">
+              <p className="sm:col-span-2 text-xs font-semibold tracking-wider text-primary uppercase">
+                {t.robot_create_identity_section()}
+              </p>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t.robot_create_name_label()} <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        autoFocus
+                        maxLength={50}
+                        placeholder={t.robot_create_name_placeholder()}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="serial_num"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t.robot_create_serial_label()} <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        maxLength={50}
+                        placeholder={t.robot_create_serial_placeholder()}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <p className="sm:col-span-2 pt-2 text-xs font-semibold tracking-wider text-primary uppercase">
+                {t.robot_create_configuration_section()}
+              </p>
+              <FormField
+                control={form.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t.robot_create_model_label()} <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <AppSelectComponent
+                        options={robotModelOptions}
+                        placeholder={t.robot_create_model_placeholder()}
+                        value={selectedModel}
+                        onChange={(option) => field.onChange(option?.value as RobotModelType)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="map_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.robot_create_map_label()}</FormLabel>
+                    <FormControl>
+                      <AppSelectComponent
+                        options={[]}
+                        placeholder={t.robot_create_map_placeholder()}
+                        value={undefined}
+                        onChange={(option) => field.onChange(option?.value)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <p className="sm:col-span-2 pt-2 text-xs font-semibold tracking-wider text-primary uppercase">
+                {t.robot_create_connectivity_section()}
+              </p>
+              <FormField
+                control={form.control}
+                name="ip_address"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>
+                      {t.robot_create_ip_label()} <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder={t.robot_create_ip_placeholder()} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>{t.robot_create_tags_label()}</FormLabel>
+                    <FormControl>
+                      <AppSelectComponent
+                        multiple
+                        options={tagOptions}
+                        placeholder={t.robot_create_tags_placeholder()}
+                        value={selectedTags}
+                        onChange={(options) =>
+                          field.onChange(options.map((option) => option.value))
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <DialogFooterComponent
+              cancelButtonText={t.robot_create_cancel()}
+              confirmButtonText={t.robot_create_submit()}
+              cancelButtonProps={{ disabled: isPending }}
+              confirmButtonProps={{
+                disabled: footerDisabled,
+                loading: isPending,
+                type: 'button',
+              }}
+              onCancel={() => setOpen(false)}
+              onConfirm={handleSubmit(onSubmit)}
+            />
+          </form>
+        </Form>
+      </div>
+    </div>
   )
 }
