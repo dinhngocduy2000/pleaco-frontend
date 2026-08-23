@@ -153,5 +153,20 @@
   "validation_robot_serial_required": "Serial number is required",
   "validation_robot_serial_max_length": "Serial number must be at most 50 characters",
   "validation_robot_model_required": "Model is required",
-  "validation_robot_ip_invalid": "Enter a valid IPv4 or IPv6 address"
+  "validation_robot_ip_invalid": "Enter a valid IPv4 or IPv6 address",
+  "robot_card_map_label": "Map",
+  "robot_card_map_unassigned": "No map assigned",
+  "robot_card_ip_label": "IP",
+  "robot_card_battery_label": "Battery",
+  "robot_card_battery_percentage": "Battery {percentage}%",
+  "robot_card_operation_charging": "Charging",
+  "robot_card_operation_idle": "Idle",
+  "robot_card_operation_executing": "Executing",
+  "robot_card_connection_online": "Online",
+  "robot_card_connection_delayed": "Connection delayed",
+  "robot_card_connection_offline": "Offline",
+  "robot_card_menu_label": "Robot options",
+  "robot_card_menu_delete": "Delete",
+  "robot_card_menu_deactivate": "Deactivate",
+  "robot_card_menu_assign_map": "Assign map"
 }
