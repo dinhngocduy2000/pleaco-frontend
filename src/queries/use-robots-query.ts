@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createRobotApi, getRobotsApi } from '@/api/robots'
+import { createRobotApi, deleteRobotApi, getRobotsApi } from '@/api/robots'
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type { ICreateRobotRequest, IRobotInfo, IRobotListRequest } from '@/interface/robots'
@@ -32,6 +32,24 @@ export const useCreateRobotMutation = ({
 
   return useMutation({
     mutationFn: createRobotApi,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
+      onSuccess?.(data, variables)
+    },
+    onError,
+    onMutate,
+  })
+}
+
+export const useDeleteRobotMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<IResponseData<void>, string> = {}) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteRobotApi,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
       onSuccess?.(data, variables)

@@ -7,6 +7,10 @@ export const createRobotApi = async (data: ICreateRobotRequest): Promise<IRespon
   return await axiosConfig.post(BOTS_ENDPOINTS.CREATE, data)
 }
 
+export const deleteRobotApi = async (id: string): Promise<IResponseData<void>> => {
+  return await axiosConfig.delete(`${BOTS_ENDPOINTS.DELETE}/${id}`)
+}
+
 export const getRobotsApi = async (
   params: IRobotListRequest,
   signal?: AbortSignal,

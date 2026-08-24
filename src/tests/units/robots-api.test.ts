@@ -4,15 +4,26 @@ import { RobotModel } from '@/enum/robot'
 
 const get = vi.hoisted(() => vi.fn())
 const post = vi.hoisted(() => vi.fn())
+const deleteRequest = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api', () => ({ default: { get, post } }))
+vi.mock('@/api', () => ({ default: { delete: deleteRequest, get, post } }))
 
-import { createRobotApi, getRobotsApi } from '@/api/robots'
+import { createRobotApi, deleteRobotApi, getRobotsApi } from '@/api/robots'
 
 describe('createRobotApi', () => {
   beforeEach(() => {
     get.mockReset()
     post.mockReset()
+    deleteRequest.mockReset()
+  })
+
+  it('deletes a robot by ID', async () => {
+    const id = '00000000-0000-4000-8000-000000000001'
+    deleteRequest.mockResolvedValue({ data: undefined, message: 'Deleted', statusCode: 200 })
+
+    await deleteRobotApi(id)
+
+    expect(deleteRequest).toHaveBeenCalledWith(`${BOTS_ENDPOINTS.DELETE}/${id}`)
   })
 
   it('posts the complete BotCreateDTO-shaped payload to the bots endpoint', async () => {

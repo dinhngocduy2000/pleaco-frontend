@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -6,6 +7,7 @@ import type { IRobotInfo } from '@/interface/robots'
 import { BotCardItemComponent } from '@/routes/_authenticated/operations/components/robots/-bot-card-item-component'
 
 const robot: IRobotInfo = {
+  id: '00000000-0000-4000-8000-000000000001',
   name: 'Milo',
   serial_num: 'PLC-L-0012',
   model: RobotModel.LITE,
@@ -20,7 +22,13 @@ describe('BotCardItemComponent', () => {
   it('renders robot details, statuses, battery progress, tags, and menu options', async () => {
     const user = userEvent.setup()
 
-    render(<BotCardItemComponent robot={robot} />)
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BotCardItemComponent robot={robot} />
+      </QueryClientProvider>,
+    )
 
     expect(screen.getByRole('heading', { name: 'Milo' })).toBeInTheDocument()
     expect(screen.getByText('PLC-L-0012')).toBeInTheDocument()
@@ -41,6 +49,6 @@ describe('BotCardItemComponent', () => {
 
     expect(await screen.findByText('Delete')).toBeInTheDocument()
     expect(screen.getByText('Deactivate')).toBeInTheDocument()
-    expect(screen.getByText('Assign map')).toBeInTheDocument()
+    expect(screen.getByText('Edit')).toBeInTheDocument()
   })
 })

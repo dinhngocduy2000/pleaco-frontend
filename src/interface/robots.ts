@@ -24,6 +24,7 @@ export type IRobotInfo = {
   name: string
   model: RobotModelType
   ip_address: string
+  id: string
   operational_status: RobotOperationStatusType
   created_at: string
   connection_status: RobotConnectionStatusType
