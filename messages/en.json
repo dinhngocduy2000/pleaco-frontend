@@ -1,5 +1,6 @@
 {
   "app_name": "Pleaco",
+  "edit": "Edit",
   "welcome": "Chào mừng đến với Pleaco",
   "error_default": "Something went wrong. Please try again.",
   "footer_copyright": "All rights reserved.",
@@ -167,6 +168,8 @@
   "robot_card_connection_offline": "Offline",
   "robot_card_menu_label": "Robot options",
   "robot_card_menu_delete": "Delete",
+  "robot_delete_description": "Are you sure you want to delete robot {name}? It will no longer be available for future operations.",
+  "robot_delete_success": "Robot {name} was deleted successfully.",
   "robot_card_menu_deactivate": "Deactivate",
   "robot_card_menu_assign_map": "Assign map",
   "robots_search_placeholder": "Search robots by name or serial number",

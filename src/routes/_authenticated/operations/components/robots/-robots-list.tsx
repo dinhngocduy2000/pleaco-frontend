@@ -66,7 +66,7 @@ export function RobotsList() {
     <>
       <div className="grid min-h-0 flex-1 content-start auto-rows-max gap-6 overflow-y-auto pr-2 md:grid-cols-2 2xl:grid-cols-3">
         {robots.map((robot) => (
-          <BotCardItemComponent key={robot.serial_num} robot={robot} />
+          <BotCardItemComponent key={robot.id} robot={robot} />
         ))}
       </div>
       <RobotsPagination

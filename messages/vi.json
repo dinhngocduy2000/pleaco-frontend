@@ -1,5 +1,6 @@
 {
   "app_name": "Pleaco",
+  "edit": "Chỉnh sửa",
   "welcome": "Chào mừng đến với Pleaco",
   "error_default": "Đã xảy ra lỗi. Vui lòng thử lại.",
   "footer_copyright": "Tất cả quyền được bảo lưu.",
@@ -167,6 +168,8 @@
   "robot_card_connection_offline": "Ngoại tuyến",
   "robot_card_menu_label": "Tùy chọn robot",
   "robot_card_menu_delete": "Xóa",
+  "robot_delete_description": "Bạn có chắc chắn muốn xóa robot {name} không? Robot sẽ không còn khả dụng cho các hoạt động trong tương lai.",
+  "robot_delete_success": "Đã xóa robot {name} thành công.",
   "robot_card_menu_deactivate": "Vô hiệu hóa",
   "robot_card_menu_assign_map": "Gán bản đồ",
   "robots_search_placeholder": "Tìm robot theo tên hoặc số sê-ri",

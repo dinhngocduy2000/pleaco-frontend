@@ -1,14 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import {
-  BatteryCharging,
-  CirclePause,
-  CirclePlay,
-  MoreVertical,
-  Wifi,
-  WifiOff,
-  WifiZero,
-} from 'lucide-react'
-import AppDropdownMenu from '@/components/reusable/app-dropdown-menu/dropdown-menu'
+import { BatteryCharging, CirclePause, CirclePlay, Wifi, WifiOff, WifiZero } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Item, ItemContent, ItemFooter, ItemMedia } from '@/components/ui/item'
 import { Progress } from '@/components/ui/progress'
@@ -23,6 +14,7 @@ import {
 } from '@/enum/robot'
 import type { IRobotInfo } from '@/interface/robots'
 import { getTranslations } from '@/lib/translation'
+import BotActionsDropdown from './-bot-actions-dropdown'
 import RobotImageByModel from './-robot-img-model'
 
 type BotCardItemComponentProps = {
@@ -195,32 +187,7 @@ export function BotCardItemComponent({ robot }: BotCardItemComponentProps) {
                 {connectionStatus.label}
               </TypographySmall>
             </div>
-            <AppDropdownMenu
-              trigger={
-                <>
-                  <MoreVertical aria-hidden="true" />
-                  <TypographySmall className="sr-only">{t.robot_card_menu_label()}</TypographySmall>
-                </>
-              }
-              triggerVariant="ghost"
-              items={[
-                {
-                  label: t.robot_card_menu_delete(),
-                  value: 'delete',
-                  onClick: () => undefined,
-                },
-                {
-                  label: t.robot_card_menu_deactivate(),
-                  value: 'deactivate',
-                  onClick: () => undefined,
-                },
-                {
-                  label: t.robot_card_menu_assign_map(),
-                  value: 'assign-map',
-                  onClick: () => undefined,
-                },
-              ]}
-            />
+            <BotActionsDropdown robot={robot} />
           </ItemFooter>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { PencilIcon, Trash2Icon, UserIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import AlertDialogComponent from '@/components/reusable/alert-dialog/app-alert-dialog'
 import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
@@ -33,7 +33,6 @@ function getInitials(name: string): string {
 
 const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
   const [openConfirmDeleteModal, setOpenConfirmDeleteModal] = useState<boolean>(false)
-  const selectedMember = useRef<IGroupMemberListInfo | null>(null)
   const queryClient = useQueryClient()
   const [openEditModal, setOpenEditModal] = useState<boolean>(false)
   const { data: profileResponse } = useProfileQuery()
@@ -41,17 +40,14 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
     onSuccess: () => {
       toast.success(t.group_delete_member_success({ email: member.email }))
       queryClient.invalidateQueries({ queryKey: [GROUPS_ENDPOINTS.LIST_MEMBERS] })
-      selectedMember.current = null
     },
   })
 
   const onDeleteMember = () => {
-    selectedMember.current = member
     setOpenConfirmDeleteModal(true)
   }
 
   const onEditMember = () => {
-    selectedMember.current = member
     setOpenEditModal(true)
   }
   const onConfirmDeleteMember = async () => {
@@ -126,13 +122,7 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
         setOpen={setOpenEditModal}
         title={t.group_edit_member_title()}
       >
-        {selectedMember.current ? (
-          <GroupEditMember
-            groupId={groupId}
-            member={selectedMember.current}
-            setOpen={setOpenEditModal}
-          />
-        ) : null}
+        <GroupEditMember groupId={groupId} member={member} setOpen={setOpenEditModal} />
       </AppDialogComponent>
     </>
   )
