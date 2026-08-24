@@ -3,6 +3,7 @@ import { Bot } from 'lucide-react'
 import { useMemo } from 'react'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
+import { useRobotStatusWebSocket } from '@/hooks/use-robot-status-websocket'
 import type { IRobotListRequest } from '@/interface/robots'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
@@ -19,6 +20,7 @@ export function RobotsList() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { data: profileResponse, isLoading: isProfileLoading } = useProfileQuery()
   const groupId = profileResponse?.data.group_id
+  useRobotStatusWebSocket(Boolean(groupId))
   const robotParams = useMemo<IRobotListRequest | undefined>(() => {
     if (!groupId) return undefined
 

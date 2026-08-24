@@ -23,11 +23,12 @@ export type IRobotInfo = {
   serial_num: string
   name: string
   model: RobotModelType
-  ip_address: string
+  ip_address: string | null
   id: string
   operational_status: RobotOperationStatusType
   created_at: string
   connection_status: RobotConnectionStatusType
+  last_seen_at?: string | null
 }
 
 export type IRobotListRequest = {
