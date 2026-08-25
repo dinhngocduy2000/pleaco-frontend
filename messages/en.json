@@ -157,7 +157,7 @@
   "validation_robot_ip_invalid": "Enter a valid IPv4 or IPv6 address",
   "robot_card_map_label": "Map",
   "robot_card_map_unassigned": "No map assigned",
-  "robot_card_ip_label": "IP",
+  "robot_card_ip_label": "IP Address",
   "robot_card_battery_label": "Battery",
   "robot_card_battery_percentage": "Battery {percentage}%",
   "robot_card_operation_charging": "Charging",
