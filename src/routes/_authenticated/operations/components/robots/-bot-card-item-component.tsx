@@ -28,7 +28,6 @@ type IStatusPresentation = {
 }
 
 const BATTERY_PERCENTAGE = 64
-const STATIC_TAGS = ['Lobby', 'Floor 1', 'Day Shift']
 const t = getTranslations()
 
 const getOperationStatusPresentation = (status: RobotOperationStatusType): IStatusPresentation => {
@@ -106,9 +105,9 @@ export function BotCardItemComponent({ robot }: BotCardItemComponentProps) {
   const ConnectionStatusIcon = connectionStatus.icon
 
   return (
-    <Item className="block overflow-hidden rounded-xl border-border bg-card p-0 shadow-sm">
-      <div className="grid min-w-0 xl:grid-cols-[14rem_minmax(0,1fr)]">
-        <ItemMedia className="min-h-52 w-full rounded-none bg-muted p-4 xl:min-h-full xl:w-auto">
+    <Item className="block overflow-hidden rounded-xl border-border bg-card p-0 shadow-sm h-full">
+      <div className="grid min-w-0 xl:grid-cols-[14rem_minmax(0,1fr)] h-full">
+        <ItemMedia className="min-h-52 w-full bg-muted rounded-none p-4 xl:min-h-full xl:w-auto">
           <RobotImageByModel model={robot.model} />
         </ItemMedia>
         <div className="flex min-w-0 flex-col">
@@ -159,16 +158,18 @@ export function BotCardItemComponent({ robot }: BotCardItemComponentProps) {
               </dl>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {STATIC_TAGS.map((tag) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
+            {robot.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {robot.tags?.map((tag) => (
+                  <Badge key={tag.id} variant="secondary">
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </ItemContent>
 
-          <ItemFooter className="mt-auto border-t px-5 py-3">
+          <ItemFooter className="mt-auto basis-0 border-t px-5 py-3">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-3">
               <div className="flex min-w-36 items-center gap-2">
                 <BatteryCharging

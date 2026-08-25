@@ -5,6 +5,7 @@ import type {
   RobotOperationStatusType,
 } from '@/enum/robot'
 import type { createRobotFormSchema } from '@/schemas/robot-schemas'
+import type { ITagInfo } from './tags'
 
 export type ICreateRobotFormType = z.infer<ReturnType<typeof createRobotFormSchema>>
 
@@ -29,6 +30,7 @@ export type IRobotInfo = {
   created_at: string
   connection_status: RobotConnectionStatusType
   last_seen_at?: string | null
+  tags: ITagInfo[]
 }
 
 export type IRobotListRequest = {
