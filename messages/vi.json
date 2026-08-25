@@ -157,7 +157,7 @@
   "validation_robot_ip_invalid": "Nhập địa chỉ IPv4 hoặc IPv6 hợp lệ",
   "robot_card_map_label": "Bản đồ",
   "robot_card_map_unassigned": "Chưa có bản đồ được chỉ định",
-  "robot_card_ip_label": "IP",
+  "robot_card_ip_label": "Địa chỉ IP",
   "robot_card_battery_label": "Pin",
   "robot_card_battery_percentage": "Pin {percentage}%",
   "robot_card_operation_charging": "Đang sạc",
