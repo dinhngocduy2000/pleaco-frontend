@@ -34,3 +34,7 @@ export enum BOTS_ENDPOINTS {
   CREATE = '/bots',
   DELETE = '/bots',
 }
+
+export enum TAGS_ENDPOINTS {
+  LIST = '/tags',
+}

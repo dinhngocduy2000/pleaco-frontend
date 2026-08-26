@@ -20,3 +20,25 @@ export const getErrorMessage = (error: IAxiosError) => {
   const translation = getTranslations()
   return error?.response?.data?.detail || translation.error_default()
 }
+
+export const paramsSerializer = (params: unknown): string => {
+  if (!params || typeof params !== 'object') return ''
+
+  const searchParams = new URLSearchParams()
+
+  Object.entries(params as Record<string, unknown>).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item) {
+          searchParams.append(key, String(item))
+        }
+      })
+    } else {
+      if (value) {
+        searchParams.append(key, String(value))
+      }
+    }
+  })
+
+  return searchParams.toString()
+}
