@@ -1,6 +1,7 @@
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type { ICreateRobotRequest, IRobotInfo, IRobotListRequest } from '@/interface/robots'
+import { paramsSerializer } from '@/lib/utils'
 import axiosConfig from '.'
 
 export const createRobotApi = async (data: ICreateRobotRequest): Promise<IResponseData<void>> => {
@@ -15,5 +16,5 @@ export const getRobotsApi = async (
   params: IRobotListRequest,
   signal?: AbortSignal,
 ): Promise<IResponseDataWithPage<IRobotInfo>> => {
-  return await axiosConfig.get(BOTS_ENDPOINTS.LIST, { params, signal })
+  return await axiosConfig.get(BOTS_ENDPOINTS.LIST, { params, signal, paramsSerializer })
 }

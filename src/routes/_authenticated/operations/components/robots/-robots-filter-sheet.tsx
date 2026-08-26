@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import { type Dispatch, type ReactNode, type SetStateAction, useMemo } from 'react'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,10 +20,10 @@ import {
 } from '@/enum/robot'
 import type { IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
+import { useTagsQuery } from '@/queries/use-tags-query'
 import { Route } from '../../robots'
 
 const t = getTranslations()
-const tagOptions: IOption[] = []
 
 function capitalizeLabel(value: string): string {
   return `${value.charAt(0)}${value.slice(1).toLowerCase()}`
@@ -63,6 +63,15 @@ export function RobotsFilterSheet({
   setFilterDraft,
 }: RobotsFilterSheetProps) {
   const navigate = useNavigate({ from: Route.fullPath })
+  const { data: listTagRepsonse } = useTagsQuery()
+  const tagOptions: IOption[] = useMemo(
+    () =>
+      listTagRepsonse?.data.map((tag) => ({
+        value: tag.id,
+        label: tag.name,
+      })) ?? [],
+    [listTagRepsonse],
+  )
   const selectedModel = modelOptions.find((option) => option.value === filterDraft.model)
   const selectedOperationalStatus = operationalStatusOptions.find(
     (option) => option.value === filterDraft.operational_status,

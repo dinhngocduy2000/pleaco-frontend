@@ -81,7 +81,7 @@ function SelectOptionIndicator({ multiple, selected }: { multiple: boolean; sele
           selected && 'border-primary bg-primary text-primary-foreground',
         )}
       >
-        {selected && <CheckIcon className="size-3" />}
+        {selected && <CheckIcon className="size-3 stroke-white" />}
       </span>
     )
   }
@@ -143,7 +143,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
         return <span className="text-muted-foreground">{placeholder}</span>
       }
       return (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 h-fit">
           {props.value?.map((v) => (
             <span
               key={v.value}
@@ -211,7 +211,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn('w-full justify-between', className)}
+          className={cn('w-full justify-between h-fit', className)}
         >
           <div className="min-w-0 flex-1 text-left">{renderTriggerContent()}</div>
           <ChevronDownIcon className="size-4 shrink-0 opacity-50" />

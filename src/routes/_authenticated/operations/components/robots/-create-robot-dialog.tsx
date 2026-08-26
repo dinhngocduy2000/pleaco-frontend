@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { type Dispatch, type SetStateAction, useMemo } from 'react'
 import { type Resolver, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
@@ -22,6 +22,7 @@ import { getTranslations } from '@/lib/translation'
 import { getErrorMessage } from '@/lib/utils'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useCreateRobotMutation } from '@/queries/use-robots-query'
+import { useTagsQuery } from '@/queries/use-tags-query'
 import { createRobotFormSchema } from '@/schemas/robot-schemas'
 import RobotImageByModel from './-robot-img-model'
 
@@ -36,14 +37,10 @@ const robotModelOptions: IOption[] = LIST_ROBOT_MODELS.map((model) => ({
   value: model,
 }))
 
-const tagOptions: IOption[] = [
-  { label: 'Floor 1', value: '00000000-0000-4000-8000-000000000001' },
-  { label: 'High capacity', value: '00000000-0000-4000-8000-000000000002' },
-]
-
 export function CreateRobotDialog({ setOpen }: CreateRobotDialogProps) {
   const { data: profileResponse } = useProfileQuery()
   const groupId = profileResponse?.data.group_id
+  const { data: listTagResponse } = useTagsQuery()
   const form = useForm<ICreateRobotFormType>({
     mode: 'onChange',
     resolver: zodResolver(createRobotFormSchema() as never) as Resolver<ICreateRobotFormType>,
@@ -56,6 +53,14 @@ export function CreateRobotDialog({ setOpen }: CreateRobotDialogProps) {
       tags: [],
     },
   })
+  const tagOptions: IOption[] = useMemo(
+    () =>
+      listTagResponse?.data?.map((tag) => ({
+        value: tag.id,
+        label: tag.name,
+      })) ?? [],
+    [listTagResponse],
+  )
   const {
     formState: { isValid },
     handleSubmit,
