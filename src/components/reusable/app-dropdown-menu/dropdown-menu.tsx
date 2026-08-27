@@ -17,11 +17,12 @@ const AppDropdownMenu = ({
   dropdownContentClassName,
   contentAlign = 'end',
   triggerVariant = 'outline',
+  disabled = false,
 }: IDropdownMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={triggerVariant}>
+        <Button variant={triggerVariant} disabled={disabled}>
           {trigger ?? 'Actions'}
           {!trigger && <ChevronDownIcon strokeWidth={1} />}
         </Button>
