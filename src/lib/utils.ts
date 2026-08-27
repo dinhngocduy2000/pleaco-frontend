@@ -17,7 +17,12 @@ export const handleLogout = () => {
 }
 
 export const getErrorMessage = (error: IAxiosError) => {
+  console.log(error)
   const translation = getTranslations()
+  const errorMessage = error?.response?.data?.detail
+  if (typeof errorMessage !== 'string') {
+    return translation.error_default()
+  }
   return error?.response?.data?.detail || translation.error_default()
 }
 

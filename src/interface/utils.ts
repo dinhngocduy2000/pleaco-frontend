@@ -28,6 +28,7 @@ export type IDropdownMenuProps = {
   dropdownContentClassName?: string
   contentAlign?: 'start' | 'end'
   triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+  disabled?: boolean
 }
 export type IDropdownMenuItem = {
   label: string | ReactNode

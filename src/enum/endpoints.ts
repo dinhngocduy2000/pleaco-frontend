@@ -38,3 +38,9 @@ export enum BOTS_ENDPOINTS {
 export enum TAGS_ENDPOINTS {
   LIST = '/tags',
 }
+
+export enum MAPS_ENDPOINTS {
+  LIST = '/maps',
+  // biome-ignore lint/suspicious/noDuplicateEnumValues: GET and POST share the same resource path.
+  CREATE = '/maps',
+}

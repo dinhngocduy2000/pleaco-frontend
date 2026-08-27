@@ -1,0 +1,47 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, renderHook } from '@testing-library/react'
+import type { PropsWithChildren } from 'react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MAPS_ENDPOINTS } from '@/enum/endpoints'
+
+const createMapApi = vi.hoisted(() => vi.fn())
+
+vi.mock('@/api/maps', () => ({ createMapApi }))
+
+import { getMapsQueryKey, useCreateMapMutation } from '@/queries/use-maps-query'
+
+describe('useCreateMapMutation', () => {
+  beforeEach(() => {
+    createMapApi.mockReset()
+  })
+
+  it('creates a map and invalidates all map lists', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const payload = {
+      group_id: 'group-123',
+      name: 'Warehouse',
+      dimension_x: 20,
+      dimension_y: 12,
+      robot_ids: [],
+      tags: [],
+    }
+    createMapApi.mockResolvedValue({ data: undefined, message: 'Created', statusCode: 201 })
+
+    const { result } = renderHook(() => useCreateMapMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    expect(createMapApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+  })
+
+  it('uses the map list endpoint as the future list query key', () => {
+    expect(getMapsQueryKey()).toEqual([MAPS_ENDPOINTS.LIST])
+  })
+})
