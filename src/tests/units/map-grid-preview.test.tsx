@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -44,6 +45,32 @@ describe('getMapGridPreviewGeometry', () => {
     expect(geometry?.horizontalGridLines).toEqual([0, 10, 12])
     expect(geometry?.corners.at(-1)).toEqual({ x: 25, y: 12 })
   })
+
+  it('scales map geometry and grid spacing', () => {
+    const zoomedOut = getMapGridPreviewGeometry(20, 12, 0.5)
+    const zoomedIn = getMapGridPreviewGeometry(20, 12, 3)
+
+    expect(zoomedOut).toMatchObject({
+      stageWidth: 140,
+      stageHeight: 100,
+      mapWidth: 100,
+      mapHeight: 60,
+      verticalGridLines: Array.from({ length: 21 }, (_, index) => index * 5),
+      horizontalGridLines: Array.from({ length: 13 }, (_, index) => index * 5),
+    })
+    expect(zoomedIn).toMatchObject({
+      stageWidth: 640,
+      stageHeight: 400,
+      mapWidth: 600,
+      mapHeight: 360,
+      corners: [
+        { x: 0, y: 0 },
+        { x: 600, y: 0 },
+        { x: 0, y: 360 },
+        { x: 600, y: 360 },
+      ],
+    })
+  })
 })
 
 describe('MapGridPreview', () => {
@@ -62,5 +89,27 @@ describe('MapGridPreview', () => {
     ).not.toBeInTheDocument()
     expect(screen.getByTestId('map-grid-stage')).toHaveAttribute('data-width', '240')
     expect(screen.getByTestId('map-grid-stage')).toHaveAttribute('data-height', '160')
+  })
+
+  it('changes preview scale in 0.5 increments within the supported bounds', async () => {
+    const user = userEvent.setup()
+    render(<MapGridPreview dimensionX={20} dimensionY={12} />)
+
+    expect(screen.getByText('1.0×')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+    expect(screen.getByText('1.5×')).toBeInTheDocument()
+    expect(screen.getByTestId('map-grid-stage')).toHaveAttribute('data-width', '340')
+
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(screen.getByText('0.5×')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled()
+
+    for (let index = 0; index < 5; index += 1) {
+      await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+    }
+
+    expect(screen.getByText('3.0×')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeDisabled()
   })
 })
