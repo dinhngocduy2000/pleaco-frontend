@@ -24,6 +24,7 @@ import { useProfileQuery } from '@/queries/use-auth-query'
 import { useCreateMapMutation } from '@/queries/use-maps-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
 import { createMapFormSchema } from '@/schemas/map-schemas'
+import { MapGridPreview } from './-map-grid-preview'
 
 type MapCreateModalProps = {
   setOpen: Dispatch<SetStateAction<boolean>>
@@ -57,6 +58,8 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
     reset,
     watch,
   } = form
+  const dimensionX = watch('dimension_x')
+  const dimensionY = watch('dimension_y')
   const selectedTags = tagOptions.filter((option) => watch('tag_ids').includes(option.value))
   const { mutateAsync: createMap, isPending } = useCreateMapMutation({
     onSuccess: () => {
@@ -88,7 +91,7 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
 
   return (
     <div className="flex min-h-0 flex-wrap h-full">
-      <div aria-hidden="true" className="min-h-48 basis-full bg-muted md:min-h-full md:basis-1/2" />
+      <MapGridPreview dimensionX={dimensionX} dimensionY={dimensionY} />
       <div className="flex min-h-0 basis-full flex-col md:basis-1/2">
         <div className="flex items-start justify-between gap-4 px-6 pt-6">
           <div>

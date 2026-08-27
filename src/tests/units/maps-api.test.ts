@@ -20,7 +20,7 @@ describe('createMapApi', () => {
       dimension_x: 20,
       dimension_y: 12.5,
       robot_ids: [],
-      tag_ids: ['00000000-0000-4000-8000-000000000001'],
+      tags: ['00000000-0000-4000-8000-000000000001'],
     }
     post.mockResolvedValue({ data: undefined, message: 'Created', statusCode: 201 })
 

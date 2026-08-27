@@ -27,7 +27,7 @@ describe('useCreateMapMutation', () => {
       dimension_x: 20,
       dimension_y: 12,
       robot_ids: [],
-      tag_ids: [],
+      tags: [],
     }
     createMapApi.mockResolvedValue({ data: undefined, message: 'Created', statusCode: 201 })
 

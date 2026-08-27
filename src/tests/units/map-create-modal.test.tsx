@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Dispatch, SetStateAction } from 'react'
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
@@ -13,6 +13,13 @@ vi.mock('sonner', () => ({ toast }))
 vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery }))
 vi.mock('@/queries/use-tags-query', () => ({ useTagsQuery }))
 vi.mock('@/queries/use-maps-query', () => ({ useCreateMapMutation }))
+vi.mock('react-konva', () => ({
+  Circle: () => null,
+  Layer: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Line: () => null,
+  Rect: () => null,
+  Stage: ({ children }: { children: ReactNode }) => <>{children}</>,
+}))
 
 import { MapCreateModal } from '@/routes/_authenticated/operations/components/maps/-map-create-modal'
 
@@ -85,7 +92,7 @@ describe('MapCreateModal', () => {
       dimension_x: 20,
       dimension_y: 12,
       robot_ids: [],
-      tag_ids: ['00000000-0000-4000-8000-000000000001'],
+      tags: ['00000000-0000-4000-8000-000000000001'],
     })
     expect(toast.success).toHaveBeenCalledWith('Map created successfully.')
     expect(setOpen).toHaveBeenCalledWith(false)
