@@ -6,6 +6,7 @@ import type {
 } from '@/enum/robot'
 import type { createRobotFormSchema } from '@/schemas/robot-schemas'
 import type { ITagInfo } from './tags'
+import type { IOption } from './utils'
 
 export type ICreateRobotFormType = z.infer<ReturnType<typeof createRobotFormSchema>>
 
@@ -32,6 +33,10 @@ export type IRobotInfo = {
   last_seen_at?: string | null
   tags: ITagInfo[]
 }
+
+export type IRobotKeyValue = {
+  serial_num: string
+} & IOption
 
 export type IRobotListRequest = {
   group_id: string

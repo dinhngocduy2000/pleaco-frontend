@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,12 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
 const useProfileQuery = vi.hoisted(() => vi.fn())
 const useTagsQuery = vi.hoisted(() => vi.fn())
+const useRobotsKeyValueQuery = vi.hoisted(() => vi.fn())
 const useCreateMapMutation = vi.hoisted(() => vi.fn())
 const mutateAsync = vi.hoisted(() => vi.fn())
 
 vi.mock('sonner', () => ({ toast }))
 vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery }))
 vi.mock('@/queries/use-tags-query', () => ({ useTagsQuery }))
+vi.mock('@/queries/use-robots-query', () => ({ useRobotsKeyValueQuery }))
 vi.mock('@/queries/use-maps-query', () => ({ useCreateMapMutation }))
 vi.mock('react-konva', () => ({
   Circle: () => null,
@@ -57,6 +59,22 @@ describe('MapCreateModal', () => {
     useTagsQuery.mockReturnValue({
       data: { data: [{ id: '00000000-0000-4000-8000-000000000001', name: 'Warehouse' }] },
     })
+    useRobotsKeyValueQuery.mockReturnValue({
+      data: {
+        data: [
+          {
+            value: '00000000-0000-4000-8000-000000000011',
+            label: 'Milo',
+            serial_num: 'PL-2026-0042',
+          },
+          {
+            value: '00000000-0000-4000-8000-000000000012',
+            label: 'Nova',
+            serial_num: 'PL-2026-0043',
+          },
+        ],
+      },
+    })
     useCreateMapMutation.mockReturnValue({ isPending: false, mutateAsync })
   })
 
@@ -96,6 +114,44 @@ describe('MapCreateModal', () => {
     })
     expect(toast.success).toHaveBeenCalledWith('Map created successfully.')
     expect(setOpen).toHaveBeenCalledWith(false)
+  })
+
+  it('filters bots by name or serial number and submits selected robot IDs', async () => {
+    const user = userEvent.setup()
+    useCreateMapMutation.mockImplementation(({ onSuccess }) => ({
+      isPending: false,
+      mutateAsync: async (payload: unknown) => {
+        mutateAsync(payload)
+        onSuccess()
+      },
+    }))
+    render(<MapCreateModal setOpen={setOpen} />)
+
+    await fillRequiredFields(user)
+    await user.click(screen.getAllByTestId('select-trigger')[0])
+    await user.type(screen.getByTestId('select-search-input'), '0043')
+
+    expect(
+      await screen.findByTestId('select-item-00000000-0000-4000-8000-000000000012'),
+    ).toBeVisible()
+    await waitFor(() => {
+      expect(screen.queryByTestId('select-item-00000000-0000-4000-8000-000000000011')).toBeNull()
+    })
+
+    await user.click(screen.getByTestId('select-item-00000000-0000-4000-8000-000000000012'))
+    await user.clear(screen.getByTestId('select-search-input'))
+    await user.click(await screen.findByTestId('select-item-00000000-0000-4000-8000-000000000011'))
+    await user.click(screen.getByRole('button', { name: 'Create map' }))
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      group_id: 'group-123',
+      name: 'Warehouse',
+      description: undefined,
+      dimension_x: 20,
+      dimension_y: 12,
+      robot_ids: ['00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000011'],
+      tags: [],
+    })
   })
 
   it('shows an error and leaves the modal open when creation fails', async () => {

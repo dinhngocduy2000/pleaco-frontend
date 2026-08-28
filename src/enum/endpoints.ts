@@ -30,6 +30,7 @@ export enum EVENTS_ENDPOINTS {
 
 export enum BOTS_ENDPOINTS {
   LIST = '/bots',
+  LIST_KEY_VALUE = '/bots/key-value',
   // biome-ignore lint/suspicious/noDuplicateEnumValues: GET and POST share the same resource path.
   CREATE = '/bots',
   DELETE = '/bots',

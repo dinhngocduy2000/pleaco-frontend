@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
-import { type Dispatch, type SetStateAction, useMemo } from 'react'
+import { type Dispatch, type SetStateAction, useCallback, useMemo, useState } from 'react'
 import { type Resolver, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
@@ -22,6 +22,7 @@ import { getTranslations } from '@/lib/translation'
 import { getErrorMessage } from '@/lib/utils'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useCreateMapMutation } from '@/queries/use-maps-query'
+import { useRobotsKeyValueQuery } from '@/queries/use-robots-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
 import { createMapFormSchema } from '@/schemas/map-schemas'
 import { MapGridPreview } from './-map-grid-preview'
@@ -35,11 +36,35 @@ const t = getTranslations()
 export function MapCreateModal({ setOpen }: MapCreateModalProps) {
   const { data: profileResponse } = useProfileQuery()
   const { data: tagsResponse } = useTagsQuery()
+  const { data: robotsResponse } = useRobotsKeyValueQuery()
+  const [robotSearch, setRobotSearch] = useState('')
   const groupId = profileResponse?.data.group_id
   const tagOptions = useMemo<IOption[]>(
     () => tagsResponse?.data.map((tag) => ({ label: tag.name, value: tag.id })) ?? [],
     [tagsResponse],
   )
+  const robotOptions = useMemo<IOption[]>(
+    () =>
+      (robotsResponse?.data ?? []).map((robot) => ({
+        label: robot.label,
+        value: robot.value,
+        subLabel: robot.serial_num,
+      })),
+    [robotsResponse],
+  )
+  const filteredRobotOptions = useMemo(() => {
+    const search = robotSearch.trim().toLowerCase()
+    if (!search) return robotOptions
+
+    return robotOptions.filter(
+      (option) =>
+        option.label.toLowerCase().includes(search) ||
+        option.subLabel?.toLowerCase().includes(search),
+    )
+  }, [robotOptions, robotSearch])
+  const handleRobotSearch = useCallback((search: string) => {
+    setRobotSearch(search)
+  }, [])
   const form = useForm<ICreateMapFormType>({
     mode: 'onChange',
     resolver: zodResolver(createMapFormSchema() as never) as Resolver<ICreateMapFormType>,
@@ -60,6 +85,7 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
   } = form
   const dimensionX = watch('dimension_x')
   const dimensionY = watch('dimension_y')
+  const selectedRobots = robotOptions.filter((option) => watch('robot_ids').includes(option.value))
   const selectedTags = tagOptions.filter((option) => watch('tag_ids').includes(option.value))
   const { mutateAsync: createMap, isPending } = useCreateMapMutation({
     onSuccess: () => {
@@ -187,10 +213,11 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
                     <FormControl>
                       <AppSelectComponent
                         multiple
-                        disabled
-                        options={[]}
+                        searchable
+                        options={filteredRobotOptions}
                         placeholder={t.map_create_robots_placeholder()}
-                        value={[]}
+                        value={selectedRobots}
+                        onSearchChange={handleRobotSearch}
                         onChange={(options) =>
                           field.onChange(options.map((option) => option.value))
                         }

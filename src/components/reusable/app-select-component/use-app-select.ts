@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useDebounce } from '@/hooks/use-debounce'
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll'
@@ -29,10 +29,12 @@ export function useAppSelect({
   const listRef = useRef<HTMLDivElement>(null)
   const prevDebouncedRef = useRef(debouncedSearch)
 
-  if (prevDebouncedRef.current !== debouncedSearch) {
+  useEffect(() => {
+    if (prevDebouncedRef.current === debouncedSearch) return
+
     prevDebouncedRef.current = debouncedSearch
     onSearchChange?.(debouncedSearch)
-  }
+  }, [debouncedSearch, onSearchChange])
   const handleLoadMore = useCallback(() => {
     onLoadMore?.()
   }, [onLoadMore])
