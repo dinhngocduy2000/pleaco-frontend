@@ -217,11 +217,15 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
           <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+      <PopoverContent
+        className="w-(--radix-popover-trigger-width) min-h-0 overflow-auto p-0"
+        align="start"
+      >
         <Command
           shouldFilter={!onSearchChange}
           value={!multiple && !props.multiple ? (props.value?.label ?? '') : ''}
           onValueChange={() => {}}
+          className="min-h-0 overflow-auto"
         >
           {searchable && (
             <div className="flex h-9 items-center gap-2 border-b px-3">
@@ -237,7 +241,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
           )}
           <CommandList ref={listRef}>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup className="**:[[cmdk-group-items]]:space-y-1">
+            <CommandGroup className="**:[[cmdk-group-items]]:space-y-1 overflow-auto min-h-0">
               {options.map((option) => {
                 const selected = isSelected(option)
                 return (

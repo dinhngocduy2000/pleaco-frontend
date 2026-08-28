@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import { RobotModel } from '@/enum/robot'
-import { getRobotsQueryKey } from '@/queries/use-robots-query'
+import { getRobotsKeyValueQueryKey, getRobotsQueryKey } from '@/queries/use-robots-query'
 
 describe('getRobotsQueryKey', () => {
   it('includes every paginated list parameter', () => {
@@ -17,5 +17,9 @@ describe('getRobotsQueryKey', () => {
     }
 
     expect(getRobotsQueryKey(params)).toEqual([BOTS_ENDPOINTS.LIST, params])
+  })
+
+  it('uses the key-value endpoint as the key-value list query key', () => {
+    expect(getRobotsKeyValueQueryKey()).toEqual([BOTS_ENDPOINTS.LIST_KEY_VALUE])
   })
 })

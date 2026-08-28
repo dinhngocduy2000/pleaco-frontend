@@ -8,7 +8,7 @@ const deleteRequest = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api', () => ({ default: { delete: deleteRequest, get, post } }))
 
-import { createRobotApi, deleteRobotApi, getRobotsApi } from '@/api/robots'
+import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
 
 describe('createRobotApi', () => {
   beforeEach(() => {
@@ -59,6 +59,18 @@ describe('createRobotApi', () => {
 
     await getRobotsApi(params, signal)
 
-    expect(get).toHaveBeenCalledWith(BOTS_ENDPOINTS.LIST, { params, signal })
+    expect(get).toHaveBeenCalledWith(
+      BOTS_ENDPOINTS.LIST,
+      expect.objectContaining({ params, signal }),
+    )
+  })
+
+  it('gets all bot key-value options with cancellation support', async () => {
+    const signal = new AbortController().signal
+    get.mockResolvedValue({ data: [], message: 'OK', statusCode: 200 })
+
+    await getRobotsKeyValueApi(signal)
+
+    expect(get).toHaveBeenCalledWith(BOTS_ENDPOINTS.LIST_KEY_VALUE, { signal })
   })
 })
