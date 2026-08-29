@@ -1,5 +1,5 @@
 import { Minus, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Circle, Layer, Line, Rect, Stage } from 'react-konva'
 import { Button } from '@/components/ui/button'
 import { getTranslations } from '@/lib/translation'
@@ -11,11 +11,14 @@ const DEFAULT_SCALE = 1
 const MIN_SCALE = 0.5
 const MAX_SCALE = 3
 const SCALE_STEP = 0.5
+const CARD_PREVIEW_HEIGHT = 250
+const CARD_PREVIEW_FALLBACK_WIDTH = 360
 const t = getTranslations()
 
 type MapGridPreviewProps = {
   dimensionX: number | undefined
   dimensionY: number | undefined
+  variant?: 'editor' | 'card'
 }
 
 type IMapGridPreviewGeometry = {
@@ -68,7 +71,104 @@ export const getMapGridPreviewGeometry = (
   }
 }
 
-export function MapGridPreview({ dimensionX, dimensionY }: MapGridPreviewProps) {
+type MapGridLayerProps = {
+  geometry: IMapGridPreviewGeometry
+}
+
+function MapGridLayer({ geometry }: MapGridLayerProps) {
+  return (
+    <>
+      <Rect
+        fill="#ffffff"
+        height={geometry.mapHeight}
+        stroke="#615fff"
+        strokeWidth={2}
+        width={geometry.mapWidth}
+      />
+      {geometry.verticalGridLines.map((x) => (
+        <Line
+          key={`vertical-${x}`}
+          points={[x, 0, x, geometry.mapHeight]}
+          stroke="#d4d4d8"
+          strokeWidth={1}
+        />
+      ))}
+      {geometry.horizontalGridLines.map((y) => (
+        <Line
+          key={`horizontal-${y}`}
+          points={[0, y, geometry.mapWidth, y]}
+          stroke="#d4d4d8"
+          strokeWidth={1}
+        />
+      ))}
+      {geometry.corners.map((corner) => (
+        <Circle
+          key={`${corner.x}-${corner.y}`}
+          fill="#615fff"
+          radius={CORNER_RADIUS}
+          x={corner.x}
+          y={corner.y}
+        />
+      ))}
+    </>
+  )
+}
+
+function MapCardGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewProps, 'variant'>) {
+  const previewRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(CARD_PREVIEW_FALLBACK_WIDTH)
+  const baseGeometry = getMapGridPreviewGeometry(dimensionX, dimensionY)
+
+  useEffect(() => {
+    const preview = previewRef.current
+    if (!preview) return
+
+    const updateWidth = () => setWidth(preview.clientWidth || CARD_PREVIEW_FALLBACK_WIDTH)
+    updateWidth()
+
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(preview)
+    return () => observer.disconnect()
+  }, [])
+
+  const scale = baseGeometry
+    ? Math.min(
+        (width - CANVAS_PADDING * 2) / baseGeometry.mapWidth,
+        (CARD_PREVIEW_HEIGHT - CANVAS_PADDING * 2) / baseGeometry.mapHeight,
+      )
+    : DEFAULT_SCALE
+  const geometry = baseGeometry
+    ? getMapGridPreviewGeometry(dimensionX, dimensionY, scale)
+    : undefined
+
+  return (
+    <section
+      ref={previewRef}
+      aria-label={t.map_create_preview_canvas_label()}
+      className="h-[250px] w-full overflow-hidden bg-muted/40"
+      data-testid="map-card-grid-preview"
+    >
+      {!geometry ? (
+        <div className="flex size-full items-center justify-center text-center text-sm text-muted-foreground">
+          {t.map_create_preview_empty()}
+        </div>
+      ) : (
+        <Stage height={CARD_PREVIEW_HEIGHT} width={width}>
+          <Layer
+            x={(width - geometry.mapWidth) / 2}
+            y={(CARD_PREVIEW_HEIGHT - geometry.mapHeight) / 2}
+          >
+            <MapGridLayer geometry={geometry} />
+          </Layer>
+        </Stage>
+      )}
+    </section>
+  )
+}
+
+function MapEditorGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewProps, 'variant'>) {
   const [scale, setScale] = useState(DEFAULT_SCALE)
   const geometry = getMapGridPreviewGeometry(dimensionX, dimensionY, scale)
   const canZoomIn = scale < MAX_SCALE
@@ -98,38 +198,7 @@ export function MapGridPreview({ dimensionX, dimensionY }: MapGridPreviewProps) 
             <div className="flex min-h-full min-w-full w-max items-center justify-center">
               <Stage height={geometry.stageHeight} width={geometry.stageWidth}>
                 <Layer x={CANVAS_PADDING} y={CANVAS_PADDING}>
-                  <Rect
-                    fill="#ffffff"
-                    height={geometry.mapHeight}
-                    stroke="#615fff"
-                    strokeWidth={2}
-                    width={geometry.mapWidth}
-                  />
-                  {geometry.verticalGridLines.map((x) => (
-                    <Line
-                      key={`vertical-${x}`}
-                      points={[x, 0, x, geometry.mapHeight]}
-                      stroke="#d4d4d8"
-                      strokeWidth={1}
-                    />
-                  ))}
-                  {geometry.horizontalGridLines.map((y) => (
-                    <Line
-                      key={`horizontal-${y}`}
-                      points={[0, y, geometry.mapWidth, y]}
-                      stroke="#d4d4d8"
-                      strokeWidth={1}
-                    />
-                  ))}
-                  {geometry.corners.map((corner) => (
-                    <Circle
-                      key={`${corner.x}-${corner.y}`}
-                      fill="#615fff"
-                      radius={CORNER_RADIUS}
-                      x={corner.x}
-                      y={corner.y}
-                    />
-                  ))}
+                  <MapGridLayer geometry={geometry} />
                 </Layer>
               </Stage>
             </div>
@@ -163,4 +232,16 @@ export function MapGridPreview({ dimensionX, dimensionY }: MapGridPreviewProps) 
       )}
     </aside>
   )
+}
+
+export function MapGridPreview({
+  dimensionX,
+  dimensionY,
+  variant = 'editor',
+}: MapGridPreviewProps) {
+  if (variant === 'card') {
+    return <MapCardGridPreview dimensionX={dimensionX} dimensionY={dimensionY} />
+  }
+
+  return <MapEditorGridPreview dimensionX={dimensionX} dimensionY={dimensionY} />
 }

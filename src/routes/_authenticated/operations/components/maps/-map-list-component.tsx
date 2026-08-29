@@ -50,9 +50,9 @@ export function MapsListComponent() {
 
   return (
     <>
-      <div className="grid min-h-0 flex-1 content-start auto-rows-max gap-6 overflow-y-auto pr-2 md:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid min-h-0 flex-1 content-start auto-rows-max gap-6 overflow-y-auto pr-2 md:grid-cols-2 xl:grid-cols-3">
         {maps.map((map) => (
-          <MapCardItemComponent key={map.id} />
+          <MapCardItemComponent key={map.id} map={map} />
         ))}
       </div>
       <MapsPagination
