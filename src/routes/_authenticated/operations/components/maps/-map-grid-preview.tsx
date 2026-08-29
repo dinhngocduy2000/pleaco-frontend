@@ -147,7 +147,7 @@ function MapCardGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewProps
     <section
       ref={previewRef}
       aria-label={t.map_create_preview_canvas_label()}
-      className="h-[250px] w-full overflow-hidden bg-muted/40"
+      className="h-62.5 w-full overflow-hidden bg-muted/40"
       data-testid="map-card-grid-preview"
     >
       {!geometry ? (
