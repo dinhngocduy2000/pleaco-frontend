@@ -211,7 +211,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn('w-full justify-between h-fit', className)}
+          className={cn('justify-between h-fit', className)}
         >
           <div className="min-w-0 flex-1 text-left">{renderTriggerContent()}</div>
           <ChevronDownIcon className="size-4 shrink-0 opacity-50" />

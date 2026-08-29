@@ -21,20 +21,18 @@ export function MapsToolbar() {
           <Input
             aria-label={t.maps_search_placeholder()}
             className="pl-9"
-            disabled
             placeholder={t.maps_search_placeholder()}
           />
         </div>
         <AppSelectComponent
-          disabled
           options={[]}
           placeholder={t.maps_filter_placeholder()}
           value={undefined}
           onChange={() => undefined}
         />
+        <AppDropdownMenu items={[]} trigger={t.maps_sort_placeholder()} />
       </div>
       <div className="flex flex-wrap gap-2">
-        <AppDropdownMenu disabled items={[]} trigger={t.maps_sort_placeholder()} />
         <Button onClick={() => setOpenCreateDialog(true)}>
           <Plus />
           {t.map_create_trigger()}
