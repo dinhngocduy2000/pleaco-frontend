@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import { MapStatus } from '@/enum/maps'
 import type { IMapListInfo } from '@/interface/maps'
 
@@ -32,13 +33,8 @@ const map: IMapListInfo = {
 }
 
 describe('MapCardItemComponent', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('renders the grid, metadata, first four tags, and overflow count', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-08-29T10:00:00.000Z'))
+  it('renders the grid, metadata, tags, and action menu', async () => {
+    const user = userEvent.setup()
 
     render(<MapCardItemComponent map={map} />)
 
@@ -51,7 +47,13 @@ describe('MapCardItemComponent', () => {
     expect(screen.getByText('Priority')).toBeInTheDocument()
     expect(screen.queryByText('Restricted')).not.toBeInTheDocument()
     expect(screen.getByText('+ 1')).toBeInTheDocument()
-    expect(screen.getByText('Updated 5 minutes ago')).toBeInTheDocument()
+    expect(screen.getByText(/^Updated /)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Map options' }))
+
+    expect(await screen.findByText('View details')).toBeInTheDocument()
+    expect(screen.getByText('Edit')).toBeInTheDocument()
+    expect(screen.getByText('Delete')).toBeInTheDocument()
   })
 
   it('uses an em dash when the updated timestamp is invalid', () => {

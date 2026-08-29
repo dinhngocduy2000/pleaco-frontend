@@ -89,7 +89,7 @@ export function MapsToolbar() {
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+      <div className="flex flex-wrap min-w-0 flex-1 flex-col gap-2 sm:flex-row">
         <div className="relative w-full sm:max-w-sm">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input

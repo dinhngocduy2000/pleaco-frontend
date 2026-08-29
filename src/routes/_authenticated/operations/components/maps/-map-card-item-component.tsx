@@ -6,6 +6,7 @@ import { TypographyH2, TypographyP, TypographySmall } from '@/components/ui/typo
 import { MapStatus } from '@/enum/maps'
 import type { IMapListInfo } from '@/interface/maps'
 import { getCurrentLanguage, getTranslations } from '@/lib/translation'
+import { MapActionsDropdown } from './-map-actions-dropdown'
 import { MapGridPreview } from './-map-grid-preview'
 
 dayjs.extend(relativeTime)
@@ -49,9 +50,12 @@ export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
         </div>
         <div className="border-t" />
         <dl className="space-y-3 mb-2 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <dt className="text-muted-foreground">{t.map_card_dimensions()}</dt>
-            <dd className="font-medium">{`${map.dimension_x} × ${map.dimension_y}`}</dd>
+          <div className="flex items-center gap-3">
+            <dt className="text-muted-foreground">{t.map_card_dimensions()}:</dt>
+            <Badge
+              variant={'secondary'}
+              className="font-medium"
+            >{`${map.dimension_x} × ${map.dimension_y}`}</Badge>
           </div>
           <div className="space-y-2 flex gap-2 items-center flex-wrap">
             <TypographyP className="text-muted-foreground mb-0">{t.map_card_tags()}</TypographyP>
@@ -69,9 +73,12 @@ export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
             </dd>
           </div>
         </dl>
-        <TypographySmall className="text-xs text-muted-foreground">
-          {t.map_card_updated({ time: formatMapUpdatedAt(map.updated_at) })}
-        </TypographySmall>
+        <div className="flex shrink-0 items-center gap-1 justify-between">
+          <TypographySmall className="text-xs text-muted-foreground">
+            {t.map_card_updated({ time: formatMapUpdatedAt(map.updated_at) })}
+          </TypographySmall>
+          <MapActionsDropdown />
+        </div>
       </div>
     </article>
   )
