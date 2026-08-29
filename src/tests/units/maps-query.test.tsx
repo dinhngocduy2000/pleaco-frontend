@@ -3,16 +3,19 @@ import { act, renderHook } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
+import { MapOrderDirection, MapStatus } from '@/enum/maps'
 
 const createMapApi = vi.hoisted(() => vi.fn())
+const getMapsApi = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api/maps', () => ({ createMapApi }))
+vi.mock('@/api/maps', () => ({ createMapApi, getMapsApi }))
 
-import { getMapsQueryKey, useCreateMapMutation } from '@/queries/use-maps-query'
+import { getMapListQueryKey, getMapsQueryKey, useCreateMapMutation } from '@/queries/use-maps-query'
 
 describe('useCreateMapMutation', () => {
   beforeEach(() => {
     createMapApi.mockReset()
+    getMapsApi.mockReset()
   })
 
   it('creates a map and invalidates all map lists', async () => {
@@ -43,5 +46,18 @@ describe('useCreateMapMutation', () => {
 
   it('uses the map list endpoint as the future list query key', () => {
     expect(getMapsQueryKey()).toEqual([MAPS_ENDPOINTS.LIST])
+  })
+
+  it('includes every paginated list parameter in the list query key', () => {
+    const params = {
+      page: 2,
+      page_size: 10,
+      search: 'Warehouse',
+      status: MapStatus.UNASSIGNED,
+      tag_ids: ['tag-1'],
+      order_direction: MapOrderDirection.ASC,
+    }
+
+    expect(getMapListQueryKey(params)).toEqual([MAPS_ENDPOINTS.LIST, params])
   })
 })
