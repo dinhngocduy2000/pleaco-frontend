@@ -29,7 +29,7 @@ const AppDropdownMenu = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className={cn(
-          'flex w-[--radix-dropdown-menu-trigger-width] min-w-fit flex-col gap-1 rounded-lg',
+          'flex w-[--radix-dropdown-menu-trigger-width] min-w-37.5 min-h-10 flex-col gap-1 rounded-lg',
           dropdownContentClassName,
         )}
         side={'bottom'}
