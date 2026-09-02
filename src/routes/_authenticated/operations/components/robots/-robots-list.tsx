@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Bot } from 'lucide-react'
 import { useMemo } from 'react'
+import { AppPagination } from '@/components/reusable/pagination/app-pagination'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
 import { useRobotStatusWebSocket } from '@/hooks/use-robot-status-websocket'
@@ -10,7 +11,6 @@ import { useProfileQuery } from '@/queries/use-auth-query'
 import { useRobotsQuery } from '@/queries/use-robots-query'
 import { Route } from '../../robots'
 import { BotCardItemComponent } from './-bot-card-item-component'
-import { RobotsPagination } from './-robots-pagination'
 
 const PAGE_SIZE = 10
 const t = getTranslations()
@@ -71,7 +71,7 @@ export function RobotsList() {
           <BotCardItemComponent key={robot.id} robot={robot} />
         ))}
       </div>
-      <RobotsPagination
+      <AppPagination
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}

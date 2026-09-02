@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Map as MapIcon } from 'lucide-react'
 import { useMemo } from 'react'
+import { AppPagination } from '@/components/reusable/pagination/app-pagination'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
 import type { IMapListRequest } from '@/interface/maps'
@@ -8,7 +9,6 @@ import { getTranslations } from '@/lib/translation'
 import { useMapsQuery } from '@/queries/use-maps-query'
 import { Route } from '../../maps'
 import { MapCardItemComponent } from './-map-card-item-component'
-import { MapsPagination } from './-maps-pagination'
 
 const PAGE_SIZE = 10
 const t = getTranslations()
@@ -55,7 +55,7 @@ export function MapsListComponent() {
           <MapCardItemComponent key={map.id} map={map} />
         ))}
       </div>
-      <MapsPagination
+      <AppPagination
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
