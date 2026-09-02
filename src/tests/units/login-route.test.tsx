@@ -73,7 +73,7 @@ describe('LoginPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     auth.loginOptions = undefined
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('submits valid credentials and redirects after a successful login', async () => {

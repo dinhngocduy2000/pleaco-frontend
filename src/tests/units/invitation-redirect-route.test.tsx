@@ -31,7 +31,7 @@ describe('invitation redirect route', () => {
     vi.clearAllMocks()
     localStorage.clear()
     search.invitation_id = 'invitation-42'
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('persists the invitation ID and redirects to the home route', () => {

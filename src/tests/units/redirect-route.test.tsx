@@ -25,7 +25,7 @@ describe('authentication redirect route', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     localStorage.clear()
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('marks the session as saved and authenticated before redirecting home', () => {

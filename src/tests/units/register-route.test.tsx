@@ -71,7 +71,7 @@ describe('RegisterPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     auth.registerOptions = undefined
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('registers valid details then navigates to OTP with the submitted email', async () => {

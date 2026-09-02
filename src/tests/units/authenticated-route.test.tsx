@@ -30,7 +30,7 @@ const renderAuthenticatedRoute = () =>
 describe('authenticated route layout', () => {
   beforeEach(async () => {
     localStorage.clear()
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('redirects unauthenticated visitors to login', () => {

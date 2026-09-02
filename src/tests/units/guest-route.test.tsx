@@ -30,7 +30,7 @@ const renderGuestRoute = () =>
 describe('guest route layout', () => {
   beforeEach(async () => {
     localStorage.clear()
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('renders the guest layout and child route without a session', () => {

@@ -74,7 +74,7 @@ describe('OTPSignup', () => {
     vi.clearAllMocks()
     auth.options = undefined
     routerState.email = 'operator@example.com'
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('validates the OTP and redirects after successful verification', async () => {

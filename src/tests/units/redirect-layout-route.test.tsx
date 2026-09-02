@@ -22,7 +22,7 @@ const renderRedirectLayout = () =>
 
 describe('redirect route layout', () => {
   beforeEach(async () => {
-    await (Route.component as unknown as { preload: () => Promise<void> }).preload()
+    await (Route.component as unknown as { preload?: () => Promise<void> }).preload?.()
   })
 
   it('renders its nested redirect route through the outlet', () => {
