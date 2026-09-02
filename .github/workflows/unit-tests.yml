@@ -18,12 +18,12 @@ jobs:
         version: 9
     - name: Install dependencies
       run: pnpm install --no-frozen-lockfile
-    - name: Run unit tests
-      run: pnpm test
+    - name: Run unit tests with coverage thresholds
+      run: pnpm test:coverage
       
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: unit-tests-report
-        path: unit-tests-report/
+        name: unit-test-coverage
+        path: coverage/
         retention-days: 30
