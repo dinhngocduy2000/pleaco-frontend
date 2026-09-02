@@ -1,3 +1,4 @@
+import { AppPagination } from '@/components/reusable/pagination/app-pagination'
 import {
   Table,
   TableBody,
@@ -21,7 +22,6 @@ import 'dayjs/locale/vi'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Route } from '../../users'
-import { GroupMembersPagination } from './-group-members-pagination'
 import GroupMembersTableRowComponent from './-group-members-table.row'
 
 const t = getTranslations()
@@ -127,11 +127,7 @@ export function GroupMembersTable() {
           </TableBody>
         </Table>
       </div>
-      <GroupMembersPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
+      <AppPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
     </>
   )
 }

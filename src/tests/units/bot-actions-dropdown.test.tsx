@@ -40,7 +40,7 @@ describe('BotActionsDropdown', () => {
     mutationCallbacks = {}
     useDeleteRobotMutation.mockImplementation((callbacks: MutationCallbacks) => {
       mutationCallbacks = callbacks
-      return { mutate: deleteRobot, isPending: false }
+      return { mutateAsync: deleteRobot, isPending: false }
     })
   })
 

@@ -116,7 +116,7 @@ describe('MapGridPreview', () => {
   it('renders the card preview as a fixed, non-scrollable viewport without zoom controls', () => {
     render(<MapGridPreview dimensionX={20} dimensionY={12} variant="card" />)
 
-    expect(screen.getByTestId('map-card-grid-preview')).toHaveClass('h-[250px]', 'overflow-hidden')
+    expect(screen.getByTestId('map-card-grid-preview')).toHaveClass('h-62.5', 'overflow-hidden')
     expect(screen.getByTestId('map-grid-stage')).toHaveAttribute('data-width', '360')
     expect(screen.getByTestId('map-grid-stage')).toHaveAttribute('data-height', '250')
     expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument()

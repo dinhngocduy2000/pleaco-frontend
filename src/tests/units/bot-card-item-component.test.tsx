@@ -16,6 +16,11 @@ const robot: IRobotInfo = {
   operational_status: ROBOT_OPERATION_STATUS.CHARGING,
   connection_status: ROBOT_CONNECTION_STATUS.ONLINE,
   created_at: '2026-08-23T00:00:00.000Z',
+  tags: [
+    { id: '00000000-0000-4000-8000-000000000002', name: 'Lobby', color: '#2563eb' },
+    { id: '00000000-0000-4000-8000-000000000003', name: 'Floor 1', color: '#16a34a' },
+    { id: '00000000-0000-4000-8000-000000000004', name: 'Day Shift', color: '#f59e0b' },
+  ],
 }
 
 describe('BotCardItemComponent', () => {

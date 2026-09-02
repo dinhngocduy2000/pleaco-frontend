@@ -8,7 +8,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 
-type MapsPaginationProps = {
+type AppPaginationProps = {
   currentPage: number
   totalPages: number
   onPageChange: (page: number) => void
@@ -22,7 +22,7 @@ function getPaginationItems(totalPages: number, currentPage: number): (number | 
   return [1, 'ellipsis', currentPage, 'ellipsis', totalPages]
 }
 
-export function MapsPagination({ currentPage, totalPages, onPageChange }: MapsPaginationProps) {
+export function AppPagination({ currentPage, totalPages, onPageChange }: AppPaginationProps) {
   if (totalPages <= 1) return null
 
   return (
