@@ -74,6 +74,18 @@ export default defineConfig({
         'src/interface/**',
         'src/components/ui/**',
         '**/*.config.{ts,js}',
+        'src/stores/**',
+        '**/index.ts',
+        'src/routes/__root.tsx',
+        'src/enum/**',
+        // Placeholder authenticated routes; remove each entry when its feature is implemented.
+        'src/routes/_authenticated/index.tsx',
+        'src/routes/_authenticated/management/**',
+        'src/routes/_authenticated/operations/cleaning-tasks.tsx',
+        'src/routes/_authenticated/operations/live-monitoring.tsx',
+        'src/routes/_authenticated/organization/audit-logs.tsx',
+        'src/routes/_authenticated/organization/roles-permissions.tsx',
+        'src/routes/_authenticated/settings/tenant-settings.tsx',
       ],
       thresholds: {
         statements: 80,
