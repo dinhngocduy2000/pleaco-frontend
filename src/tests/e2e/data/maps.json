@@ -31,5 +31,69 @@
     "dimension_x": 20,
     "dimension_y": 12,
     "updated_at": "2026-09-04T03:00:00.000Z"
-  }
+  },
+  "primaryGroupMaps": [
+    {
+      "id": "89366bb3-fc43-4df7-9de2-ec843fa34013",
+      "name": "Lobby Atrium",
+      "description": "Main entrance cleaning area",
+      "status": "ASSIGNED",
+      "dimension_x": 24,
+      "dimension_y": 16,
+      "updated_at": "2026-09-04T06:00:00.000Z",
+      "tag_ids": ["0c1fc456-6d16-4fc2-b77e-eac407dafc2a"]
+    },
+    {
+      "id": "f2342ba8-9a56-4f5a-8478-1af65def074c",
+      "name": "Night Shift Wing",
+      "description": "Late-night cleaning zone",
+      "status": "UNASSIGNED",
+      "dimension_x": 12,
+      "dimension_y": 8,
+      "updated_at": "2026-09-02T06:00:00.000Z",
+      "tag_ids": ["5c4a2f88-7e2b-4dfd-9178-0d27ed14b5fe"]
+    },
+    {
+      "id": "80c5f203-1396-417f-ad33-115b787a14ca",
+      "name": "Lobby Hall",
+      "description": "Secondary lobby corridor",
+      "status": "UNASSIGNED",
+      "dimension_x": 15,
+      "dimension_y": 7,
+      "updated_at": "2026-09-01T06:00:00.000Z",
+      "tag_ids": ["0c1fc456-6d16-4fc2-b77e-eac407dafc2a"]
+    },
+    {
+      "id": "0e3839c9-1299-4ac6-9f27-9b52a6090f63",
+      "name": "Lobby Storage",
+      "description": "Supply storage beside the lobby",
+      "status": "UNASSIGNED",
+      "dimension_x": 10,
+      "dimension_y": 6,
+      "updated_at": "2026-08-30T06:00:00.000Z",
+      "tag_ids": ["0c1fc456-6d16-4fc2-b77e-eac407dafc2a"]
+    },
+    {
+      "id": "e066a045-07cc-48ea-a767-0518c9c6e14f",
+      "name": "Roof Deck",
+      "description": "Outdoor rooftop route",
+      "status": "ASSIGNED",
+      "dimension_x": 30,
+      "dimension_y": 20,
+      "updated_at": "2026-08-28T06:00:00.000Z",
+      "tag_ids": []
+    }
+  ],
+  "secondaryGroupMaps": [
+    {
+      "id": "729a7d45-e075-463a-8c26-215c062d2286",
+      "name": "Test 2 Warehouse",
+      "description": "Map owned by the second group",
+      "status": "UNASSIGNED",
+      "dimension_x": 40,
+      "dimension_y": 25,
+      "updated_at": "2026-09-03T06:00:00.000Z",
+      "tag_ids": ["5c4a2f88-7e2b-4dfd-9178-0d27ed14b5fe"]
+    }
+  ]
 }
