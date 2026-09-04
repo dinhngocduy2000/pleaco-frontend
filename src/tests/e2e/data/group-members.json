@@ -1,0 +1,54 @@
+{
+  "groupId": "660e8400-e29b-41d4-a716-446655440001",
+  "ownerProfile": {
+    "data": {
+      "id": "member-owner",
+      "name": "Test Owner",
+      "email": "owner@example.com",
+      "status": "ACTIVE",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "image_url": "",
+      "group_id": "660e8400-e29b-41d4-a716-446655440001",
+      "group": {
+        "label": "Test Group",
+        "value": "660e8400-e29b-41d4-a716-446655440001",
+        "role": "owner"
+      }
+    },
+    "message": "Success",
+    "statusCode": 200
+  },
+  "initialMembers": [
+    {
+      "member_id": "member-alice",
+      "name": "Alice Admin",
+      "email": "alice@example.com",
+      "image_url": null,
+      "joined_at": "2026-01-01T00:00:00.000Z",
+      "role": "member",
+      "status": "ACTIVE",
+      "invitation_status": "ACCEPTED"
+    },
+    {
+      "member_id": "member-bob",
+      "name": "Bob Member",
+      "email": "bob@example.com",
+      "image_url": null,
+      "joined_at": "2026-01-02T00:00:00.000Z",
+      "role": "admin",
+      "status": "ACTIVE",
+      "invitation_status": "ACCEPTED"
+    },
+    {
+      "member_id": "member-carol",
+      "name": "Carol Admin",
+      "email": "carol@example.com",
+      "image_url": null,
+      "joined_at": "2026-01-03T00:00:00.000Z",
+      "role": "admin",
+      "status": "ACTIVE",
+      "invitation_status": "ACCEPTED"
+    }
+  ]
+}
