@@ -48,7 +48,7 @@ describe('BotActionsDropdown', () => {
     const user = userEvent.setup()
     render(<BotActionsDropdown robot={robot} />)
 
-    await user.click(screen.getByRole('button', { name: 'Robot options' }))
+    await user.click(screen.getByRole('button', { name: 'Robot options: Milo' }))
     await user.click(screen.getByText('Delete'))
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
@@ -68,7 +68,7 @@ describe('BotActionsDropdown', () => {
     const user = userEvent.setup()
     render(<BotActionsDropdown robot={robot} />)
 
-    await user.click(screen.getByRole('button', { name: 'Robot options' }))
+    await user.click(screen.getByRole('button', { name: 'Robot options: Milo' }))
     await user.click(screen.getByText('Delete'))
 
     mutationCallbacks.onError?.({ response: { data: { detail: 'Robot is currently assigned' } } })
