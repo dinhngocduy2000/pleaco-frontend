@@ -21,6 +21,16 @@
   },
   "initialMembers": [
     {
+      "member_id": "member-owner",
+      "name": "Test Owner",
+      "email": "owner@example.com",
+      "image_url": null,
+      "joined_at": "2026-01-04T00:00:00.000Z",
+      "role": "owner",
+      "status": "ACTIVE",
+      "invitation_status": "ACCEPTED"
+    },
+    {
       "member_id": "member-alice",
       "name": "Alice Admin",
       "email": "alice@example.com",

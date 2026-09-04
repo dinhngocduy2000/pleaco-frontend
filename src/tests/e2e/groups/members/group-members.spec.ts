@@ -84,11 +84,13 @@ test.describe('Group member management', () => {
   }) => {
     await setupMembersPage(page)
 
+    const roleFilter = page.getByText('Filter by role', { exact: true })
+    await expect(roleFilter).toBeVisible()
     const filterResponse = page.waitForResponse((response) => {
       const url = new URL(response.url())
       return url.pathname.endsWith('/groups/members') && url.searchParams.get('role') === 'admin'
     })
-    await page.getByRole('combobox', { name: 'Filter by role' }).click()
+    await roleFilter.click()
     await page.getByRole('option', { name: 'Admin' }).click()
     await filterResponse
 
@@ -112,11 +114,50 @@ test.describe('Group member management', () => {
     expect(search.get('role')).toBe('admin')
     expect(search.get('order_direction')).toBe('asc')
 
-    const renderedRows = await page.getByRole('row').allTextContents()
-    const bobRowIndex = renderedRows.findIndex((row) => row.includes('bob@example.com'))
-    const carolRowIndex = renderedRows.findIndex((row) => row.includes('carol@example.com'))
-    expect(bobRowIndex).toBeGreaterThan(0)
-    expect(carolRowIndex).toBeGreaterThan(bobRowIndex)
+    await expect
+      .poll(async () => {
+        const renderedRows = await page.getByRole('row').allTextContents()
+        return [
+          renderedRows.findIndex((row) => row.includes('bob@example.com')),
+          renderedRows.findIndex((row) => row.includes('carol@example.com')),
+        ]
+      })
+      .toEqual([1, 2])
+  })
+
+  test('shows an inline validation error for an invalid invitation email', async ({ page }) => {
+    await setupMembersPage(page)
+
+    await page.getByRole('button', { name: 'Invite Members' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Invite Members' })
+    await dialog.getByLabel('Email').fill('not-an-email')
+
+    await expect(dialog.getByText('Invalid email format')).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Send invitation' })).toBeDisabled()
+  })
+
+  test('shows the API error when inviting an existing member', async ({ page }) => {
+    await setupMembersPage(page)
+
+    await page.route(API_INVITE_MEMBER, (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'This user is already a member of the group.' }),
+      }),
+    )
+
+    await page.getByRole('button', { name: 'Invite Members' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Invite Members' })
+    await dialog.getByLabel('Email').fill('alice@example.com')
+
+    const responsePromise = page.waitForResponse(API_INVITE_MEMBER)
+    await dialog.getByRole('button', { name: 'Send invitation' }).click()
+    const response = await responsePromise
+
+    expect(response.status()).toBe(409)
+    await expect(page.getByText('This user is already a member of the group.')).toBeVisible()
+    await expect(dialog).toBeVisible()
   })
 
   test('invites a member to the active group', async ({ page }) => {
@@ -155,6 +196,50 @@ test.describe('Group member management', () => {
     await expect(memberRow(page, 'new.member@example.com')).toContainText('admin')
   })
 
+  test('shows the API error when assigning a role equal to the current user role', async ({
+    page,
+  }) => {
+    await setupMembersPage(page)
+
+    await page.route(API_ALICE_MEMBER, (route) =>
+      route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          detail: 'You cannot assign a role equal to or higher than your own.',
+        }),
+      }),
+    )
+
+    await memberRow(page, 'alice@example.com').getByRole('button', { name: 'Edit member' }).click()
+    await selectRole(page, 'Edit Member', 'Owner')
+
+    const responsePromise = page.waitForResponse(API_ALICE_MEMBER)
+    await page
+      .getByRole('dialog', { name: 'Edit Member' })
+      .getByRole('button', { name: 'Save changes' })
+      .click()
+    const response = await responsePromise
+
+    expect(response.status()).toBe(403)
+    await expect(
+      page.getByText('You cannot assign a role equal to or higher than your own.'),
+    ).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Edit Member' })).toBeVisible()
+  })
+
+  test('disables saving an unchanged member role', async ({ page }) => {
+    await setupMembersPage(page)
+
+    await memberRow(page, 'alice@example.com').getByRole('button', { name: 'Edit member' }).click()
+
+    await expect(
+      page.getByRole('dialog', { name: 'Edit Member' }).getByRole('button', {
+        name: 'Save changes',
+      }),
+    ).toBeDisabled()
+  })
+
   test('updates a member role', async ({ page }) => {
     const { members } = await setupMembersPage(page)
 
@@ -187,6 +272,16 @@ test.describe('Group member management', () => {
       page.getByText('Member alice@example.com has been updated successfully.'),
     ).toBeVisible()
     await expect(memberRow(page, 'alice@example.com')).toContainText('admin')
+  })
+
+  test('does not show edit or delete actions for the current user', async ({ page }) => {
+    await setupMembersPage(page)
+
+    const currentUserRow = memberRow(page, 'owner@example.com')
+    await expect(currentUserRow.getByRole('button', { name: 'Edit member' })).toHaveCount(0)
+    await expect(
+      currentUserRow.getByRole('button', { name: 'Deleting members is coming soon' }),
+    ).toHaveCount(0)
   })
 
   test('removes a member after confirmation', async ({ page }) => {
