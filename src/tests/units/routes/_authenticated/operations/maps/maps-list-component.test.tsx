@@ -8,8 +8,12 @@ const maps = vi.hoisted(() => ({
   isError: false,
   isLoading: false,
 }))
+const profile = vi.hoisted(() => ({
+  data: undefined as { data: { group_id?: string } } | undefined,
+  isLoading: false,
+}))
 const useMapsQuery = vi.hoisted(() => vi.fn(() => maps))
-
+vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: () => profile }))
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
 vi.mock('@/routes/_authenticated/operations/maps', () => ({
   Route: {
@@ -51,6 +55,8 @@ describe('MapsListComponent', () => {
     maps.data = { items: [{ id: 'map-1', name: 'Lobby' }], total: 30 }
     maps.isError = false
     maps.isLoading = false
+    profile.data = { data: { group_id: 'test-group-id' } }
+    profile.isLoading = false
   })
 
   it('uses URL filters, renders map cards, and changes pages', async () => {
@@ -66,6 +72,7 @@ describe('MapsListComponent', () => {
         tag_ids: ['tag-1'],
         order_direction: 'DESC',
       },
+      queryKey: ['test-group-id'],
     })
     expect(screen.getByText('Lobby')).toBeInTheDocument()
 

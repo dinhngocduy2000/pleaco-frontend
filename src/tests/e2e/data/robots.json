@@ -48,20 +48,6 @@
       "tags": []
     }
   ],
-  "dropdowns": {
-    "tags": [
-      {
-        "id": "0c1fc456-6d16-4fc2-b77e-eac407dafc2a",
-        "name": "Lobby",
-        "color": "#0ea5e9"
-      },
-      {
-        "id": "5c4a2f88-7e2b-4dfd-9178-0d27ed14b5fe",
-        "name": "Night shift",
-        "color": "#8b5cf6"
-      }
-    ]
-  },
   "newRobot": {
     "id": "robot-new",
     "name": "Lobby Cleaner",

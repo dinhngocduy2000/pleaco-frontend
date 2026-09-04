@@ -6,6 +6,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Spinner } from '@/components/ui/spinner'
 import type { IMapListRequest } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
+import { useProfileQuery } from '@/queries/use-auth-query'
 import { useMapsQuery } from '@/queries/use-maps-query'
 import { Route } from '../../maps'
 import { MapCardItemComponent } from './-map-card-item-component'
@@ -14,6 +15,7 @@ const PAGE_SIZE = 10
 const t = getTranslations()
 
 export function MapsListComponent() {
+  const { data: profileResponse } = useProfileQuery()
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const mapParams = useMemo<IMapListRequest>(
@@ -27,7 +29,11 @@ export function MapsListComponent() {
     }),
     [search],
   )
-  const { data: mapsResponse, isError, isLoading } = useMapsQuery({ params: mapParams })
+  const {
+    data: mapsResponse,
+    isError,
+    isLoading,
+  } = useMapsQuery({ params: mapParams, queryKey: [profileResponse?.data?.group_id] })
   const maps = mapsResponse?.items ?? []
   const totalPages = Math.max(1, Math.ceil((mapsResponse?.total ?? 0) / PAGE_SIZE))
   const currentPage = Math.min(search.page, totalPages)
