@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sidebar'
 import { LIST_ROLES } from '@/enum/group'
 import { ROUTES } from '@/enum/routes'
+import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { getNavGroups, isRouteActive, type NavItem } from './sidebar_item'
@@ -40,7 +41,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { data: userProfileData } = useProfileQuery()
   const { state } = useSidebar()
   const location = useLocation()
-  const navGroups = getNavGroups()
+  const userRole = userProfileData?.data.group?.role
+  const navGroups = getNavGroups().flatMap((group) => {
+    if (!hasRoleAccess(userRole, group.roles)) return []
+
+    const items = group.items.filter((item) => hasRoleAccess(userRole, item.roles))
+    return items.length > 0 ? [{ ...group, items }] : []
+  })
   const t = getTranslations()
   const dashboardItem: NavItem = {
     title: t.sidebar_dashboard(),
@@ -79,32 +86,30 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
 
-        {navGroups.map((group) =>
-          !group.roles.includes(userProfileData?.data?.group?.role?.toString() ?? '') ? null : (
-            <SidebarGroup key={group.label}>
-              <SidebarMenu>
-                <Collapsible defaultOpen className="group/collapsible">
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={group.label}>
-                        <group.icon />
-                        <span>{group.label}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {group.items.map((item) => (
-                          <SidebarNavLink key={item.url} item={item} pathname={location.pathname} />
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              </SidebarMenu>
-            </SidebarGroup>
-          ),
-        )}
+        {navGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarMenu>
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={group.label}>
+                      <group.icon />
+                      <span>{group.label}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {group.items.map((item) => (
+                        <SidebarNavLink key={item.url} item={item} pathname={location.pathname} />
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarRail />

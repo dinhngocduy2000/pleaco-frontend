@@ -74,6 +74,12 @@ describe('AppDropdownMenu', () => {
       expect(screen.getByRole('button', { name: /Options/i })).toBeInTheDocument()
     })
 
+    it('uses the supplied accessible trigger name', () => {
+      const items = makeItems()
+      render(<AppDropdownMenu items={items} triggerAriaLabel="Actions for Milo" />)
+      expect(screen.getByRole('button', { name: 'Actions for Milo' })).toBeInTheDocument()
+    })
+
     it('renders a custom ReactNode trigger', () => {
       const items = makeItems()
       render(<AppDropdownMenu items={items} trigger={<span>Custom Trigger</span>} />)

@@ -47,6 +47,8 @@ type ComboboxSelectBaseProps = {
 
   /** Additional CSS class names applied to the trigger button. */
   className?: string
+  /** Accessible name for the trigger when an associated `<label>` is unavailable. */
+  ariaLabel?: string
   /** Whether the combobox is disabled. @default false */
   disabled?: boolean
 }
@@ -114,6 +116,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
     onLoadMore,
     render,
     className,
+    ariaLabel,
     disabled = false,
   } = props
 
@@ -209,6 +212,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
         <Button
           variant="outline"
           role="combobox"
+          aria-label={ariaLabel}
           aria-expanded={open}
           disabled={disabled}
           className={cn('justify-between h-fit', className)}

@@ -23,6 +23,7 @@ export type IOption = {
 
 export type IDropdownMenuProps = {
   trigger?: string | ReactNode
+  triggerAriaLabel?: string
   items: IDropdownMenuItem[]
   onSearch?: (value: string) => void
   dropdownContentClassName?: string

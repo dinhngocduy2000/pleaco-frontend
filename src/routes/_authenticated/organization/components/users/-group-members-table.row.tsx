@@ -80,9 +80,9 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
           {dayjs(member.joined_at).locale(getCurrentLanguage()).format('MM/DD/YYYY')}
         </TableCell>
         <TableCell>
-          <div className="flex justify-center gap-1">
-            {profileResponse?.data.id !== member.member_id &&
-              member.invitation_status === INVITATION_STATUS.ACCEPTED && (
+          {profileResponse?.data.id !== member.member_id &&
+            member.invitation_status === INVITATION_STATUS.ACCEPTED && (
+              <div className="flex justify-center gap-1">
                 <Button
                   aria-label={t.group_members_edit()}
                   size="icon-sm"
@@ -92,18 +92,19 @@ const GroupMembersTableRowComponent = ({ member, index, groupId }: Props) => {
                 >
                   <PencilIcon />
                 </Button>
-              )}
-            <Button
-              aria-label={t.group_members_delete_coming_soon()}
-              className="text-destructive"
-              size="icon-sm"
-              onClick={onDeleteMember}
-              title={t.group_members_delete_coming_soon()}
-              variant="ghost"
-            >
-              <Trash2Icon />
-            </Button>
-          </div>
+
+                <Button
+                  aria-label={t.group_members_delete_coming_soon()}
+                  className="text-destructive"
+                  size="icon-sm"
+                  onClick={onDeleteMember}
+                  title={t.group_members_delete_coming_soon()}
+                  variant="ghost"
+                >
+                  <Trash2Icon />
+                </Button>
+              </div>
+            )}
         </TableCell>
       </TableRow>
       <AlertDialogComponent

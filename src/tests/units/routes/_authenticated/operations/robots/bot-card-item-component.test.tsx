@@ -50,7 +50,7 @@ describe('BotCardItemComponent', () => {
       '[&_[data-slot=progress-indicator]]:bg-yellow-500',
     )
 
-    await user.click(screen.getByRole('button', { name: 'Robot options' }))
+    await user.click(screen.getByRole('button', { name: 'Robot options: Milo' }))
 
     expect(await screen.findByText('Delete')).toBeInTheDocument()
     expect(screen.getByText('Deactivate')).toBeInTheDocument()
