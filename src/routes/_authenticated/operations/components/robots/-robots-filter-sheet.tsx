@@ -119,6 +119,7 @@ export function RobotsFilterSheet({
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
           <FilterSelect label={t.robots_filter_model()}>
             <AppSelectComponent
+              ariaLabel={t.robots_filter_model()}
               options={modelOptions}
               placeholder={t.robots_filter_model()}
               value={selectedModel}
@@ -132,6 +133,7 @@ export function RobotsFilterSheet({
           </FilterSelect>
           <FilterSelect label={t.robots_filter_operational_status()}>
             <AppSelectComponent
+              ariaLabel={t.robots_filter_operational_status()}
               options={operationalStatusOptions}
               placeholder={t.robots_filter_operational_status()}
               value={selectedOperationalStatus}
@@ -145,6 +147,7 @@ export function RobotsFilterSheet({
           </FilterSelect>
           <FilterSelect label={t.robots_filter_connection_status()}>
             <AppSelectComponent
+              ariaLabel={t.robots_filter_connection_status()}
               options={connectionStatusOptions}
               placeholder={t.robots_filter_connection_status()}
               value={selectedConnectionStatus}
@@ -158,6 +161,7 @@ export function RobotsFilterSheet({
           </FilterSelect>
           <FilterSelect label={t.robots_filter_tags()}>
             <AppSelectComponent
+              ariaLabel={t.robots_filter_tags()}
               multiple
               options={tagOptions}
               placeholder={t.robots_filter_tags()}

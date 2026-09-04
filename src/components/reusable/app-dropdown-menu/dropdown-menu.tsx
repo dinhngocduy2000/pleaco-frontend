@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 
 const AppDropdownMenu = ({
   trigger,
+  triggerAriaLabel,
   items,
   onSearch,
   dropdownContentClassName,
@@ -22,7 +23,7 @@ const AppDropdownMenu = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={triggerVariant} disabled={disabled}>
+        <Button aria-label={triggerAriaLabel} variant={triggerVariant} disabled={disabled}>
           {trigger ?? 'Actions'}
           {!trigger && <ChevronDownIcon strokeWidth={1} />}
         </Button>

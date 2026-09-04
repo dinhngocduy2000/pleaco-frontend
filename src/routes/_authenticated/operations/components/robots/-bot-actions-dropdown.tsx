@@ -33,6 +33,7 @@ const BotActionsDropdown = ({ robot }: Props) => {
   return (
     <>
       <AppDropdownMenu
+        triggerAriaLabel={`${t.robot_card_menu_label()}: ${robot.name}`}
         trigger={
           <>
             <MoreVertical aria-hidden="true" />

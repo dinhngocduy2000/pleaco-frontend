@@ -1,0 +1,76 @@
+{
+  "groupId": "660e8400-e29b-41d4-a716-446655440001",
+  "initialRobots": [
+    {
+      "id": "robot-lobby-guardian",
+      "name": "Lobby Guardian",
+      "serial_num": "PL-2026-0001",
+      "model": "PRO",
+      "ip_address": "192.168.1.10",
+      "map_name": "Lobby map",
+      "operational_status": "EXECUTING",
+      "connection_status": "ONLINE",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "tags": [
+        {
+          "id": "0c1fc456-6d16-4fc2-b77e-eac407dafc2a",
+          "name": "Lobby",
+          "color": "#0ea5e9"
+        }
+      ]
+    },
+    {
+      "id": "robot-night-runner",
+      "name": "Night Runner",
+      "serial_num": "PL-2026-0002",
+      "model": "LITE",
+      "ip_address": "192.168.1.11",
+      "operational_status": "CHARGING",
+      "connection_status": "STALE",
+      "created_at": "2026-01-02T00:00:00.000Z",
+      "tags": [
+        {
+          "id": "5c4a2f88-7e2b-4dfd-9178-0d27ed14b5fe",
+          "name": "Night shift",
+          "color": "#8b5cf6"
+        }
+      ]
+    },
+    {
+      "id": "robot-offline-scout",
+      "name": "Offline Scout",
+      "serial_num": "PL-2026-0003",
+      "model": "STANDARD",
+      "ip_address": "192.168.1.12",
+      "operational_status": "IDLE",
+      "connection_status": "OFFLINE",
+      "created_at": "2026-01-03T00:00:00.000Z",
+      "tags": []
+    }
+  ],
+  "dropdowns": {
+    "tags": [
+      {
+        "id": "0c1fc456-6d16-4fc2-b77e-eac407dafc2a",
+        "name": "Lobby",
+        "color": "#0ea5e9"
+      },
+      {
+        "id": "5c4a2f88-7e2b-4dfd-9178-0d27ed14b5fe",
+        "name": "Night shift",
+        "color": "#8b5cf6"
+      }
+    ]
+  },
+  "newRobot": {
+    "id": "robot-new",
+    "name": "Lobby Cleaner",
+    "serial_num": "PL-2026-0042",
+    "model": "STANDARD",
+    "ip_address": "192.168.1.42",
+    "operational_status": "IDLE",
+    "connection_status": "ONLINE",
+    "created_at": "2026-01-02T00:00:00.000Z",
+    "tags": []
+  }
+}
