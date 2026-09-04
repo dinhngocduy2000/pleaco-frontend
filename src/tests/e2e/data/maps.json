@@ -1,0 +1,35 @@
+{
+  "groupId": "660e8400-e29b-41d4-a716-446655440001",
+  "initialMaps": [
+    {
+      "id": "b7f826f0-061c-4e12-8156-a970021533ac",
+      "name": "Loading dock",
+      "description": "Existing outdoor cleaning area",
+      "status": "UNASSIGNED",
+      "dimension_x": 18,
+      "dimension_y": 9,
+      "updated_at": "2026-08-28T08:00:00.000Z",
+      "tags": []
+    }
+  ],
+  "robots": [
+    {
+      "value": "18df30db-7df0-44e1-bdad-72d58889136a",
+      "label": "Lobby Guardian",
+      "serial_num": "PL-2026-0001"
+    },
+    {
+      "value": "8362704c-ec16-495f-9435-b68c11ce972f",
+      "label": "Night Runner",
+      "serial_num": "PL-2026-0002"
+    }
+  ],
+  "newMap": {
+    "id": "f708ca1a-f347-4337-912d-4b6777c60ef8",
+    "name": "Warehouse — Floor 1",
+    "description": "Primary warehouse cleaning area",
+    "dimension_x": 20,
+    "dimension_y": 12,
+    "updated_at": "2026-09-04T03:00:00.000Z"
+  }
+}

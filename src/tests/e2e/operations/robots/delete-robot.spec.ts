@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import profileData from '../../data/profile.json' with { type: 'json' }
 import robotData from '../../data/robots.json' with { type: 'json' }
+import tagData from '../../data/tags.json' with { type: 'json' }
 import { setupAuthenticatedPage } from '../../utils/setup-authenticated'
 
 const ROBOTS_URL = '/operations/robots'
@@ -26,7 +27,7 @@ async function setupRobotsPage(page: Page, deleteOutcome: DeleteOutcome) {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ data: robotData.dropdowns.tags, message: 'Success', statusCode: 200 }),
+      body: JSON.stringify({ data: tagData.tags, message: 'Success', statusCode: 200 }),
     }),
   )
   await page.route(API_BOTS, (route) => {

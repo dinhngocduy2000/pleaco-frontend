@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test'
 import profileData from '../../data/profile.json' with { type: 'json' }
 import robotData from '../../data/robots.json' with { type: 'json' }
+import tagData from '../../data/tags.json' with { type: 'json' }
 import { setupAuthenticatedPage } from '../../utils/setup-authenticated'
 
 const ROBOTS_URL = '/operations/robots'
@@ -47,7 +48,7 @@ async function setupRobotsList(page: Page) {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ data: robotData.dropdowns.tags, message: 'Success', statusCode: 200 }),
+      body: JSON.stringify({ data: tagData.tags, message: 'Success', statusCode: 200 }),
     }),
   )
   await page.route(API_BOTS, (route) => {
@@ -141,7 +142,7 @@ test.describe('Robot list', () => {
         url.searchParams.get('model') === 'LITE' &&
         url.searchParams.get('operational_status') === 'CHARGING' &&
         url.searchParams.get('connection_status') === 'STALE' &&
-        url.searchParams.get('tag_ids') === robotData.dropdowns.tags[1].id
+        url.searchParams.get('tag_ids') === tagData.tags[1].id
       )
     })
     await sheet.getByRole('button', { name: 'Apply filters' }).click()
@@ -153,7 +154,7 @@ test.describe('Robot list', () => {
     expect(search.get('model')).toBe('LITE')
     expect(search.get('operational_status')).toBe('CHARGING')
     expect(search.get('connection_status')).toBe('STALE')
-    expect(search.get('tag_ids')).toBe(JSON.stringify([robotData.dropdowns.tags[1].id]))
+    expect(search.get('tag_ids')).toBe(JSON.stringify([tagData.tags[1].id]))
   })
 
   test('resets applied filters and restores the complete robot list', async ({ page }) => {
