@@ -11,7 +11,7 @@ import {
   Truck,
   UsersRound,
 } from 'lucide-react'
-import { GroupRole, LIST_ROLES } from '@/enum/group'
+import { GroupRole, type GroupRoleType, LIST_ROLES } from '@/enum/group'
 import { ROUTES } from '@/enum/routes'
 import { getTranslations } from '@/lib/translation'
 
@@ -19,14 +19,14 @@ export type NavItem = {
   title: string
   url: string
   icon: React.ComponentType<{ className?: string }>
-  roles: string[]
+  roles: GroupRoleType[]
 }
 
 export type NavGroup = {
   label: string
   icon: React.ComponentType<{ className?: string }>
   items: NavItem[]
-  roles: string[]
+  roles: GroupRoleType[]
 }
 
 export function getNavGroups(): NavGroup[] {
@@ -78,21 +78,26 @@ export function getNavGroups(): NavGroup[] {
       label: t.sidebar_organization(),
       icon: UsersRound,
       items: [
-        { title: t.sidebar_users(), url: ROUTES.USERS, icon: UsersRound, roles: LIST_ROLES },
+        {
+          title: t.sidebar_users(),
+          url: ROUTES.USERS,
+          icon: UsersRound,
+          roles: [GroupRole.OWNER, GroupRole.ADMIN],
+        },
         {
           title: t.sidebar_roles_permissions(),
           url: ROUTES.ROLES_AND_PERMISSIONS,
           icon: ShieldCheck,
-          roles: LIST_ROLES,
+          roles: [GroupRole.OWNER, GroupRole.ADMIN],
         },
         {
           title: t.sidebar_audit_logs(),
           url: ROUTES.AUDIT_LOGS,
           icon: FileSearch,
-          roles: LIST_ROLES,
+          roles: [GroupRole.OWNER, GroupRole.ADMIN],
         },
       ],
-      roles: LIST_ROLES, // Replace with actual roles for organization
+      roles: [GroupRole.OWNER, GroupRole.ADMIN], // Replace with actual roles for organization
     },
     {
       label: t.header_settings(),
