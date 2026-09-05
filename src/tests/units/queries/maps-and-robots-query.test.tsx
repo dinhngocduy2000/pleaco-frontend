@@ -4,7 +4,11 @@ import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BOTS_ENDPOINTS, MAPS_ENDPOINTS } from '@/enum/endpoints'
 
-const mapApi = vi.hoisted(() => ({ createMapApi: vi.fn(), getMapsApi: vi.fn() }))
+const mapApi = vi.hoisted(() => ({
+  createMapApi: vi.fn(),
+  getMapsApi: vi.fn(),
+  saveMapBoundariesApi: vi.fn(),
+}))
 const robotApi = vi.hoisted(() => ({
   createRobotApi: vi.fn(),
   deleteRobotApi: vi.fn(),
@@ -14,7 +18,11 @@ const robotApi = vi.hoisted(() => ({
 vi.mock('@/api/maps', () => mapApi)
 vi.mock('@/api/robots', () => robotApi)
 
-import { useCreateMapMutation, useMapsQuery } from '@/queries/use-maps-query'
+import {
+  useCreateMapMutation,
+  useMapsQuery,
+  useSaveMapBoundariesMutation,
+} from '@/queries/use-maps-query'
 import {
   useCreateRobotMutation,
   useRobotsKeyValueQuery,
@@ -59,6 +67,21 @@ describe('maps and robots query hooks', () => {
       await result.current.mutateAsync({ name: 'Warehouse' } as never)
     })
     expect(mapApi.createMapApi).toHaveBeenCalledWith({ name: 'Warehouse' }, expect.anything())
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+  })
+
+  it('saves map boundaries and invalidates every map list', async () => {
+    mapApi.saveMapBoundariesApi.mockResolvedValue(undefined)
+    const { client, wrapper } = createWrapper()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const payload = { map_id: 'map-1', source: 'DIMENSIONS' }
+    const { result } = renderHook(() => useSaveMapBoundariesMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload as never)
+    })
+
+    expect(mapApi.saveMapBoundariesApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
   })
 

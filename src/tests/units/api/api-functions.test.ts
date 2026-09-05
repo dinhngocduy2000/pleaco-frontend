@@ -38,7 +38,7 @@ import {
   inviteGroupMembersApi,
   updateGroupMemberAPI,
 } from '@/api/groups'
-import { createMapApi, getMapsApi } from '@/api/maps'
+import { createMapApi, getMapsApi, saveMapBoundariesApi } from '@/api/maps'
 import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
 import { getTagsApi } from '@/api/tags'
 
@@ -73,6 +73,7 @@ describe('API functions', () => {
   it('forwards map, robot, tag, and group requests to their endpoint contracts', async () => {
     const signal = new AbortController().signal
     await createMapApi({} as never)
+    await saveMapBoundariesApi({} as never)
     await getMapsApi({ page: 1, page_size: 10 } as never, signal)
     await createRobotApi({} as never)
     await deleteRobotApi('robot-1')
@@ -94,6 +95,7 @@ describe('API functions', () => {
     } as never)
 
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE, {})
+    expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.SAVE_BOUNDARY, {})
     expect(authenticatedClient.get).toHaveBeenCalledWith(
       MAPS_ENDPOINTS.LIST,
       expect.objectContaining({ signal }),

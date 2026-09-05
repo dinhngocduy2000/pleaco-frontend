@@ -25,17 +25,16 @@ import { useCreateMapMutation } from '@/queries/use-maps-query'
 import { useRobotsKeyValueQuery } from '@/queries/use-robots-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
 import { createMapFormSchema } from '@/schemas/map-schemas'
-import { type MapBoundarySaveHandler, MapBoundaryStep } from './-map-boundary-step'
+import { MapBoundaryStep } from './-map-boundary-step'
 import { MapGridPreview } from './-map-grid-preview'
 
 type MapCreateModalProps = {
   setOpen: Dispatch<SetStateAction<boolean>>
-  onSaveBoundary?: MapBoundarySaveHandler
 }
 
 const t = getTranslations()
 
-export function MapCreateModal({ setOpen, onSaveBoundary }: MapCreateModalProps) {
+export function MapCreateModal({ setOpen }: MapCreateModalProps) {
   const { data: profileResponse } = useProfileQuery()
   const { data: tagsResponse } = useTagsQuery()
   const { data: robotsResponse } = useRobotsKeyValueQuery()
@@ -128,9 +127,7 @@ export function MapCreateModal({ setOpen, onSaveBoundary }: MapCreateModalProps)
   }
 
   if (createdMap) {
-    return (
-      <MapBoundaryStep map={createdMap} onClose={handleClose} onSaveBoundary={onSaveBoundary} />
-    )
+    return <MapBoundaryStep map={createdMap} onClose={handleClose} />
   }
 
   return (

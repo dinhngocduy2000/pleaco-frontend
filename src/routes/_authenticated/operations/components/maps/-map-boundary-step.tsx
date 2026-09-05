@@ -3,9 +3,11 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import { Button } from '@/components/ui/button'
-import type { IMapBoundaries, IMapBoundaryCoordinate, IMapListInfo } from '@/interface/maps'
-import type { IOption } from '@/interface/utils'
+import { GeometryType, MapBoundarySource } from '@/enum/maps'
+import type { IMapBoundaryCoordinate, IMapListInfo } from '@/interface/maps'
+import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
+import { useSaveMapBoundariesMutation } from '@/queries/use-maps-query'
 import { MapBoundaryEditor } from './-map-boundary-editor'
 import {
   getFullMapBoundaries,
@@ -13,52 +15,52 @@ import {
   serializeBoundary,
 } from './-map-boundary-geometry'
 
-const FULL_MAP = 'full-map'
-const CUSTOM = 'custom'
-const TEACH_MODE = 'teach-mode'
 const t = getTranslations()
-
-export type MapBoundarySaveHandler = (
-  mapId: string,
-  boundaries: IMapBoundaries,
-) => void | Promise<void>
 
 type MapBoundaryStepProps = {
   map: IMapListInfo
   onClose: () => void
-  onSaveBoundary?: MapBoundarySaveHandler
 }
 
-export function MapBoundaryStep({ map, onClose, onSaveBoundary }: MapBoundaryStepProps) {
-  const [method, setMethod] = useState(FULL_MAP)
+export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
+  const [method, setMethod] = useState(MapBoundarySource.DIMENSIONS)
   const [points, setPoints] = useState<IMapBoundaryCoordinate[]>([])
   const [closed, setClosed] = useState(false)
   const [error, setError] = useState<string>()
-  const [isSaving, setIsSaving] = useState(false)
   const methodOptions = useMemo<IOption[]>(
     () => [
-      { label: t.map_boundary_method_full(), value: FULL_MAP },
-      { label: t.map_boundary_method_custom(), value: CUSTOM },
+      { label: t.map_boundary_method_full(), value: MapBoundarySource.DIMENSIONS },
+      { label: t.map_boundary_method_custom(), value: MapBoundarySource.CUSTOM },
       {
         disabled: true,
         label: t.map_boundary_method_teach(),
         subLabel: t.map_boundary_coming_soon(),
-        value: TEACH_MODE,
+        value: MapBoundarySource.TEACH_MODE,
       },
     ],
     [],
   )
+  const { mutate: saveMapBoundaries, isPending: isSaving } = useSaveMapBoundariesMutation({
+    onSuccess: () => {
+      toast.success(t.map_boundary_save_success())
+      onClose()
+    },
+    onError: (saveError) => {
+      const detail = (saveError as IAxiosError)?.response?.data?.detail
+      toast.error(typeof detail === 'string' && detail ? detail : t.map_boundary_save_error())
+    },
+  })
   const selectedMethod = methodOptions.find((option) => option.value === method)
-  const isCustom = method === CUSTOM
+  const isCustom = method === MapBoundarySource.CUSTOM
   const customIsValid = isValidBoundaryPolygon(points, closed)
   const fullMapPoints = getFullMapBoundaries(map.dimension_x, map.dimension_y)[0].slice(0, -1)
   const displayedPoints = isCustom ? points : fullMapPoints
 
   const handleMethodChange = (option: IOption | undefined) => {
     if (!option || option.disabled) return
-    setMethod(option.value)
+    setMethod(option.value as MapBoundarySource)
     setError(undefined)
-    if (option.value !== CUSTOM) {
+    if (option.value !== MapBoundarySource.CUSTOM) {
       setPoints([])
       setClosed(false)
     }
@@ -85,21 +87,19 @@ export function MapBoundaryStep({ map, onClose, onSaveBoundary }: MapBoundarySte
     setError(undefined)
   }
 
-  const handleSave = async () => {
-    const boundaries = isCustom
-      ? serializeBoundary(points)
-      : getFullMapBoundaries(map.dimension_x, map.dimension_y)
-
-    setIsSaving(true)
-    try {
-      await onSaveBoundary?.(map.id, boundaries)
-      toast.success(t.map_boundary_save_success())
-      onClose()
-    } catch {
-      toast.error(t.map_boundary_save_error())
-    } finally {
-      setIsSaving(false)
-    }
+  const handleSave = () => {
+    saveMapBoundaries(
+      isCustom
+        ? {
+            map_id: map.id,
+            source: MapBoundarySource.CUSTOM,
+            geometry: {
+              type: GeometryType.POLYGON,
+              coordinates: serializeBoundary(points),
+            },
+          }
+        : { map_id: map.id, source: MapBoundarySource.DIMENSIONS },
+    )
   }
 
   return (
@@ -127,7 +127,7 @@ export function MapBoundaryStep({ map, onClose, onSaveBoundary }: MapBoundarySte
           closed={isCustom ? closed : true}
           dimensionX={map.dimension_x}
           dimensionY={map.dimension_y}
-          interactive={isCustom}
+          interactive={isCustom && !isSaving}
           points={displayedPoints}
           onChange={handleBoundaryChange}
           onInvalid={() => setError(t.map_boundary_invalid_shape())}

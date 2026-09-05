@@ -1,10 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { GeometryType, MapBoundarySource } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
+const saveMapBoundaries = vi.hoisted(() => vi.fn())
+const useSaveMapBoundariesMutation = vi.hoisted(() => vi.fn())
 vi.mock('sonner', () => ({ toast }))
+vi.mock('@/queries/use-maps-query', () => ({ useSaveMapBoundariesMutation }))
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor', () => ({
   MapBoundaryEditor: ({
     closed,
@@ -74,6 +78,14 @@ describe('MapBoundaryStep', () => {
   beforeEach(() => {
     toast.error.mockReset()
     toast.success.mockReset()
+    saveMapBoundaries.mockReset()
+    useSaveMapBoundariesMutation.mockImplementation(({ onSuccess }) => ({
+      isPending: false,
+      mutate: (payload: unknown) => {
+        saveMapBoundaries(payload)
+        onSuccess?.()
+      },
+    }))
   })
 
   it('defaults to the full map area and keeps Teach mode disabled', async () => {
@@ -92,31 +104,24 @@ describe('MapBoundaryStep', () => {
     )
   })
 
-  it('serializes and emits the full map boundary before closing', async () => {
+  it('saves the dimensions source without geometry before closing', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    const onSaveBoundary = vi.fn()
-    render(<MapBoundaryStep map={map} onClose={onClose} onSaveBoundary={onSaveBoundary} />)
+    render(<MapBoundaryStep map={map} onClose={onClose} />)
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(onSaveBoundary).toHaveBeenCalledWith('map-123', [
-      [
-        [0, 0],
-        [20, 0],
-        [20, 12],
-        [0, 12],
-        [0, 0],
-      ],
-    ])
+    expect(saveMapBoundaries).toHaveBeenCalledWith({
+      map_id: 'map-123',
+      source: MapBoundarySource.DIMENSIONS,
+    })
     expect(toast.success).toHaveBeenCalledWith('Boundary saved successfully.')
     expect(onClose).toHaveBeenCalledOnce()
   })
 
   it('requires a valid closed custom polygon and rounds its coordinates', async () => {
     const user = userEvent.setup()
-    const onSaveBoundary = vi.fn()
-    render(<MapBoundaryStep map={map} onClose={vi.fn()} onSaveBoundary={onSaveBoundary} />)
+    render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
 
     await user.click(screen.getByRole('combobox', { name: 'Boundary method' }))
     await user.click(screen.getByRole('option', { name: 'Draw a custom boundary' }))
@@ -126,14 +131,21 @@ describe('MapBoundaryStep', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(onSaveBoundary).toHaveBeenCalledWith('map-123', [
-      [
-        [1.23, 1.24],
-        [8.89, 1],
-        [4, 7.78],
-        [1.23, 1.24],
-      ],
-    ])
+    expect(saveMapBoundaries).toHaveBeenCalledWith({
+      map_id: 'map-123',
+      source: MapBoundarySource.CUSTOM,
+      geometry: {
+        type: GeometryType.POLYGON,
+        coordinates: [
+          [
+            [1.23, 1.24],
+            [8.89, 1],
+            [4, 7.78],
+            [1.23, 1.24],
+          ],
+        ],
+      },
+    })
   })
 
   it('supports undo, clear, invalid feedback, and clears Custom when switching modes', async () => {
@@ -163,24 +175,52 @@ describe('MapBoundaryStep', () => {
   it('closes without saving when Maybe later is selected', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    const onSaveBoundary = vi.fn()
-    render(<MapBoundaryStep map={map} onClose={onClose} onSaveBoundary={onSaveBoundary} />)
+    render(<MapBoundaryStep map={map} onClose={onClose} />)
 
     await user.click(screen.getByRole('button', { name: 'Maybe later' }))
 
-    expect(onSaveBoundary).not.toHaveBeenCalled()
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
     expect(onClose).toHaveBeenCalledOnce()
   })
 
-  it('keeps the boundary step open when the save callback rejects', async () => {
+  it('shows the API detail and keeps the boundary step open when saving fails', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    const onSaveBoundary = vi.fn().mockRejectedValue(new Error('Unavailable'))
-    render(<MapBoundaryStep map={map} onClose={onClose} onSaveBoundary={onSaveBoundary} />)
+    useSaveMapBoundariesMutation.mockImplementation(({ onError }) => ({
+      isPending: false,
+      mutate: () =>
+        onError?.({ response: { data: { detail: 'Boundary service is unavailable' } } }),
+    }))
+    render(<MapBoundaryStep map={map} onClose={onClose} />)
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(toast.error).toHaveBeenCalledWith('Boundary service is unavailable')
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('uses the localized fallback when the API has no error detail', async () => {
+    const user = userEvent.setup()
+    useSaveMapBoundariesMutation.mockImplementation(({ onError }) => {
+      return { isPending: false, mutate: () => onError?.(new Error('Unavailable')) }
+    })
+    render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(toast.error).toHaveBeenCalledWith('Unable to save the boundary. Please try again.')
-    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('disables actions while saving', () => {
+    useSaveMapBoundariesMutation.mockReturnValue({
+      isPending: true,
+      mutate: saveMapBoundaries,
+    })
+    render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
+
+    expect(screen.getByRole('combobox', { name: 'Boundary method' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Maybe later' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Save/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
   })
 })

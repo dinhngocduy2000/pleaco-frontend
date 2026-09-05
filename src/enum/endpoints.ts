@@ -44,4 +44,5 @@ export enum MAPS_ENDPOINTS {
   LIST = '/maps',
   // biome-ignore lint/suspicious/noDuplicateEnumValues: GET and POST share the same resource path.
   CREATE = '/maps',
+  SAVE_BOUNDARY = '/maps/boundary',
 }
