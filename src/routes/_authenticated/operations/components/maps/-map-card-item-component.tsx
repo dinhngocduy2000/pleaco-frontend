@@ -33,7 +33,12 @@ export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
 
   return (
     <article aria-label={map.name} className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <MapGridPreview dimensionX={map.dimension_x} dimensionY={map.dimension_y} variant="card" />
+      <MapGridPreview
+        dimensionX={map.dimension_x}
+        dimensionY={map.dimension_y}
+        geometry={map.geometry}
+        variant="card"
+      />
       <div className="space-y-4 p-5">
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-3">

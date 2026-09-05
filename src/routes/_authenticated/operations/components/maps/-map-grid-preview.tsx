@@ -2,7 +2,10 @@ import { Minus, Plus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Circle, Layer, Line, Rect, Stage } from 'react-konva'
 import { Button } from '@/components/ui/button'
+import { GeometryType } from '@/enum/maps'
+import type { Geometry } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
+import { flattenCanvasPoints, worldPointToCanvas } from './-map-boundary-geometry'
 
 export const MAP_PIXELS_PER_METER = 10
 export const MAP_CANVAS_PADDING = 20
@@ -18,6 +21,7 @@ const t = getTranslations()
 type MapGridPreviewProps = {
   dimensionX: number | undefined
   dimensionY: number | undefined
+  geometry?: Geometry
   variant?: 'editor' | 'card'
 }
 
@@ -114,7 +118,39 @@ export function MapGridLayer({ geometry }: MapGridLayerProps) {
   )
 }
 
-function MapCardGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewProps, 'variant'>) {
+type MapBoundaryGeometryLayerProps = {
+  boundaryGeometry: Geometry | undefined
+  dimensionY: number
+  pixelsPerMeter: number
+}
+
+function MapBoundaryGeometryLayer({
+  boundaryGeometry,
+  dimensionY,
+  pixelsPerMeter,
+}: MapBoundaryGeometryLayerProps) {
+  if (boundaryGeometry?.type !== GeometryType.POLYGON) return null
+
+  return boundaryGeometry.coordinates.map((polygon) => (
+    <Line
+      key={JSON.stringify(polygon)}
+      closed
+      fill="rgb(97 95 255 / 0.12)"
+      name="map-boundary"
+      points={flattenCanvasPoints(
+        polygon.map((point) => worldPointToCanvas(point, dimensionY, pixelsPerMeter)),
+      )}
+      stroke="#4f46e5"
+      strokeWidth={3}
+    />
+  ))
+}
+
+function MapCardGridPreview({
+  dimensionX,
+  dimensionY,
+  geometry: boundaryGeometry,
+}: Omit<MapGridPreviewProps, 'variant'>) {
   const previewRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(CARD_PREVIEW_FALLBACK_WIDTH)
   const baseGeometry = getMapGridPreviewGeometry(dimensionX, dimensionY)
@@ -161,6 +197,11 @@ function MapCardGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewProps
             y={(CARD_PREVIEW_HEIGHT - geometry.mapHeight) / 2}
           >
             <MapGridLayer geometry={geometry} />
+            <MapBoundaryGeometryLayer
+              boundaryGeometry={boundaryGeometry}
+              dimensionY={dimensionY ?? 0}
+              pixelsPerMeter={MAP_PIXELS_PER_METER * scale}
+            />
           </Layer>
         </Stage>
       )}
@@ -237,10 +278,13 @@ function MapEditorGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewPro
 export function MapGridPreview({
   dimensionX,
   dimensionY,
+  geometry,
   variant = 'editor',
 }: MapGridPreviewProps) {
   if (variant === 'card') {
-    return <MapCardGridPreview dimensionX={dimensionX} dimensionY={dimensionY} />
+    return (
+      <MapCardGridPreview dimensionX={dimensionX} dimensionY={dimensionY} geometry={geometry} />
+    )
   }
 
   return <MapEditorGridPreview dimensionX={dimensionX} dimensionY={dimensionY} />

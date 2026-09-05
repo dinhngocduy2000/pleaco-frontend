@@ -46,6 +46,7 @@ export type IMapListInfo = {
   dimension_x: number
   dimension_y: number
   updated_at: string
+  geometry?: Geometry
 }
 
 export type IMapListRequest = {
