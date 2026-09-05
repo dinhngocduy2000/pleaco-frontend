@@ -1,8 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMapApi, getMapsApi } from '@/api/maps'
+import { createMapApi, getMapsApi, saveMapBoundariesApi } from '@/api/maps'
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
-import type { ICreateMapRequest, IMapListInfo, IMapListRequest } from '@/interface/maps'
+import type {
+  ICreateMapRequest,
+  IMapListInfo,
+  IMapListRequest,
+  ISaveMapBoundaries,
+} from '@/interface/maps'
 import type { IMutation, ReactQueryHookParams } from '@/interface/utils'
 
 export const getMapsQueryKey = (queryKey: unknown[] = []) => [MAPS_ENDPOINTS.LIST, ...queryKey]
@@ -29,13 +34,31 @@ export const useCreateMapMutation = ({
   onSuccess,
   onError,
   onMutate,
-}: IMutation<IResponseData<void>, ICreateMapRequest> = {}) => {
+}: IMutation<IResponseData<IMapListInfo>, ICreateMapRequest> = {}) => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: createMapApi,
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
+      onSuccess?.(data, variables)
+    },
+    onError,
+    onMutate,
+  })
+}
+
+export const useSaveMapBoundariesMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<void, ISaveMapBoundaries> = {}) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: saveMapBoundariesApi,
+    onSuccess: async (data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
       onSuccess?.(data, variables)
     },
     onError,

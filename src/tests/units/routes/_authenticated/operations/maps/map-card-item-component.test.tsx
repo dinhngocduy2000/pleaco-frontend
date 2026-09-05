@@ -1,12 +1,24 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { MapStatus } from '@/enum/maps'
-import type { IMapListInfo } from '@/interface/maps'
+import { GeometryType, MapStatus } from '@/enum/maps'
+import type { Geometry, IMapListInfo } from '@/interface/maps'
 
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-grid-preview', () => ({
-  MapGridPreview: ({ dimensionX, dimensionY }: { dimensionX: number; dimensionY: number }) => (
-    <div data-dimensions={`${dimensionX}x${dimensionY}`} data-testid="map-grid-preview" />
+  MapGridPreview: ({
+    dimensionX,
+    dimensionY,
+    geometry,
+  }: {
+    dimensionX: number
+    dimensionY: number
+    geometry?: Geometry
+  }) => (
+    <div
+      data-dimensions={`${dimensionX}x${dimensionY}`}
+      data-geometry={JSON.stringify(geometry)}
+      data-testid="map-grid-preview"
+    />
   ),
 }))
 
@@ -23,6 +35,17 @@ const map: IMapListInfo = {
   dimension_x: 20,
   dimension_y: 12,
   updated_at: '2026-08-29T09:55:00.000Z',
+  geometry: {
+    type: GeometryType.POLYGON,
+    coordinates: [
+      [
+        [1, 1],
+        [8, 1],
+        [4, 8],
+        [1, 1],
+      ],
+    ],
+  },
   tags: [
     { id: 'tag-1', name: 'Warehouse', color: '#000000' },
     { id: 'tag-2', name: 'Floor 1', color: '#000000' },
@@ -39,6 +62,10 @@ describe('MapCardItemComponent', () => {
     render(<MapCardItemComponent map={map} />)
 
     expect(screen.getByTestId('map-grid-preview')).toHaveAttribute('data-dimensions', '20x12')
+    expect(screen.getByTestId('map-grid-preview')).toHaveAttribute(
+      'data-geometry',
+      JSON.stringify(map.geometry),
+    )
     expect(screen.getByRole('heading', { name: map.name })).toBeInTheDocument()
     expect(screen.getByText(MapStatus.ASSIGNED)).toHaveClass('bg-green-50', 'text-green-700')
     expect(screen.getByText(map.description ?? '')).toHaveClass('line-clamp-2')

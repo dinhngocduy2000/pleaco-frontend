@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import type { ICreateMapFormType } from '@/interface/maps'
+import type { ICreateMapFormType, IMapListInfo } from '@/interface/maps'
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
 import { getErrorMessage } from '@/lib/utils'
@@ -25,6 +25,7 @@ import { useCreateMapMutation } from '@/queries/use-maps-query'
 import { useRobotsKeyValueQuery } from '@/queries/use-robots-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
 import { createMapFormSchema } from '@/schemas/map-schemas'
+import { MapBoundaryStep } from './-map-boundary-step'
 import { MapGridPreview } from './-map-grid-preview'
 
 type MapCreateModalProps = {
@@ -38,6 +39,7 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
   const { data: tagsResponse } = useTagsQuery()
   const { data: robotsResponse } = useRobotsKeyValueQuery()
   const [robotSearch, setRobotSearch] = useState('')
+  const [createdMap, setCreatedMap] = useState<IMapListInfo>()
   const groupId = profileResponse?.data.group_id
   const tagOptions = useMemo<IOption[]>(
     () => tagsResponse?.data.map((tag) => ({ label: tag.name, value: tag.id })) ?? [],
@@ -88,15 +90,24 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
   const selectedRobots = robotOptions.filter((option) => watch('robot_ids').includes(option.value))
   const selectedTags = tagOptions.filter((option) => watch('tag_ids').includes(option.value))
   const { mutateAsync: createMap, isPending } = useCreateMapMutation({
-    onSuccess: () => {
-      reset()
-      setOpen(false)
+    onSuccess: (response) => {
+      if (!response?.data) {
+        toast.error(t.map_create_error())
+        return
+      }
+      setCreatedMap(response.data)
       toast.success(t.map_create_success())
     },
     onError: (error) => {
       toast.error(getErrorMessage(error as IAxiosError) || t.map_create_error())
     },
   })
+
+  const handleClose = () => {
+    reset()
+    setCreatedMap(undefined)
+    setOpen(false)
+  }
 
   const handleSubmitMap = async (data: ICreateMapFormType) => {
     if (!groupId) {
@@ -115,6 +126,10 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
     })
   }
 
+  if (createdMap) {
+    return <MapBoundaryStep map={createdMap} onClose={handleClose} />
+  }
+
   return (
     <div className="flex min-h-0 flex-wrap h-full">
       <MapGridPreview dimensionX={dimensionX} dimensionY={dimensionY} />
@@ -129,7 +144,7 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
             variant="ghost"
             size="icon"
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={handleClose}
           >
             <X className="size-8 stroke-1" />
           </Button>
@@ -271,7 +286,7 @@ export function MapCreateModal({ setOpen }: MapCreateModalProps) {
                 loading: isPending,
                 type: 'button',
               }}
-              onCancel={() => setOpen(false)}
+              onCancel={handleClose}
               onConfirm={handleSubmit(handleSubmitMap)}
             />
           </form>

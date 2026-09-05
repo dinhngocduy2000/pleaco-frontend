@@ -7,15 +7,22 @@ import { MapOrderDirection, MapStatus } from '@/enum/maps'
 
 const createMapApi = vi.hoisted(() => vi.fn())
 const getMapsApi = vi.hoisted(() => vi.fn())
+const saveMapBoundariesApi = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api/maps', () => ({ createMapApi, getMapsApi }))
+vi.mock('@/api/maps', () => ({ createMapApi, getMapsApi, saveMapBoundariesApi }))
 
-import { getMapListQueryKey, getMapsQueryKey, useCreateMapMutation } from '@/queries/use-maps-query'
+import {
+  getMapListQueryKey,
+  getMapsQueryKey,
+  useCreateMapMutation,
+  useSaveMapBoundariesMutation,
+} from '@/queries/use-maps-query'
 
 describe('useCreateMapMutation', () => {
   beforeEach(() => {
     createMapApi.mockReset()
     getMapsApi.mockReset()
+    saveMapBoundariesApi.mockReset()
   })
 
   it('creates a map and invalidates all map lists', async () => {
@@ -46,6 +53,42 @@ describe('useCreateMapMutation', () => {
 
   it('uses the map list endpoint as the future list query key', () => {
     expect(getMapsQueryKey()).toEqual([MAPS_ENDPOINTS.LIST])
+  })
+
+  it('saves a boundary and waits for map-list invalidation', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    let finishInvalidation: VoidFunction = () => undefined
+    const invalidation = new Promise<void>((resolve) => {
+      finishInvalidation = resolve
+    })
+    const invalidateQueries = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockReturnValue(invalidation)
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const payload = { map_id: 'map-123', source: 'DIMENSIONS' }
+    saveMapBoundariesApi.mockResolvedValue(undefined)
+    const { result } = renderHook(() => useSaveMapBoundariesMutation(), { wrapper })
+
+    let mutationSettled = false
+    let mutation: Promise<void>
+    await act(async () => {
+      mutation = result.current.mutateAsync(payload as never).then(() => {
+        mutationSettled = true
+      })
+      await Promise.resolve()
+    })
+
+    expect(saveMapBoundariesApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+    expect(mutationSettled).toBe(false)
+
+    await act(async () => {
+      finishInvalidation()
+      await mutation
+    })
+    expect(mutationSettled).toBe(true)
   })
 
   it('includes every paginated list parameter in the list query key', () => {

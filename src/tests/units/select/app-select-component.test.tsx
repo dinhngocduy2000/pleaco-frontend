@@ -186,6 +186,20 @@ describe('AppSelectComponent', () => {
       await user.click(screen.getByRole('combobox'))
       expect(screen.queryByRole('option')).not.toBeInTheDocument()
     })
+
+    it('renders a disabled option without selecting it', async () => {
+      const onChange = vi.fn()
+      const options = [...ITEMS, { label: 'Coming soon', value: 'soon', disabled: true }]
+      render(<AppSelectComponent options={options} value={undefined} onChange={onChange} />)
+      const user = userEvent.setup()
+
+      await user.click(screen.getByRole('combobox'))
+      const disabledOption = screen.getByRole('option', { name: 'Coming soon' })
+      expect(disabledOption).toHaveAttribute('aria-disabled', 'true')
+      await user.click(disabledOption)
+
+      expect(onChange).not.toHaveBeenCalled()
+    })
   })
 
   describe('render prop', () => {

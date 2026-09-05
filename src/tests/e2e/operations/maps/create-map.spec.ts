@@ -32,7 +32,17 @@ type CreateMapRequest = {
   tags: string[]
 }
 
+type SaveMapBoundaryRequest = {
+  map_id: string
+  source: 'DIMENSIONS' | 'CUSTOM' | 'TEACH_MODE'
+  geometry?: {
+    type: 'Polygon' | 'Point' | 'LineString'
+    coordinates: number[][][]
+  }
+}
+
 type MapsPageOptions = {
+  boundaryError?: string
   createError?: string
 }
 
@@ -46,6 +56,8 @@ const copyMaps = (): MapItem[] =>
 async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
   const maps = copyMaps()
   const createRequests: CreateMapRequest[] = []
+  const boundaryRequests: SaveMapBoundaryRequest[] = []
+  let mapListRequestCount = 0
 
   await setupAuthenticatedPage(page, profileData.activeOwnerUser)
   await page.route(API_TAGS, (route) =>
@@ -63,7 +75,23 @@ async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
     }),
   )
   await page.route(API_MAPS, async (route) => {
+    if (new URL(route.request().url()).pathname.endsWith('/maps/boundary')) {
+      boundaryRequests.push(route.request().postDataJSON() as SaveMapBoundaryRequest)
+      if (options.boundaryError) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: options.boundaryError }),
+        })
+        return
+      }
+
+      await route.fulfill({ status: 204 })
+      return
+    }
+
     if (route.request().method() === 'GET') {
+      mapListRequestCount += 1
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -91,15 +119,16 @@ async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
       return
     }
 
-    maps.unshift({
+    const createdMap: MapItem = {
       ...mapData.newMap,
       status: request.robot_ids.length > 0 ? 'ASSIGNED' : 'UNASSIGNED',
       tags: tagData.tags.filter((tag) => request.tags.includes(tag.id)),
-    })
+    }
+    maps.unshift(createdMap)
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ data: null, message: 'Success', statusCode: 200 }),
+      body: JSON.stringify({ data: createdMap, message: 'Success', statusCode: 200 }),
     })
   })
 
@@ -107,7 +136,7 @@ async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
   await expect(page.getByRole('heading', { name: 'Maps' })).toBeVisible()
   await expect(page.getByRole('article', { name: mapData.initialMaps[0].name })).toBeVisible()
 
-  return { createRequests }
+  return { boundaryRequests, createRequests, getMapListRequestCount: () => mapListRequestCount }
 }
 
 async function openCreateDialog(page: Page) {
@@ -211,7 +240,7 @@ test.describe('Create map', () => {
   test('creates an assigned map and renders its metadata in the refreshed list', async ({
     page,
   }) => {
-    const { createRequests } = await setupMapsPage(page)
+    const { boundaryRequests, createRequests } = await setupMapsPage(page)
     const dialog = await openCreateDialog(page)
     await fillRequiredMapFields(dialog)
     await dialog.getByLabel('Description').fill(mapData.newMap.description)
@@ -237,7 +266,10 @@ test.describe('Create map', () => {
       },
     ])
     await expect(page.getByText('Map created successfully.')).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Set travel boundary' })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Maybe later' }).click()
     await expect(dialog).toHaveCount(0)
+    expect(boundaryRequests).toEqual([])
 
     const card = page.getByRole('article', { name: mapData.newMap.name })
     await expect(card).toBeVisible()
@@ -268,5 +300,124 @@ test.describe('Create map', () => {
     await expect(page.getByText(errorMessage)).toBeVisible()
     await expect(dialog).toBeVisible()
     await expect(page.getByRole('article', { name: mapData.newMap.name })).toHaveCount(0)
+  })
+
+  test('saves the full map area while keeping Teach mode unavailable', async ({ page }) => {
+    const { boundaryRequests, getMapListRequestCount } = await setupMapsPage(page)
+    const dialog = await openCreateDialog(page)
+    await fillRequiredMapFields(dialog)
+
+    const createResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/maps') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Create map', exact: true }).click()
+    await createResponse
+
+    const method = dialog.getByRole('combobox', { name: 'Boundary method' })
+    await expect(method).toContainText('Use full map area')
+    await method.click()
+    await expect(page.getByRole('option', { name: /Teach mode/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    await page.keyboard.press('Escape')
+
+    const listRequestsBeforeSave = getMapListRequestCount()
+    const boundaryResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/maps/boundary') && response.request().method() === 'POST',
+    )
+    const mapListResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/maps?') && response.request().method() === 'GET',
+    )
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    expect((await boundaryResponse).status()).toBe(204)
+    await mapListResponse
+
+    expect(boundaryRequests).toEqual([{ map_id: mapData.newMap.id, source: 'DIMENSIONS' }])
+    expect(getMapListRequestCount()).toBeGreaterThan(listRequestsBeforeSave)
+    await expect(page.getByText('Boundary saved successfully.')).toBeVisible()
+    await expect(dialog).toHaveCount(0)
+  })
+
+  test('draws and closes a valid custom boundary', async ({ page }) => {
+    const { boundaryRequests } = await setupMapsPage(page)
+    const dialog = await openCreateDialog(page)
+    await fillRequiredMapFields(dialog)
+
+    const createResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/maps') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Create map', exact: true }).click()
+    await createResponse
+
+    await dialog.getByRole('combobox', { name: 'Boundary method' }).click()
+    await page.getByRole('option', { name: 'Draw a custom boundary' }).click()
+    const saveButton = dialog.getByRole('button', { name: 'Save' })
+    await expect(saveButton).toBeDisabled()
+
+    const canvas = dialog
+      .getByRole('region', { name: 'Map boundary editor' })
+      .locator('canvas')
+      .last()
+    const canvasBox = await canvas.boundingBox()
+    expect(canvasBox).not.toBeNull()
+    if (!canvasBox) return
+
+    await page.mouse.click(canvasBox.x + 40, canvasBox.y + 120)
+    await page.mouse.move(canvasBox.x + 40, canvasBox.y + 120)
+    await page.mouse.down()
+    await page.mouse.move(canvasBox.x + 120, canvasBox.y + 120)
+    await page.mouse.up()
+    await page.mouse.click(canvasBox.x + 80, canvasBox.y + 60)
+    await page.mouse.click(canvasBox.x + 40, canvasBox.y + 120)
+
+    await expect(saveButton).toBeEnabled()
+    const boundaryResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/maps/boundary') && response.request().method() === 'POST',
+    )
+    await saveButton.click()
+    expect((await boundaryResponse).status()).toBe(204)
+    expect(boundaryRequests).toHaveLength(1)
+    expect(boundaryRequests[0]).toEqual({
+      map_id: mapData.newMap.id,
+      source: 'CUSTOM',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [2, 2.05],
+            [10, 2.05],
+            [6, 8.05],
+            [2, 2.05],
+          ],
+        ],
+      },
+    })
+    await expect(page.getByText('Boundary saved successfully.')).toBeVisible()
+  })
+
+  test('shows the boundary API error and keeps the modal open', async ({ page }) => {
+    const errorMessage = 'The boundary is outside the map dimensions.'
+    const { boundaryRequests } = await setupMapsPage(page, { boundaryError: errorMessage })
+    const dialog = await openCreateDialog(page)
+    await fillRequiredMapFields(dialog)
+    await dialog.getByRole('button', { name: 'Create map', exact: true }).click()
+    await expect(dialog.getByRole('heading', { name: 'Set travel boundary' })).toBeVisible()
+
+    const boundaryResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/maps/boundary') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    expect((await boundaryResponse).status()).toBe(422)
+    expect(boundaryRequests).toEqual([{ map_id: mapData.newMap.id, source: 'DIMENSIONS' }])
+    await expect(page.getByText(errorMessage)).toBeVisible()
+    await expect(dialog).toBeVisible()
   })
 })

@@ -2,11 +2,30 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { GeometryType } from '@/enum/maps'
 
 vi.mock('react-konva', () => ({
   Circle: () => null,
   Layer: ({ children }: { children: ReactNode }) => <>{children}</>,
-  Line: () => null,
+  Line: ({
+    closed,
+    fill,
+    name,
+    points,
+  }: {
+    closed?: boolean
+    fill?: string
+    name?: string
+    points: number[]
+  }) =>
+    name === 'map-boundary' ? (
+      <div
+        data-closed={closed}
+        data-fill={fill}
+        data-points={JSON.stringify(points)}
+        data-testid="map-boundary"
+      />
+    ) : null,
   Rect: () => null,
   Stage: ({ children, height, width }: { children: ReactNode; height: number; width: number }) => (
     <div data-height={height} data-testid="map-grid-stage" data-width={width}>
@@ -121,5 +140,49 @@ describe('MapGridPreview', () => {
     expect(screen.getByTestId('map-grid-stage')).toHaveAttribute('data-height', '250')
     expect(screen.queryByRole('button', { name: 'Zoom in' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Zoom out' })).not.toBeInTheDocument()
+  })
+
+  it('renders polygon geometry in card-preview canvas coordinates', () => {
+    render(
+      <MapGridPreview
+        dimensionX={20}
+        dimensionY={12}
+        geometry={{
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [1, 1],
+              [8, 1],
+              [4, 8],
+              [1, 1],
+            ],
+          ],
+        }}
+        variant="card"
+      />,
+    )
+
+    expect(screen.getByTestId('map-boundary')).toHaveAttribute(
+      'data-points',
+      '[16,176,128,176,64,64,16,176]',
+    )
+    expect(screen.getByTestId('map-boundary')).toHaveAttribute('data-closed', 'true')
+    expect(screen.getByTestId('map-boundary')).toHaveAttribute('data-fill', 'rgb(97 95 255 / 0.12)')
+  })
+
+  it('does not render a boundary for absent or unsupported geometry', () => {
+    const { rerender } = render(<MapGridPreview dimensionX={20} dimensionY={12} variant="card" />)
+
+    expect(screen.queryByTestId('map-boundary')).not.toBeInTheDocument()
+
+    rerender(
+      <MapGridPreview
+        dimensionX={20}
+        dimensionY={12}
+        geometry={{ type: GeometryType.POINT, coordinates: [[[1, 1]]] }}
+        variant="card"
+      />,
+    )
+    expect(screen.queryByTestId('map-boundary')).not.toBeInTheDocument()
   })
 })

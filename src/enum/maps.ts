@@ -11,3 +11,15 @@ export const MapOrderDirection = {
 } as const
 
 export type MapOrderDirectionType = (typeof MapOrderDirection)[keyof typeof MapOrderDirection]
+
+export enum GeometryType {
+  POLYGON = 'Polygon',
+  POINT = 'Point',
+  LINE_STRING = 'LineString',
+}
+
+export enum MapBoundarySource {
+  DIMENSIONS = 'DIMENSIONS',
+  CUSTOM = 'CUSTOM',
+  TEACH_MODE = 'TEACH_MODE',
+}

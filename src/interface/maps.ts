@@ -1,9 +1,31 @@
 import type z from 'zod'
-import type { MapOrderDirectionType, MapStatusType } from '@/enum/maps'
+import type {
+  GeometryType,
+  MapBoundarySource,
+  MapOrderDirectionType,
+  MapStatusType,
+} from '@/enum/maps'
 import type { createMapFormSchema } from '@/schemas/map-schemas'
 import type { ITagInfo } from './tags'
 
 export type ICreateMapFormType = z.infer<ReturnType<typeof createMapFormSchema>>
+
+export type IMapBoundaryCoordinate = [x: number, y: number]
+
+export type IMapBoundaryPolygon = IMapBoundaryCoordinate[]
+
+export type IMapBoundaries = IMapBoundaryPolygon[]
+
+export type ISaveMapBoundaries = {
+  map_id: string
+  source: MapBoundarySource
+  geometry?: Geometry
+}
+
+export type Geometry = {
+  type: GeometryType
+  coordinates: IMapBoundaries
+}
 
 export type ICreateMapRequest = {
   group_id: string
@@ -24,6 +46,7 @@ export type IMapListInfo = {
   dimension_x: number
   dimension_y: number
   updated_at: string
+  geometry?: Geometry
 }
 
 export type IMapListRequest = {
