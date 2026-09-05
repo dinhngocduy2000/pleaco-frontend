@@ -15,6 +15,16 @@ vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery }))
 vi.mock('@/queries/use-tags-query', () => ({ useTagsQuery }))
 vi.mock('@/queries/use-robots-query', () => ({ useRobotsKeyValueQuery }))
 vi.mock('@/queries/use-maps-query', () => ({ useCreateMapMutation }))
+vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-step', () => ({
+  MapBoundaryStep: ({ onClose }: { onClose: () => void }) => (
+    <div>
+      <h2>Set travel boundary</h2>
+      <button type="button" onClick={onClose}>
+        Maybe later
+      </button>
+    </div>
+  ),
+}))
 vi.mock('react-konva', () => ({
   Circle: () => null,
   Layer: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -26,6 +36,16 @@ vi.mock('react-konva', () => ({
 import { MapCreateModal } from '@/routes/_authenticated/operations/components/maps/-map-create-modal'
 
 const setOpen = vi.fn() as Dispatch<SetStateAction<boolean>>
+const createdMap = {
+  id: 'map-123',
+  name: 'Warehouse',
+  description: null,
+  status: 'UNASSIGNED',
+  tags: [],
+  dimension_x: 20,
+  dimension_y: 12,
+  updated_at: '2026-09-05T00:00:00.000Z',
+}
 
 const fillRequiredFields = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText(/Map name/), 'Warehouse')
@@ -87,12 +107,12 @@ describe('MapCreateModal', () => {
     expect(await screen.findAllByText('A dimension is required')).toHaveLength(2)
   })
 
-  it('submits selected tag IDs, empty robot IDs, and closes after success', async () => {
+  it('submits selected tag IDs and advances to the boundary step after success', async () => {
     useCreateMapMutation.mockImplementation(({ onSuccess }) => ({
       isPending: false,
       mutateAsync: async (payload: unknown) => {
         mutateAsync(payload)
-        onSuccess()
+        onSuccess({ data: createdMap })
       },
     }))
     const user = userEvent.setup()
@@ -113,6 +133,10 @@ describe('MapCreateModal', () => {
       tags: ['00000000-0000-4000-8000-000000000001'],
     })
     expect(toast.success).toHaveBeenCalledWith('Map created successfully.')
+    expect(screen.getByRole('heading', { name: 'Set travel boundary' })).toBeInTheDocument()
+    expect(setOpen).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Maybe later' }))
     expect(setOpen).toHaveBeenCalledWith(false)
   })
 
@@ -122,7 +146,7 @@ describe('MapCreateModal', () => {
       isPending: false,
       mutateAsync: async (payload: unknown) => {
         mutateAsync(payload)
-        onSuccess()
+        onSuccess({ data: createdMap })
       },
     }))
     render(<MapCreateModal setOpen={setOpen} />)

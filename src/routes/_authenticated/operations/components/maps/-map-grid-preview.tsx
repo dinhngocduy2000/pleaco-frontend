@@ -4,8 +4,8 @@ import { Circle, Layer, Line, Rect, Stage } from 'react-konva'
 import { Button } from '@/components/ui/button'
 import { getTranslations } from '@/lib/translation'
 
-const PIXELS_PER_METER = 10
-const CANVAS_PADDING = 20
+export const MAP_PIXELS_PER_METER = 10
+export const MAP_CANVAS_PADDING = 20
 const CORNER_RADIUS = 4
 const DEFAULT_SCALE = 1
 const MIN_SCALE = 0.5
@@ -21,7 +21,7 @@ type MapGridPreviewProps = {
   variant?: 'editor' | 'card'
 }
 
-type IMapGridPreviewGeometry = {
+export type IMapGridPreviewGeometry = {
   stageWidth: number
   stageHeight: number
   mapWidth: number
@@ -51,13 +51,13 @@ export const getMapGridPreviewGeometry = (
     return undefined
   }
 
-  const gridSize = PIXELS_PER_METER * scale
+  const gridSize = MAP_PIXELS_PER_METER * scale
   const mapWidth = dimensionX * gridSize
   const mapHeight = dimensionY * gridSize
 
   return {
-    stageWidth: mapWidth + CANVAS_PADDING * 2,
-    stageHeight: mapHeight + CANVAS_PADDING * 2,
+    stageWidth: mapWidth + MAP_CANVAS_PADDING * 2,
+    stageHeight: mapHeight + MAP_CANVAS_PADDING * 2,
     mapWidth,
     mapHeight,
     verticalGridLines: getGridLinePositions(mapWidth, gridSize),
@@ -75,7 +75,7 @@ type MapGridLayerProps = {
   geometry: IMapGridPreviewGeometry
 }
 
-function MapGridLayer({ geometry }: MapGridLayerProps) {
+export function MapGridLayer({ geometry }: MapGridLayerProps) {
   return (
     <>
       <Rect
@@ -135,8 +135,8 @@ function MapCardGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewProps
 
   const scale = baseGeometry
     ? Math.min(
-        (width - CANVAS_PADDING * 2) / baseGeometry.mapWidth,
-        (CARD_PREVIEW_HEIGHT - CANVAS_PADDING * 2) / baseGeometry.mapHeight,
+        (width - MAP_CANVAS_PADDING * 2) / baseGeometry.mapWidth,
+        (CARD_PREVIEW_HEIGHT - MAP_CANVAS_PADDING * 2) / baseGeometry.mapHeight,
       )
     : DEFAULT_SCALE
   const geometry = baseGeometry
@@ -197,7 +197,7 @@ function MapEditorGridPreview({ dimensionX, dimensionY }: Omit<MapGridPreviewPro
           >
             <div className="flex min-h-full min-w-full w-max items-center justify-center">
               <Stage height={geometry.stageHeight} width={geometry.stageWidth}>
-                <Layer x={CANVAS_PADDING} y={CANVAS_PADDING}>
+                <Layer x={MAP_CANVAS_PADDING} y={MAP_CANVAS_PADDING}>
                   <MapGridLayer geometry={geometry} />
                 </Layer>
               </Stage>

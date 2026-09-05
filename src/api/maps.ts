@@ -4,7 +4,9 @@ import type { ICreateMapRequest, IMapListInfo, IMapListRequest } from '@/interfa
 import { paramsSerializer } from '@/lib/utils'
 import axiosConfig from '.'
 
-export const createMapApi = async (data: ICreateMapRequest): Promise<IResponseData<void>> => {
+export const createMapApi = async (
+  data: ICreateMapRequest,
+): Promise<IResponseData<IMapListInfo>> => {
   return await axiosConfig.post(MAPS_ENDPOINTS.CREATE, data)
 }
 

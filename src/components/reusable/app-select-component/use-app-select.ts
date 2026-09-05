@@ -57,6 +57,8 @@ export function useAppSelect({
   }
 
   const handleSelect = (option: IOption) => {
+    if (option.disabled) return
+
     if (multiple && props.multiple) {
       const alreadySelected = props.value.some((v) => v.value === option.value)
       if (alreadySelected) {

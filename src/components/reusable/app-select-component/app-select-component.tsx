@@ -252,11 +252,14 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
                   <CommandItem
                     key={option.value}
                     value={option.label}
+                    disabled={option.disabled}
+                    aria-disabled={option.disabled}
                     data-testid={`select-item-${option.value}`}
                     onSelect={() => handleSelect(option)}
                     className={cn(
                       'flex items-center gap-2',
                       selected && 'bg-accent text-accent-foreground',
+                      option.disabled && 'cursor-not-allowed opacity-50',
                     )}
                   >
                     {render ? (

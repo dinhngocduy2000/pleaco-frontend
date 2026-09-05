@@ -5,6 +5,12 @@ import type { ITagInfo } from './tags'
 
 export type ICreateMapFormType = z.infer<ReturnType<typeof createMapFormSchema>>
 
+export type IMapBoundaryCoordinate = [x: number, y: number]
+
+export type IMapBoundaryPolygon = IMapBoundaryCoordinate[]
+
+export type IMapBoundaries = IMapBoundaryPolygon[]
+
 export type ICreateMapRequest = {
   group_id: string
   name: string

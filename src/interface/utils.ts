@@ -19,6 +19,7 @@ export type IOption = {
   value: string
   subLabel?: string
   icon?: React.ReactNode | string
+  disabled?: boolean
 }
 
 export type IDropdownMenuProps = {

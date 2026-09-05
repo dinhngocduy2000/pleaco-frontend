@@ -91,15 +91,16 @@ async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
       return
     }
 
-    maps.unshift({
+    const createdMap: MapItem = {
       ...mapData.newMap,
       status: request.robot_ids.length > 0 ? 'ASSIGNED' : 'UNASSIGNED',
       tags: tagData.tags.filter((tag) => request.tags.includes(tag.id)),
-    })
+    }
+    maps.unshift(createdMap)
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ data: null, message: 'Success', statusCode: 200 }),
+      body: JSON.stringify({ data: createdMap, message: 'Success', statusCode: 200 }),
     })
   })
 
@@ -237,6 +238,8 @@ test.describe('Create map', () => {
       },
     ])
     await expect(page.getByText('Map created successfully.')).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Set travel boundary' })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Maybe later' }).click()
     await expect(dialog).toHaveCount(0)
 
     const card = page.getByRole('article', { name: mapData.newMap.name })
@@ -268,5 +271,69 @@ test.describe('Create map', () => {
     await expect(page.getByText(errorMessage)).toBeVisible()
     await expect(dialog).toBeVisible()
     await expect(page.getByRole('article', { name: mapData.newMap.name })).toHaveCount(0)
+  })
+
+  test('saves the full map area while keeping Teach mode unavailable', async ({ page }) => {
+    await setupMapsPage(page)
+    const dialog = await openCreateDialog(page)
+    await fillRequiredMapFields(dialog)
+
+    const createResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/maps') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Create map', exact: true }).click()
+    await createResponse
+
+    const method = dialog.getByRole('combobox', { name: 'Boundary method' })
+    await expect(method).toContainText('Use full map area')
+    await method.click()
+    await expect(page.getByRole('option', { name: /Teach mode/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    await page.keyboard.press('Escape')
+
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('Boundary saved successfully.')).toBeVisible()
+    await expect(dialog).toHaveCount(0)
+  })
+
+  test('draws and closes a valid custom boundary', async ({ page }) => {
+    await setupMapsPage(page)
+    const dialog = await openCreateDialog(page)
+    await fillRequiredMapFields(dialog)
+
+    const createResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/maps') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Create map', exact: true }).click()
+    await createResponse
+
+    await dialog.getByRole('combobox', { name: 'Boundary method' }).click()
+    await page.getByRole('option', { name: 'Draw a custom boundary' }).click()
+    const saveButton = dialog.getByRole('button', { name: 'Save' })
+    await expect(saveButton).toBeDisabled()
+
+    const canvas = dialog
+      .getByRole('region', { name: 'Map boundary editor' })
+      .locator('canvas')
+      .last()
+    const canvasBox = await canvas.boundingBox()
+    expect(canvasBox).not.toBeNull()
+    if (!canvasBox) return
+
+    await page.mouse.click(canvasBox.x + 40, canvasBox.y + 120)
+    await page.mouse.move(canvasBox.x + 40, canvasBox.y + 120)
+    await page.mouse.down()
+    await page.mouse.move(canvasBox.x + 120, canvasBox.y + 120)
+    await page.mouse.up()
+    await page.mouse.click(canvasBox.x + 80, canvasBox.y + 60)
+    await page.mouse.click(canvasBox.x + 40, canvasBox.y + 120)
+
+    await expect(saveButton).toBeEnabled()
+    await saveButton.click()
+    await expect(page.getByText('Boundary saved successfully.')).toBeVisible()
   })
 })

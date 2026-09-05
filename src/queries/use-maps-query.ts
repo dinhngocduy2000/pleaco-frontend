@@ -29,7 +29,7 @@ export const useCreateMapMutation = ({
   onSuccess,
   onError,
   onMutate,
-}: IMutation<IResponseData<void>, ICreateMapRequest> = {}) => {
+}: IMutation<IResponseData<IMapListInfo>, ICreateMapRequest> = {}) => {
   const queryClient = useQueryClient()
 
   return useMutation({
