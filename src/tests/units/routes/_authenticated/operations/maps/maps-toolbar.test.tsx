@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const profileQuery = vi.hoisted(() => vi.fn())
+vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: profileQuery }))
 
 const navigate = vi.hoisted(() => vi.fn())
 const search = vi.hoisted(() => ({
@@ -73,6 +76,38 @@ vi.mock('@/lib/translation', () => ({
 import { MapsToolbar } from '@/routes/_authenticated/operations/components/maps/-maps-toolbar'
 
 describe('MapsToolbar', () => {
+  beforeEach(() => {
+    navigate.mockClear()
+    profileQuery.mockReturnValue({ data: { data: { group: { role: 'owner' } } } })
+  })
+
+  it.each([
+    { data: { data: { group: { role: 'member' } } } },
+    { data: { data: { group: { role: 'moderator' } } } },
+    { data: { data: { group: { role: 'guest' } } } },
+    { data: { data: { group: { role: 'unknown' } } } },
+    { data: { data: { group: null } } },
+    { data: undefined },
+  ])('hides creation without an authorized role %#', (profile) => {
+    profileQuery.mockReturnValue(profile)
+    render(<MapsToolbar />)
+    expect(screen.queryByRole('button', { name: 'Create map' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Create map modal')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Status' })).toBeInTheDocument()
+  })
+
+  it('updates button visibility when the profile role changes', () => {
+    profileQuery.mockReturnValue({ data: undefined })
+    const { rerender } = render(<MapsToolbar />)
+    expect(screen.queryByRole('button', { name: 'Create map' })).not.toBeInTheDocument()
+    profileQuery.mockReturnValue({ data: { data: { group: { role: 'admin' } } } })
+    rerender(<MapsToolbar />)
+    expect(screen.getByRole('button', { name: 'Create map' })).toBeInTheDocument()
+    profileQuery.mockReturnValue({ data: { data: { group: { role: 'member' } } } })
+    rerender(<MapsToolbar />)
+    expect(screen.queryByRole('button', { name: 'Create map' })).not.toBeInTheDocument()
+  })
+
   it('updates status, tags, and ordering filters through URL search state', async () => {
     const user = userEvent.setup()
     render(<MapsToolbar />)
@@ -97,7 +132,8 @@ describe('MapsToolbar', () => {
     })
   })
 
-  it('opens the map creation dialog', async () => {
+  it.each(['owner', 'admin'])('opens the map creation dialog for %s', async (role) => {
+    profileQuery.mockReturnValue({ data: { data: { group: { role } } } })
     const user = userEvent.setup()
     render(<MapsToolbar />)
 

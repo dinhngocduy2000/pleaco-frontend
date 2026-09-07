@@ -42,6 +42,7 @@ type SaveMapBoundaryRequest = {
 }
 
 type MapsPageOptions = {
+  role?: string
   boundaryError?: string
   createError?: string
 }
@@ -59,7 +60,9 @@ async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
   const boundaryRequests: SaveMapBoundaryRequest[] = []
   let mapListRequestCount = 0
 
-  await setupAuthenticatedPage(page, profileData.activeOwnerUser)
+  const profile = structuredClone(profileData.activeOwnerUser)
+  profile.data.group.role = options.role ?? 'owner'
+  await setupAuthenticatedPage(page, profile)
   await page.route(API_TAGS, (route) =>
     route.fulfill({
       status: 200,
@@ -177,6 +180,23 @@ async function expectCanvasSize(preview: Locator, width: number, height: number)
 }
 
 test.describe('Create map', () => {
+  for (const role of ['owner', 'admin']) {
+    test(`shows creation and opens the dialog for ${role}`, async ({ page }) => {
+      await setupMapsPage(page, { role })
+      const dialog = await openCreateDialog(page)
+      await expect(dialog.getByRole('heading', { name: 'Create map' })).toBeVisible()
+    })
+  }
+
+  for (const role of ['member', 'moderator', 'guest', 'unknown']) {
+    test(`hides map creation for ${role}`, async ({ page }) => {
+      const { createRequests } = await setupMapsPage(page, { role })
+      await expect(page.getByRole('button', { name: 'Create map', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('dialog')).not.toBeVisible()
+      expect(createRequests).toEqual([])
+    })
+  }
+
   test('shows inline errors and enables creation only for valid required values', async ({
     page,
   }) => {
