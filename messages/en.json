@@ -252,5 +252,7 @@
   "robots_no_active_group": "Select an active group to view robots.",
   "robots_error": "Unable to load robots.",
   "robots_empty": "No robots found.",
-  "robots_empty_description": "Try adjusting your filters or create a new robot."
+  "robots_empty_description": "Try adjusting your filters or create a new robot.",
+  "map_boundary_adjust_title": "Adjust boundary",
+  "map_boundary_adjust_unsupported": "This saved boundary cannot be edited. Only a valid single polygon within the map is supported."
 }

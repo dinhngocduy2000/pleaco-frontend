@@ -88,6 +88,87 @@ describe('MapBoundaryStep', () => {
     }))
   })
 
+  const geometry = {
+    type: GeometryType.POLYGON,
+    coordinates: [
+      [
+        [1, 1],
+        [8, 1],
+        [4, 8],
+        [1, 1],
+      ],
+    ] as IMapBoundaryCoordinate[][],
+  }
+
+  it('preloads and saves a closed polygon without mutating saved coordinates', async () => {
+    const original = structuredClone(geometry)
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={vi.fn()} />)
+    expect(screen.getByRole('heading', { name: 'Adjust boundary' })).toBeInTheDocument()
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '3')
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-closed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(saveMapBoundaries).toHaveBeenCalledWith({
+      map_id: map.id,
+      source: MapBoundarySource.CUSTOM,
+      geometry,
+    })
+    expect(geometry).toEqual(original)
+  })
+
+  it.each([
+    { ...geometry, coordinates: [...geometry.coordinates, ...geometry.coordinates] },
+    { ...geometry, type: GeometryType.LINE_STRING },
+    {
+      ...geometry,
+      coordinates: [
+        [
+          [1, 1],
+          [1, 1],
+        ],
+      ] as IMapBoundaryCoordinate[][],
+    },
+    {
+      ...geometry,
+      coordinates: [
+        [
+          [0, 0],
+          [30, 0],
+          [0, 10],
+          [0, 0],
+        ],
+      ] as IMapBoundaryCoordinate[][],
+    },
+  ])('blocks unsupported saved geometry %#', (unsupported) => {
+    render(
+      <MapBoundaryStep map={{ ...map, geometry: unsupported }} mode="adjust" onClose={vi.fn()} />,
+    )
+    expect(screen.getByText(/This saved boundary cannot be edited/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+  })
+
+  it('cancels adjustment without saving and reloads saved coordinates on remount', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    const { unmount } = render(
+      <MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={onClose} />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+    unmount()
+    render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={onClose} />)
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '3')
+  })
+
+  it('uses full-map coverage when adjustment has no saved geometry', () => {
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+    expect(screen.getByRole('combobox', { name: 'Boundary method' })).toHaveTextContent(
+      'Use full map area',
+    )
+  })
+
   it('defaults to the full map area and keeps Teach mode disabled', async () => {
     const user = userEvent.setup()
     render(<MapBoundaryStep map={map} onClose={vi.fn()} />)

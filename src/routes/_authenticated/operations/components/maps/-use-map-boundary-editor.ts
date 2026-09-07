@@ -22,21 +22,38 @@ const SCALE_STEP = 0.5
 const CLOSURE_TOLERANCE = 10
 const DRAG_THRESHOLD = 2
 
+/** Controlled boundary state and callbacks used by the canvas editor. */
 export type MapBoundaryEditorProps = {
+  /** Map width in meters. */
   dimensionX: number
+  /** Map height in meters. */
   dimensionY: number
+  /** World vertices in drawing order, without a repeated closing point. */
   points: IMapBoundaryCoordinate[]
+  /** Whether the final vertex connects back to the first. */
   closed: boolean
+  /** Enables drawing interactions; vertex dragging must also be gated by the caller. */
   interactive: boolean
+  /** Receives accepted world vertices and closure state for the parent to persist. */
   onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
+  /** Reports a rejected geometric edit without changing the controlled boundary. */
   onInvalid: () => void
 }
 
+/** Initial and preview map-local pixel positions for an endpoint extension gesture. */
 type ExtensionState = {
   start: MapCanvasPoint
   preview: MapCanvasPoint
 }
 
+/**
+ * Coordinates controlled boundary editing with local zoom and endpoint-drag previews.
+ * World vertices remain in meters; canvas projections include zoom but exclude padding.
+ * Rejected edits call `onInvalid`; accepted edits are emitted through `onChange`.
+ *
+ * @param props - Map dimensions, controlled boundary state, interaction flag, and callbacks.
+ * @returns Canvas geometry, zoom availability, extension preview, and Konva event handlers.
+ */
 export function useMapBoundaryEditor({
   dimensionX,
   dimensionY,
@@ -53,12 +70,18 @@ export function useMapBoundaryEditor({
   const pixelsPerMeter = MAP_PIXELS_PER_METER * scale
   const canvasPoints = points.map((point) => worldPointToCanvas(point, dimensionY, pixelsPerMeter))
 
+  /**
+   * Reads the stage pointer, removes canvas padding, and clamps it to the map bounds.
+   */
   const getCanvasPointer = (stage: Konva.Stage) => {
     const pointer = stage.getPointerPosition()
     if (!pointer || !geometry) return undefined
     return clampCanvasPoint(pointer, geometry.mapWidth, geometry.mapHeight, MAP_CANVAS_PADDING)
   }
 
+  /**
+   * Emits an accepted append/closure update or reports invalid geometry.
+   */
   const commitCanvasPoint = (canvasPoint: MapCanvasPoint) => {
     const update = getBoundaryPointUpdate({
       canvasPoint,
@@ -73,6 +96,9 @@ export function useMapBoundaryEditor({
     else onInvalid()
   }
 
+  /**
+   * Adds or closes a boundary on click, consuming the synthetic click after an extension drag.
+   */
   const handleStageClick = (event: KonvaEventObject<MouseEvent>) => {
     if (!interactive || closed) return
     if (suppressClick.current) {
@@ -86,6 +112,9 @@ export function useMapBoundaryEditor({
     if (pointer) commitCanvasPoint(pointer)
   }
 
+  /**
+   * Starts an endpoint extension preview and prevents the event from bubbling to the stage.
+   */
   const handleEndpointMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (!interactive || closed || points.length === 0) return
     event.cancelBubble = true
@@ -95,6 +124,9 @@ export function useMapBoundaryEditor({
     if (pointer) setExtension({ start: pointer, preview: pointer })
   }
 
+  /**
+   * Updates the clamped extension preview while an endpoint gesture is active.
+   */
   const handleStageMouseMove = (event: KonvaEventObject<MouseEvent>) => {
     if (!extension) return
     const stage = event.target.getStage()
@@ -103,6 +135,9 @@ export function useMapBoundaryEditor({
     if (pointer) setExtension((current) => (current ? { ...current, preview: pointer } : current))
   }
 
+  /**
+   * Ends the preview and commits drags of at least two pixels, suppressing the following click.
+   */
   const handleStageMouseUp = (event: KonvaEventObject<MouseEvent>) => {
     if (!extension) return
     const stage = event.target.getStage()
@@ -115,6 +150,9 @@ export function useMapBoundaryEditor({
     commitCanvasPoint(pointer)
   }
 
+  /**
+   * Stops vertex-click bubbling and attempts closure when the first of at least three vertices is clicked.
+   */
   const handleVertexClick = (index: number, event: KonvaEventObject<MouseEvent>) => {
     event.cancelBubble = true
     const firstCanvasPoint = canvasPoints[0]
@@ -133,6 +171,9 @@ export function useMapBoundaryEditor({
     else onInvalid()
   }
 
+  /**
+   * Validates and emits a moved vertex. The caller must disable dragging when editing is unavailable.
+   */
   const handleVertexDragEnd = (index: number, event: KonvaEventObject<DragEvent>) => {
     if (!geometry) return
     const nextPoints = getMovedBoundaryPoints({
@@ -152,7 +193,13 @@ export function useMapBoundaryEditor({
     else onInvalid()
   }
 
+  /**
+   * Increases display scale by one step, capped at the maximum zoom.
+   */
   const handleZoomIn = () => setScale((current) => Math.min(MAX_SCALE, current + SCALE_STEP))
+  /**
+   * Decreases display scale by one step, capped at the minimum zoom.
+   */
   const handleZoomOut = () => setScale((current) => Math.max(MIN_SCALE, current - SCALE_STEP))
 
   return {

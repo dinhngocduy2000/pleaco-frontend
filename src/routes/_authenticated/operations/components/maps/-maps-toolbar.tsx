@@ -6,6 +6,7 @@ import AppDropdownMenu from '@/components/reusable/app-dropdown-menu/dropdown-me
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { GroupRole } from '@/enum/group'
 import {
   MapOrderDirection,
   type MapOrderDirectionType,
@@ -14,7 +15,9 @@ import {
 } from '@/enum/maps'
 import { useDebounce } from '@/hooks/use-debounce'
 import type { IOption } from '@/interface/utils'
+import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
+import { useProfileQuery } from '@/queries/use-auth-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
 import { Route } from '../../maps'
 import { MapCreateModal } from './-map-create-modal'
@@ -40,10 +43,15 @@ export function MapsToolbar() {
     () => tagsResponse?.data.map((tag) => ({ label: tag.name, value: tag.id })) ?? [],
     [tagsResponse],
   )
+  const { data: profileData } = useProfileQuery()
   const selectedTags = useMemo(
     () => tagOptions.filter((option) => search.tag_ids?.includes(option.value)),
     [search.tag_ids, tagOptions],
   )
+  const isPermittedToCreate = hasRoleAccess(profileData?.data.group?.role, [
+    GroupRole.OWNER,
+    GroupRole.ADMIN,
+  ])
 
   useEffect(() => {
     const trimmedSearch = debouncedSearch.trim()
@@ -139,12 +147,14 @@ export function MapsToolbar() {
           ]}
         />
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => setOpenCreateDialog(true)}>
-          <Plus />
-          {t.map_create_trigger()}
-        </Button>
-      </div>
+      {isPermittedToCreate && (
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setOpenCreateDialog(true)}>
+            <Plus />
+            {t.map_create_trigger()}
+          </Button>
+        </div>
+      )}
       <AppDialogComponent
         open={openCreateDialog}
         setOpen={setOpenCreateDialog}

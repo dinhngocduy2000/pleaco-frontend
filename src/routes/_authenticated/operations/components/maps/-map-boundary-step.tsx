@@ -1,5 +1,5 @@
 import { Trash2, Undo2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ import { useSaveMapBoundariesMutation } from '@/queries/use-maps-query'
 import { MapBoundaryEditor } from './-map-boundary-editor'
 import {
   getFullMapBoundaries,
+  getInitialBoundary,
+  type InitialBoundaryState,
   isValidBoundaryPolygon,
   serializeBoundary,
 } from './-map-boundary-geometry'
@@ -20,12 +22,20 @@ const t = getTranslations()
 type MapBoundaryStepProps = {
   map: IMapListInfo
   onClose: () => void
+  mode?: 'create' | 'adjust'
+  onSavingChange?: (saving: boolean) => void
 }
 
-export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
-  const [method, setMethod] = useState(MapBoundarySource.DIMENSIONS)
-  const [points, setPoints] = useState<IMapBoundaryCoordinate[]>([])
-  const [closed, setClosed] = useState(false)
+export function MapBoundaryStep({
+  map,
+  onClose,
+  mode = 'create',
+  onSavingChange,
+}: MapBoundaryStepProps) {
+  const [initial] = useState<InitialBoundaryState>(() => getInitialBoundary(map, mode))
+  const [method, setMethod] = useState<MapBoundarySource>(initial.method)
+  const [points, setPoints] = useState<IMapBoundaryCoordinate[]>(initial.points)
+  const [closed, setClosed] = useState<boolean>(initial.closed)
   const [error, setError] = useState<string>()
   const methodOptions = useMemo<IOption[]>(
     () => [
@@ -50,6 +60,9 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
       toast.error(typeof detail === 'string' && detail ? detail : t.map_boundary_save_error())
     },
   })
+  useEffect(() => {
+    onSavingChange?.(isSaving)
+  }, [isSaving, onSavingChange])
   const selectedMethod = methodOptions.find((option) => option.value === method)
   const isCustom = method === MapBoundarySource.CUSTOM
   const customIsValid = isValidBoundaryPolygon(points, closed)
@@ -88,6 +101,7 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
   }
 
   const handleSave = () => {
+    if (isSaving || initial.unsupported || (isCustom && !customIsValid)) return
     saveMapBoundaries(
       isCustom
         ? {
@@ -107,7 +121,9 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
       <div className="flex min-h-0 flex-1 flex-col bg-muted/40 p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold">{t.map_boundary_title()}</h2>
+            <h2 className="text-2xl font-bold">
+              {mode === 'adjust' ? t.map_boundary_adjust_title() : t.map_boundary_title()}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {t.map_boundary_description({ mapName: map.name })}
             </p>
@@ -127,7 +143,7 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
           closed={isCustom ? closed : true}
           dimensionX={map.dimension_x}
           dimensionY={map.dimension_y}
-          interactive={isCustom && !isSaving}
+          interactive={isCustom && !isSaving && !initial.unsupported}
           points={displayedPoints}
           onChange={handleBoundaryChange}
           onInvalid={() => setError(t.map_boundary_invalid_shape())}
@@ -139,7 +155,7 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
             <span className="text-sm font-medium">{t.map_boundary_method_label()}</span>
             <AppSelectComponent
               ariaLabel={t.map_boundary_method_label()}
-              disabled={isSaving}
+              disabled={isSaving || initial.unsupported}
               options={methodOptions}
               value={selectedMethod}
               onChange={handleMethodChange}
@@ -148,7 +164,7 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
               {isCustom ? t.map_boundary_custom_instructions() : t.map_boundary_full_instructions()}
             </p>
             <p aria-live="polite" className="text-sm text-destructive">
-              {error}
+              {initial.unsupported ? t.map_boundary_adjust_unsupported() : error}
             </p>
             {isCustom && (
               <p aria-live="polite" className="text-xs text-muted-foreground">
@@ -180,10 +196,10 @@ export function MapBoundaryStep({ map, onClose }: MapBoundaryStepProps) {
               </>
             )}
             <Button disabled={isSaving} type="button" variant="ghost" onClick={onClose}>
-              {t.map_boundary_maybe_later()}
+              {mode === 'adjust' ? t.map_create_cancel() : t.map_boundary_maybe_later()}
             </Button>
             <Button
-              disabled={isSaving || (isCustom && !customIsValid)}
+              disabled={isSaving || initial.unsupported || (isCustom && !customIsValid)}
               loading={isSaving}
               type="button"
               onClick={handleSave}

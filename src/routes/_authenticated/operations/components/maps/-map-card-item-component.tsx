@@ -1,12 +1,18 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/vi'
+import { useState } from 'react'
+import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { Badge } from '@/components/ui/badge'
 import { TypographyH2, TypographyP, TypographySmall } from '@/components/ui/typography'
+import { GroupRole } from '@/enum/group'
 import { MapStatus } from '@/enum/maps'
 import type { IMapListInfo } from '@/interface/maps'
+import { hasRoleAccess } from '@/lib/role-access'
 import { getCurrentLanguage, getTranslations } from '@/lib/translation'
+import { useProfileQuery } from '@/queries/use-auth-query'
 import { MapActionsDropdown } from './-map-actions-dropdown'
+import { MapBoundaryStep } from './-map-boundary-step'
 import { MapGridPreview } from './-map-grid-preview'
 
 dayjs.extend(relativeTime)
@@ -28,6 +34,12 @@ type MapCardItemComponentProps = {
 }
 
 export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
+  const { data: profile } = useProfileQuery()
+  const role = profile?.data.group?.role
+  const canAdjustBoundary = hasRoleAccess(role, [GroupRole.ADMIN, GroupRole.OWNER])
+  const [open, setOpen] = useState<boolean>(false)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  if (open && !canAdjustBoundary) setOpen(false)
   const visibleTags = map.tags.slice(0, 4)
   const remainingTags = map.tags.length - visibleTags.length
 
@@ -82,9 +94,34 @@ export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
           <TypographySmall className="text-xs text-muted-foreground">
             {t.map_card_updated({ time: formatMapUpdatedAt(map.updated_at) })}
           </TypographySmall>
-          <MapActionsDropdown />
+          <MapActionsDropdown
+            canAdjustBoundary={canAdjustBoundary}
+            onAdjustBoundary={() => {
+              if (canAdjustBoundary) setOpen(true)
+            }}
+          />
         </div>
       </div>
+      <AppDialogComponent
+        open={open}
+        setOpen={setOpen}
+        title={t.map_boundary_adjust_title()}
+        footer={false}
+        header={false}
+        dialogTrigger={null}
+        disableClickOverlay={isSaving}
+        dialogProps={{
+          className:
+            'max-h-[calc(100vh-2rem)] sm:max-w-6xl overflow-hidden rounded-3xl p-0 md:w-[min(92vw,92rem)] lg:h-[85vh] lg:w-[85vw] lg:max-w-none',
+        }}
+      >
+        <MapBoundaryStep
+          map={map}
+          mode="adjust"
+          onClose={() => setOpen(false)}
+          onSavingChange={setIsSaving}
+        />
+      </AppDialogComponent>
     </article>
   )
 }
