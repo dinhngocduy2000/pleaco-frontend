@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { GeometryType, MapBoundarySource } from '@/enum/maps'
+import type { Geometry, IMapListInfo } from '@/interface/maps'
 import {
   canCommitBoundaryPoints,
   canvasPointToWorld,
@@ -7,6 +9,7 @@ import {
   flattenCanvasPoints,
   getBoundaryPointUpdate,
   getFullMapBoundaries,
+  getInitialBoundary,
   getMovedBoundaryPoints,
   getPolygonArea,
   hasMinimumCanvasMovement,
@@ -184,5 +187,152 @@ describe('map boundary geometry', () => {
     ]
     expect(hasSelfIntersection(bowTie, true)).toBe(true)
     expect(isValidBoundaryPolygon(bowTie, true)).toBe(false)
+  })
+})
+
+describe('getInitialBoundary', () => {
+  const map: IMapListInfo = {
+    id: 'map-1',
+    name: 'Warehouse',
+    description: null,
+    status: 'UNASSIGNED',
+    tags: [],
+    dimension_x: 20,
+    dimension_y: 12,
+    updated_at: '2026-09-05T00:00:00Z',
+  }
+  const geometry: Geometry = {
+    type: GeometryType.POLYGON,
+    coordinates: [
+      [
+        [1, 1],
+        [8, 1],
+        [4, 8],
+        [1, 1],
+      ],
+    ],
+  }
+  const fullMap = {
+    points: [],
+    closed: false,
+    unsupported: false,
+    method: MapBoundarySource.DIMENSIONS,
+  }
+
+  it('ignores saved geometry during creation', () => {
+    expect(getInitialBoundary({ ...map, geometry }, 'create')).toEqual(fullMap)
+  })
+
+  it('defaults to dimensions for missing geometry or a polygon with no rings', () => {
+    expect(getInitialBoundary(map, 'adjust')).toEqual(fullMap)
+    expect(
+      getInitialBoundary({ ...map, geometry: { ...geometry, coordinates: [] } }, 'adjust'),
+    ).toEqual(fullMap)
+  })
+
+  it.each([true, false])('loads a valid ring with repeated closing vertex: %s', (repeated) => {
+    const saved = structuredClone(geometry)
+    if (!repeated) saved.coordinates[0].pop()
+    const original = structuredClone(saved)
+    const result = getInitialBoundary({ ...map, geometry: saved }, 'adjust')
+    expect(result).toEqual({
+      points: [
+        [1, 1],
+        [8, 1],
+        [4, 8],
+      ],
+      closed: true,
+      unsupported: false,
+      method: MapBoundarySource.CUSTOM,
+    })
+    expect(saved).toEqual(original)
+    result.points[0][0] = 5
+    expect(saved).toEqual(original)
+  })
+
+  it('accepts a rectangle on the inclusive map bounds as Custom', () => {
+    const points = getFullMapBoundaries(map.dimension_x, map.dimension_y)
+    expect(
+      getInitialBoundary({ ...map, geometry: { ...geometry, coordinates: points } }, 'adjust'),
+    ).toEqual({
+      points: points[0].slice(0, -1),
+      closed: true,
+      unsupported: false,
+      method: MapBoundarySource.CUSTOM,
+    })
+  })
+
+  it.each<Geometry>([
+    { ...geometry, type: GeometryType.POINT },
+    { ...geometry, type: GeometryType.LINE_STRING },
+    { ...geometry, coordinates: [geometry.coordinates[0], geometry.coordinates[0]] },
+    { ...geometry, coordinates: [[]] },
+    {
+      ...geometry,
+      coordinates: [
+        [
+          [1, 1],
+          [2, 2],
+        ],
+      ],
+    },
+    {
+      ...geometry,
+      coordinates: [
+        [
+          [1, 1],
+          [2, 2],
+          [3, 3],
+        ],
+      ],
+    },
+    {
+      ...geometry,
+      coordinates: [
+        [
+          [1, 1],
+          [8, 8],
+          [1, 8],
+          [8, 1],
+        ],
+      ],
+    },
+    {
+      ...geometry,
+      coordinates: [
+        [
+          [1, 1],
+          [8, 1],
+          [8, 1],
+          [4, 8],
+        ],
+      ],
+    },
+    ...[
+      [-1, 1],
+      [1, -1],
+      [21, 1],
+      [1, 13],
+      [Number.NaN, 1],
+      [1, Number.POSITIVE_INFINITY],
+    ].map(
+      ([x, y]): Geometry => ({
+        ...geometry,
+        coordinates: [
+          [
+            [x, y],
+            [8, 1],
+            [4, 8],
+          ],
+        ],
+      }),
+    ),
+  ])('blocks unsupported or invalid geometry %#', (invalid) => {
+    expect(getInitialBoundary({ ...map, geometry: invalid }, 'adjust')).toEqual({
+      points: [],
+      closed: false,
+      unsupported: true,
+      method: MapBoundarySource.CUSTOM,
+    })
   })
 })

@@ -1,8 +1,21 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapStatus } from '@/enum/maps'
 import type { Geometry, IMapListInfo } from '@/interface/maps'
+
+const profileQuery = vi.hoisted(() => vi.fn())
+vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: profileQuery }))
+vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-step', () => ({
+  MapBoundaryStep: ({ map, onClose }: { map: IMapListInfo; onClose: () => void }) => (
+    <button type="button" onClick={onClose}>
+      Cancel {map.id}
+    </button>
+  ),
+}))
+beforeEach(() => {
+  profileQuery.mockReturnValue({ data: { data: { group: { role: 'owner' } } } })
+})
 
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-grid-preview', () => ({
   MapGridPreview: ({
@@ -86,4 +99,35 @@ describe('MapCardItemComponent', () => {
   it('uses an em dash when the updated timestamp is invalid', () => {
     expect(formatMapUpdatedAt('not-a-date')).toBe('—')
   })
+})
+
+describe('boundary adjustment permissions', () => {
+  it.each(['owner', 'admin'])(
+    'opens the selected map for %s and closes on permission loss',
+    async (role) => {
+      profileQuery.mockReturnValue({ data: { data: { group: { role } } } })
+      const user = userEvent.setup()
+      const { rerender } = render(<MapCardItemComponent map={map} />)
+      await user.click(screen.getByRole('button', { name: 'Map options' }))
+      await user.click(screen.getByRole('menuitem', { name: 'Adjust boundary' }))
+      expect(screen.getByRole('button', { name: `Cancel ${map.id}` })).toBeInTheDocument()
+      profileQuery.mockReturnValue({ data: { data: { group: { role: 'member' } } } })
+      rerender(<MapCardItemComponent map={map} />)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    },
+  )
+  it.each(['member', 'moderator', 'guest', undefined])(
+    'disables adjustment for %s',
+    async (role) => {
+      profileQuery.mockReturnValue({ data: { data: { group: { role } } } })
+      const user = userEvent.setup()
+      render(<MapCardItemComponent map={map} />)
+      await user.click(screen.getByRole('button', { name: 'Map options' }))
+      const action = screen.getByRole('menuitem', { name: 'Adjust boundary' })
+      expect(action).toHaveAttribute('aria-disabled', 'true')
+      await user.click(action)
+      await user.keyboard('{Enter}')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    },
+  )
 })

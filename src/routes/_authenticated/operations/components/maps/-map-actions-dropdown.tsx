@@ -1,11 +1,19 @@
-import { Eye, MoreVertical, PencilLine, Trash2 } from 'lucide-react'
+import { Eye, MoreVertical, PencilLine, ScanLine, Trash2 } from 'lucide-react'
 import AppDropdownMenu from '@/components/reusable/app-dropdown-menu/dropdown-menu'
 import { TypographySmall } from '@/components/ui/typography'
 import { getTranslations } from '@/lib/translation'
 
 const t = getTranslations()
 
-export function MapActionsDropdown() {
+type MapActionsDropdownProps = {
+  canAdjustBoundary: boolean
+  onAdjustBoundary: () => void
+}
+
+export function MapActionsDropdown({
+  canAdjustBoundary,
+  onAdjustBoundary,
+}: MapActionsDropdownProps) {
   return (
     <AppDropdownMenu
       trigger={
@@ -35,6 +43,17 @@ export function MapActionsDropdown() {
           ),
           value: 'edit',
           onClick: () => undefined,
+        },
+        {
+          label: (
+            <>
+              <ScanLine className="text-primary" />
+              {t.map_boundary_adjust_title()}
+            </>
+          ),
+          value: 'adjust-boundary',
+          disabled: !canAdjustBoundary,
+          onClick: onAdjustBoundary,
         },
         {
           label: (

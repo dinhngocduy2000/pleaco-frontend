@@ -252,5 +252,7 @@
   "robots_no_active_group": "Hãy chọn nhóm đang hoạt động để xem robot.",
   "robots_error": "Không thể tải robot.",
   "robots_empty": "Không tìm thấy robot.",
-  "robots_empty_description": "Thử điều chỉnh bộ lọc hoặc tạo robot mới."
+  "robots_empty_description": "Thử điều chỉnh bộ lọc hoặc tạo robot mới.",
+  "map_boundary_adjust_title": "Điều chỉnh ranh giới",
+  "map_boundary_adjust_unsupported": "Không thể chỉnh sửa ranh giới đã lưu. Chỉ hỗ trợ một đa giác hợp lệ nằm trong bản đồ."
 }

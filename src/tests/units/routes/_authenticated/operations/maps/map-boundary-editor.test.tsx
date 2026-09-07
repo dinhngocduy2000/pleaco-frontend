@@ -147,6 +147,22 @@ describe('MapBoundaryEditor', () => {
     }
   })
 
+  it('forwards dragging a preloaded closed polygon vertex', () => {
+    render(
+      <MapBoundaryEditor
+        {...defaultProps}
+        closed
+        points={[
+          [2, 2],
+          [10, 2],
+          [6, 8],
+        ]}
+      />,
+    )
+    fireEvent.dragEnd(screen.getAllByTestId('boundary-vertex')[0])
+    expect(handlers.handleVertexDragEnd).toHaveBeenCalledWith(0, 'vertex-drag-end')
+  })
+
   it('wires stage, vertex, endpoint, and zoom interactions', () => {
     render(<MapBoundaryEditor {...defaultProps} />)
 
