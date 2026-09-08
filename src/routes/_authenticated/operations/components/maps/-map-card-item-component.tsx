@@ -112,7 +112,7 @@ export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
         disableClickOverlay={isSaving}
         dialogProps={{
           className:
-            'max-h-[calc(100vh-2rem)] sm:max-w-6xl overflow-hidden rounded-3xl p-0 md:w-[min(92vw,92rem)] lg:h-[85vh] lg:w-[85vw] lg:max-w-none',
+            'max-h-[calc(100vh-2rem)] sm:max-w-6xl overflow-hidden rounded-3xl p-0 md:w-[min(92vw,92rem)] lg:h-[85vh] lg:w-[50vw] lg:max-w-none',
         }}
       >
         <MapBoundaryStep

@@ -38,6 +38,10 @@ export type MapBoundaryEditorProps = {
   onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
   /** Reports a rejected geometric edit without changing the controlled boundary. */
   onInvalid: () => void
+  /** Applies feature-specific validation after the shared polygon checks. */
+  canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
+  /** Handles a click on empty canvas while editing a closed polygon. */
+  onBackgroundClick?: () => void
 }
 
 /** Initial and preview map-local pixel positions for an endpoint extension gesture. */
@@ -62,6 +66,8 @@ export function useMapBoundaryEditor({
   interactive,
   onChange,
   onInvalid,
+  canChange,
+  onBackgroundClick,
 }: MapBoundaryEditorProps) {
   const [scale, setScale] = useState(1)
   const [extension, setExtension] = useState<ExtensionState>()
@@ -92,15 +98,20 @@ export function useMapBoundaryEditor({
       pixelsPerMeter,
       closureTolerance: CLOSURE_TOLERANCE,
     })
-    if (update) onChange(update.points, update.closed)
-    else onInvalid()
+    if (update && (!canChange || canChange(update.points, update.closed))) {
+      onChange(update.points, update.closed)
+    } else onInvalid()
   }
 
   /**
    * Adds or closes a boundary on click, consuming the synthetic click after an extension drag.
    */
   const handleStageClick = (event: KonvaEventObject<MouseEvent>) => {
-    if (!interactive || closed) return
+    if (!interactive) return
+    if (closed) {
+      onBackgroundClick?.()
+      return
+    }
     if (suppressClick.current) {
       suppressClick.current = false
       return
@@ -189,7 +200,7 @@ export function useMapBoundaryEditor({
       pixelsPerMeter,
       closed,
     })
-    if (nextPoints) onChange(nextPoints, closed)
+    if (nextPoints && (!canChange || canChange(nextPoints, closed))) onChange(nextPoints, closed)
     else onInvalid()
   }
 

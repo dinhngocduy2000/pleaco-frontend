@@ -179,6 +179,12 @@ async function expectCanvasSize(preview: Locator, width: number, height: number)
     .toEqual([{ height: `${height}px`, width: `${width}px` }])
 }
 
+async function clickCanvasPoint(page: Page, canvas: Locator, x: number, y: number) {
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('Boundary canvas is missing')
+  await page.mouse.click(box.x + x, box.y + y)
+}
+
 test.describe('Create map', () => {
   for (const role of ['owner', 'admin']) {
     test(`shows creation and opens the dialog for ${role}`, async ({ page }) => {
@@ -287,6 +293,7 @@ test.describe('Create map', () => {
     ])
     await expect(page.getByText('Map created successfully.')).toBeVisible()
     await expect(dialog.getByRole('heading', { name: 'Set travel boundary' })).toBeVisible()
+    await expect(dialog.getByRole('toolbar', { name: 'Map layout tools' })).toHaveCount(0)
     await dialog.getByRole('button', { name: 'Maybe later' }).click()
     await expect(dialog).toHaveCount(0)
     expect(boundaryRequests).toEqual([])
@@ -383,19 +390,15 @@ test.describe('Create map', () => {
       .getByRole('region', { name: 'Map boundary editor' })
       .locator('canvas')
       .last()
-    const canvasBox = await canvas.boundingBox()
-    expect(canvasBox).not.toBeNull()
-    if (!canvasBox) return
+    await clickCanvasPoint(page, canvas, 40, 120)
+    await expect(dialog.getByText('1 boundary points')).toBeVisible()
+    await clickCanvasPoint(page, canvas, 120, 120)
+    await expect(dialog.getByText('2 boundary points')).toBeVisible()
+    await clickCanvasPoint(page, canvas, 80, 60)
+    await expect(dialog.getByText('3 boundary points')).toBeVisible()
+    await clickCanvasPoint(page, canvas, 48, 120)
 
-    await page.mouse.click(canvasBox.x + 40, canvasBox.y + 120)
-    await page.mouse.move(canvasBox.x + 40, canvasBox.y + 120)
-    await page.mouse.down()
-    await page.mouse.move(canvasBox.x + 120, canvasBox.y + 120)
-    await page.mouse.up()
-    await page.mouse.click(canvasBox.x + 80, canvasBox.y + 60)
-    await page.mouse.click(canvasBox.x + 40, canvasBox.y + 120)
-
-    await expect(saveButton).toBeEnabled()
+    await expect(dialog.getByText('Polygon closed')).toBeAttached()
     const boundaryResponse = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/v1/maps/boundary') && response.request().method() === 'POST',

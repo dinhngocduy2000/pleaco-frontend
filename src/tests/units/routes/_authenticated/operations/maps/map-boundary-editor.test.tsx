@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { MouseEventHandler, ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { GeometryType, MapZoneType } from '@/enum/maps'
 
 const useMapBoundaryEditor = vi.hoisted(() => vi.fn())
 const handlers = vi.hoisted(() => ({
@@ -46,12 +47,40 @@ vi.mock('react-konva', () => ({
     />
   ),
   Layer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  Line: ({ closed, fill, points }: { closed?: boolean; fill?: string; points: number[] }) => (
-    <div
+  Line: ({
+    closed,
+    dash,
+    fill,
+    listening,
+    name,
+    onClick,
+    points,
+    stroke,
+    strokeWidth,
+  }: {
+    closed?: boolean
+    dash?: number[]
+    fill?: string
+    listening?: boolean
+    name?: string
+    onClick?: (event: { cancelBubble: boolean }) => void
+    points: number[]
+    stroke?: string
+    strokeWidth?: number
+  }) => (
+    <button
+      aria-label={name ?? 'polygon line'}
       data-closed={closed}
+      data-dash={JSON.stringify(dash)}
       data-fill={fill}
+      data-listening={listening}
+      data-name={name}
       data-points={JSON.stringify(points)}
+      data-stroke={stroke}
+      data-stroke-width={strokeWidth}
       data-testid="boundary-line"
+      type="button"
+      onClick={() => onClick?.({ cancelBubble: false })}
     />
   ),
   Stage: ({
@@ -138,10 +167,7 @@ describe('MapBoundaryEditor', () => {
   it('fills a closed polygon and makes every vertex draggable', () => {
     render(<MapBoundaryEditor {...defaultProps} closed />)
 
-    expect(screen.getByTestId('boundary-line')).toHaveAttribute(
-      'data-fill',
-      'rgb(97 95 255 / 0.12)',
-    )
+    expect(screen.getByTestId('boundary-line')).toHaveAttribute('data-fill', 'transparent')
     for (const vertex of screen.getAllByTestId('boundary-vertex')) {
       expect(vertex).toHaveAttribute('data-draggable', 'true')
     }
@@ -203,5 +229,65 @@ describe('MapBoundaryEditor', () => {
     expect(screen.getByText('3.0×')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Zoom in' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled()
+  })
+
+  it('renders selectable completed zones and inactive drafts with their configured styles', () => {
+    const onSelectZone = vi.fn()
+    render(
+      <MapBoundaryEditor
+        {...defaultProps}
+        activeZoneType={MapZoneType.OBSTACLE}
+        boundaryClosed
+        boundaryPoints={[
+          [0, 0],
+          [20, 0],
+          [20, 12],
+          [0, 12],
+        ]}
+        drafts={{
+          OBSTACLE: { points: [] },
+          NO_GO: {
+            points: [
+              [3, 3],
+              [4, 3],
+            ],
+          },
+          CLEANING_ZONE: { points: [] },
+        }}
+        selectionMode
+        zones={[
+          {
+            clientId: 'zone-1',
+            zoneType: MapZoneType.NO_GO,
+            geometry: {
+              type: GeometryType.POLYGON,
+              coordinates: [
+                [
+                  [2, 2],
+                  [5, 2],
+                  [3, 5],
+                  [2, 2],
+                ],
+              ],
+            },
+          },
+        ]}
+        onSelectZone={onSelectZone}
+      />,
+    )
+
+    const zone = screen.getByRole('button', { name: 'map-zone-NO_GO' })
+    expect(zone).toHaveAttribute('data-stroke', '#EF4444')
+    expect(zone).toHaveAttribute('data-fill', 'rgba(239, 68, 68, 0.16)')
+    expect(zone).toHaveAttribute('data-dash', '[8,6]')
+    expect(zone).toHaveAttribute('data-listening', 'true')
+    fireEvent.click(zone)
+    expect(onSelectZone).toHaveBeenCalledWith('zone-1')
+
+    expect(
+      screen
+        .getAllByTestId('boundary-line')
+        .some((line) => line.getAttribute('data-dash') === '[8,6]'),
+    ).toBe(true)
   })
 })

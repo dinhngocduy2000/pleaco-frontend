@@ -49,6 +49,34 @@ describe('useMapBoundaryEditor', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('runs feature validation before committing and handles closed-canvas selection clearing', () => {
+    const onChange = vi.fn()
+    const onInvalid = vi.fn()
+    const onBackgroundClick = vi.fn()
+    const canChange = vi.fn(() => false)
+    const { result, rerender } = renderHook(
+      ({ closed }) =>
+        useMapBoundaryEditor({
+          ...defaultParams,
+          closed,
+          onChange,
+          onInvalid,
+          canChange,
+          onBackgroundClick,
+        }),
+      { initialProps: { closed: false } },
+    )
+
+    act(() => result.current.handleStageClick(createKonvaEvent({ x: 40, y: 100 }) as never))
+    expect(canChange).toHaveBeenCalledWith([[2, 2]], false)
+    expect(onInvalid).toHaveBeenCalledOnce()
+    expect(onChange).not.toHaveBeenCalled()
+
+    rerender({ closed: true })
+    act(() => result.current.handleStageClick(createKonvaEvent({ x: 40, y: 100 }) as never))
+    expect(onBackgroundClick).toHaveBeenCalledOnce()
+  })
+
   it('creates a new point by dragging from the active endpoint and suppresses its click', () => {
     const onChange = vi.fn()
     const { result } = renderHook(() =>

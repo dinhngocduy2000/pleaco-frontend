@@ -163,6 +163,112 @@ export const isValidBoundaryPolygon = (points: IMapBoundaryCoordinate[], closed:
   return !hasSelfIntersection(points, true)
 }
 
+/** Returns whether a point is inside a polygon or lies on one of its edges. */
+export const isPointInBoundary = (
+  point: IMapBoundaryCoordinate,
+  boundary: IMapBoundaryCoordinate[],
+) => {
+  if (boundary.length < 3) return false
+  let inside = false
+
+  for (let index = 0; index < boundary.length; index += 1) {
+    const start = boundary[index]
+    const end = boundary[(index + 1) % boundary.length]
+    if (
+      Math.abs(orientation(start, point, end)) <= EPSILON &&
+      isPointOnSegment(start, point, end)
+    ) {
+      return true
+    }
+
+    const crossesRay =
+      start[1] > point[1] !== end[1] > point[1] &&
+      point[0] < ((end[0] - start[0]) * (point[1] - start[1])) / (end[1] - start[1]) + start[0]
+    if (crossesRay) inside = !inside
+  }
+
+  return inside
+}
+
+/** Finds positions along a path segment where it intersects a boundary segment. */
+const getSegmentIntersectionParameters = (
+  pathStart: IMapBoundaryCoordinate,
+  pathEnd: IMapBoundaryCoordinate,
+  boundaryStart: IMapBoundaryCoordinate,
+  boundaryEnd: IMapBoundaryCoordinate,
+) => {
+  const pathX = pathEnd[0] - pathStart[0]
+  const pathY = pathEnd[1] - pathStart[1]
+  const boundaryX = boundaryEnd[0] - boundaryStart[0]
+  const boundaryY = boundaryEnd[1] - boundaryStart[1]
+  const denominator = pathX * boundaryY - pathY * boundaryX
+  const offsetX = boundaryStart[0] - pathStart[0]
+  const offsetY = boundaryStart[1] - pathStart[1]
+
+  if (Math.abs(denominator) > EPSILON) {
+    const pathParameter = (offsetX * boundaryY - offsetY * boundaryX) / denominator
+    const boundaryParameter = (offsetX * pathY - offsetY * pathX) / denominator
+    return pathParameter >= -EPSILON &&
+      pathParameter <= 1 + EPSILON &&
+      boundaryParameter >= -EPSILON &&
+      boundaryParameter <= 1 + EPSILON
+      ? [Math.min(1, Math.max(0, pathParameter))]
+      : []
+  }
+
+  if (Math.abs(offsetX * pathY - offsetY * pathX) > EPSILON) return []
+  const axis = Math.abs(pathX) >= Math.abs(pathY) ? 0 : 1
+  const pathLength = pathEnd[axis] - pathStart[axis]
+  if (Math.abs(pathLength) <= EPSILON) return []
+  return [boundaryStart, boundaryEnd]
+    .map((point) => (point[axis] - pathStart[axis]) / pathLength)
+    .filter((parameter) => parameter >= -EPSILON && parameter <= 1 + EPSILON)
+    .map((parameter) => Math.min(1, Math.max(0, parameter)))
+}
+
+/** Checks one complete segment by sampling every interval split by boundary intersections. */
+const isSegmentInBoundary = (
+  start: IMapBoundaryCoordinate,
+  end: IMapBoundaryCoordinate,
+  boundary: IMapBoundaryCoordinate[],
+) => {
+  if (!isPointInBoundary(start, boundary) || !isPointInBoundary(end, boundary)) return false
+  const parameters = [0, 1]
+  for (let index = 0; index < boundary.length; index += 1) {
+    parameters.push(
+      ...getSegmentIntersectionParameters(
+        start,
+        end,
+        boundary[index],
+        boundary[(index + 1) % boundary.length],
+      ),
+    )
+  }
+  const sortedParameters = parameters
+    .sort((first, second) => first - second)
+    .filter((parameter, index, values) => index === 0 || parameter - values[index - 1] > EPSILON)
+
+  return sortedParameters.slice(1).every((parameter, index) => {
+    const midpoint = (sortedParameters[index] + parameter) / 2
+    return isPointInBoundary(
+      [start[0] + (end[0] - start[0]) * midpoint, start[1] + (end[1] - start[1]) * midpoint],
+      boundary,
+    )
+  })
+}
+
+/** Checks every vertex and segment of an open or closed path against a polygon boundary. */
+export const isPathContainedInBoundary = (
+  points: IMapBoundaryCoordinate[],
+  boundary: IMapBoundaryCoordinate[],
+  closed: boolean,
+) => {
+  if (points.length === 0) return true
+  if (!points.every((point) => isPointInBoundary(point, boundary))) return false
+  const segments = getSegments(points, closed)
+  return segments.every(([start, end]) => isSegmentInBoundary(start, end, boundary))
+}
+
 /**
  * Validates an editor update, allowing incomplete open paths, including an empty path.
  *

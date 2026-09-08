@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import { Button } from '@/components/ui/button'
-import { GeometryType, MapBoundarySource } from '@/enum/maps'
+import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate, IMapListInfo } from '@/interface/maps'
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
@@ -13,9 +13,13 @@ import {
   getFullMapBoundaries,
   getInitialBoundary,
   type InitialBoundaryState,
+  isPathContainedInBoundary,
   isValidBoundaryPolygon,
   serializeBoundary,
 } from './-map-boundary-geometry'
+import { MapLayoutToolbar } from './-map-layout-toolbar'
+import type { IMapZoneShape, MapLayoutTool } from './-map-zone-types'
+import { useMapZones } from './-use-map-zones'
 
 const t = getTranslations()
 
@@ -26,6 +30,12 @@ type MapBoundaryStepProps = {
   onSavingChange?: (saving: boolean) => void
 }
 
+const isAreaZoneType = (tool: MapLayoutTool): tool is IMapZoneShape['zoneType'] =>
+  tool === MapZoneType.OBSTACLE || tool === MapZoneType.NO_GO || tool === MapZoneType.CLEANING_ZONE
+
+const geometryToEditorPoints = (zone: IMapZoneShape | undefined) =>
+  (zone?.geometry.coordinates[0] ?? []).slice(0, -1).map(([x, y]): IMapBoundaryCoordinate => [x, y])
+
 export function MapBoundaryStep({
   map,
   onClose,
@@ -33,10 +43,12 @@ export function MapBoundaryStep({
   onSavingChange,
 }: MapBoundaryStepProps) {
   const [initial] = useState<InitialBoundaryState>(() => getInitialBoundary(map, mode))
+  const [activeTool, setActiveTool] = useState<MapLayoutTool>(MapZoneType.BOUNDARY)
   const [method, setMethod] = useState<MapBoundarySource>(initial.method)
   const [points, setPoints] = useState<IMapBoundaryCoordinate[]>(initial.points)
   const [closed, setClosed] = useState<boolean>(initial.closed)
   const [error, setError] = useState<string>()
+  const zoneEditor = useMapZones()
   const methodOptions = useMemo<IOption[]>(
     () => [
       { label: t.map_boundary_method_full(), value: MapBoundarySource.DIMENSIONS },
@@ -60,14 +72,59 @@ export function MapBoundaryStep({
       toast.error(typeof detail === 'string' && detail ? detail : t.map_boundary_save_error())
     },
   })
+
   useEffect(() => {
     onSavingChange?.(isSaving)
   }, [isSaving, onSavingChange])
+
   const selectedMethod = methodOptions.find((option) => option.value === method)
   const isCustom = method === MapBoundarySource.CUSTOM
-  const customIsValid = isValidBoundaryPolygon(points, closed)
   const fullMapPoints = getFullMapBoundaries(map.dimension_x, map.dimension_y)[0].slice(0, -1)
-  const displayedPoints = isCustom ? points : fullMapPoints
+  const boundaryPoints = isCustom ? points : fullMapPoints
+  const boundaryClosed = isCustom ? closed : true
+  const boundaryIsValid = isValidBoundaryPolygon(boundaryPoints, boundaryClosed)
+  const selectedZonePoints = geometryToEditorPoints(zoneEditor.selectedZone)
+  const activeZoneType =
+    activeTool === 'SELECT'
+      ? (zoneEditor.selectedZone?.zoneType ?? MapZoneType.BOUNDARY)
+      : activeTool
+  const activePoints =
+    activeTool === MapZoneType.BOUNDARY
+      ? boundaryPoints
+      : activeTool === 'SELECT'
+        ? selectedZonePoints
+        : zoneEditor.drafts[activeTool].points
+  const activeClosed =
+    activeTool === MapZoneType.BOUNDARY ? boundaryClosed : activeTool === 'SELECT'
+  const activeInteractive =
+    !isSaving &&
+    !initial.unsupported &&
+    (activeTool === MapZoneType.BOUNDARY
+      ? isCustom
+      : activeTool === 'SELECT'
+        ? Boolean(zoneEditor.selectedZone)
+        : boundaryIsValid)
+  const hasOpenPolygon =
+    (isCustom && points.length > 0 && !closed) ||
+    Object.values(zoneEditor.drafts).some((draft) => draft.points.length > 0)
+  const activeCanUndo =
+    activeTool === MapZoneType.BOUNDARY
+      ? isCustom && points.length > 0
+      : isAreaZoneType(activeTool) &&
+        (zoneEditor.drafts[activeTool].points.length > 0 ||
+          zoneEditor.zones.some((zone) => zone.zoneType === activeTool))
+  const activeCanClear =
+    activeTool === MapZoneType.BOUNDARY
+      ? isCustom && points.length > 0
+      : isAreaZoneType(activeTool) && zoneEditor.drafts[activeTool].points.length > 0
+
+  const zonesFitBoundary = (nextBoundary: IMapBoundaryCoordinate[]) =>
+    zoneEditor.zones.every((zone) =>
+      isPathContainedInBoundary(geometryToEditorPoints(zone), nextBoundary, true),
+    ) &&
+    Object.values(zoneEditor.drafts).every((draft) =>
+      isPathContainedInBoundary(draft.points, nextBoundary, false),
+    )
 
   const handleMethodChange = (option: IOption | undefined) => {
     if (!option || option.disabled) return
@@ -85,23 +142,57 @@ export function MapBoundaryStep({
     setError(undefined)
   }
 
+  const handleActiveChange = (nextPoints: IMapBoundaryCoordinate[], nextClosed: boolean) => {
+    if (activeTool === MapZoneType.BOUNDARY) {
+      handleBoundaryChange(nextPoints, nextClosed)
+    } else if (activeTool === 'SELECT') {
+      zoneEditor.handleSelectedZoneChange(nextPoints)
+      setError(undefined)
+    } else {
+      zoneEditor.handleZoneChange(activeTool, nextPoints, nextClosed)
+      setError(undefined)
+    }
+  }
+
+  const canChangeActive = (nextPoints: IMapBoundaryCoordinate[], nextClosed: boolean) => {
+    if (activeTool === MapZoneType.BOUNDARY) {
+      return !nextClosed || zonesFitBoundary(nextPoints)
+    }
+    return isPathContainedInBoundary(nextPoints, boundaryPoints, nextClosed)
+  }
+
   const handleUndo = () => {
     setError(undefined)
-    if (closed) {
-      setClosed(false)
-      return
+    if (activeTool === MapZoneType.BOUNDARY) {
+      if (closed) setClosed(false)
+      else setPoints((current) => current.slice(0, -1))
+    } else if (isAreaZoneType(activeTool)) {
+      zoneEditor.handleUndoZone(activeTool)
     }
-    setPoints((current) => current.slice(0, -1))
   }
 
   const handleClear = () => {
-    setPoints([])
-    setClosed(false)
     setError(undefined)
+    if (activeTool === MapZoneType.BOUNDARY) {
+      setPoints([])
+      setClosed(false)
+    } else if (isAreaZoneType(activeTool)) {
+      zoneEditor.handleClearZoneDraft(activeTool)
+    }
+  }
+
+  const handleToolChange = (tool: MapLayoutTool) => {
+    setActiveTool(tool)
+    setError(undefined)
+    if (tool !== 'SELECT') zoneEditor.setSelectedZoneId(undefined)
   }
 
   const handleSave = () => {
-    if (isSaving || initial.unsupported || (isCustom && !customIsValid)) return
+    if (isSaving || initial.unsupported || (isCustom && points.length === 0)) return
+    if (hasOpenPolygon) {
+      toast.error(t.map_layout_open_polygon_error())
+      return
+    }
     saveMapBoundaries(
       isCustom
         ? {
@@ -115,6 +206,9 @@ export function MapBoundaryStep({
         : { map_id: map.id, source: MapBoundarySource.DIMENSIONS },
     )
   }
+
+  const showDrawingActions =
+    (mode === 'create' && isCustom) || (mode === 'adjust' && activeTool !== 'SELECT')
 
   return (
     <div className="flex min-h-0 h-full flex-col">
@@ -139,14 +233,40 @@ export function MapBoundaryStep({
             <X className="size-8 stroke-1" />
           </Button>
         </div>
+        {mode === 'adjust' && (
+          <MapLayoutToolbar
+            activeTool={activeTool}
+            deleteDisabled={!zoneEditor.selectedZoneId}
+            disabled={isSaving || initial.unsupported}
+            zoneToolsDisabled={!boundaryIsValid}
+            onDelete={zoneEditor.handleDeleteSelectedZone}
+            onToolChange={handleToolChange}
+          />
+        )}
         <MapBoundaryEditor
-          closed={isCustom ? closed : true}
+          activeZoneType={activeZoneType}
+          boundaryClosed={boundaryClosed}
+          boundaryPoints={boundaryPoints}
+          canChange={mode === 'adjust' ? canChangeActive : undefined}
+          closed={activeClosed}
           dimensionX={map.dimension_x}
           dimensionY={map.dimension_y}
-          interactive={isCustom && !isSaving && !initial.unsupported}
-          points={displayedPoints}
-          onChange={handleBoundaryChange}
-          onInvalid={() => setError(t.map_boundary_invalid_shape())}
+          drafts={zoneEditor.drafts}
+          interactive={activeInteractive}
+          points={activePoints}
+          selectedZoneId={zoneEditor.selectedZoneId}
+          selectionMode={activeTool === 'SELECT'}
+          zones={zoneEditor.zones}
+          onBackgroundClick={() => zoneEditor.setSelectedZoneId(undefined)}
+          onChange={handleActiveChange}
+          onInvalid={() =>
+            setError(
+              activeTool === MapZoneType.BOUNDARY
+                ? t.map_boundary_invalid_shape()
+                : t.map_layout_invalid_zone(),
+            )
+          }
+          onSelectZone={zoneEditor.setSelectedZoneId}
         />
       </div>
       <div className="border-t bg-background px-6 py-5">
@@ -155,28 +275,41 @@ export function MapBoundaryStep({
             <span className="text-sm font-medium">{t.map_boundary_method_label()}</span>
             <AppSelectComponent
               ariaLabel={t.map_boundary_method_label()}
-              disabled={isSaving || initial.unsupported}
+              disabled={isSaving || initial.unsupported || activeTool !== MapZoneType.BOUNDARY}
               options={methodOptions}
               value={selectedMethod}
               onChange={handleMethodChange}
             />
             <p className="text-sm text-muted-foreground">
-              {isCustom ? t.map_boundary_custom_instructions() : t.map_boundary_full_instructions()}
+              {activeTool === MapZoneType.BOUNDARY
+                ? isCustom
+                  ? t.map_boundary_custom_instructions()
+                  : t.map_boundary_full_instructions()
+                : activeTool === 'SELECT'
+                  ? t.map_layout_select_instructions()
+                  : t.map_layout_zone_instructions()}
             </p>
             <p aria-live="polite" className="text-sm text-destructive">
               {initial.unsupported ? t.map_boundary_adjust_unsupported() : error}
             </p>
-            {isCustom && (
-              <p aria-live="polite" className="text-xs text-muted-foreground">
-                {t.map_boundary_point_count({ count: points.length })}
-              </p>
+            {activeTool !== 'SELECT' && activePoints.length > 0 && (
+              <>
+                <p aria-live="polite" className="text-xs text-muted-foreground">
+                  {activeTool === MapZoneType.BOUNDARY
+                    ? t.map_boundary_point_count({ count: activePoints.length })
+                    : t.map_layout_point_count({ count: activePoints.length })}
+                </p>
+                <span className="sr-only">
+                  {activeClosed ? t.map_layout_polygon_closed() : t.map_layout_polygon_open()}
+                </span>
+              </>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {isCustom && (
+            {showDrawingActions && (
               <>
                 <Button
-                  disabled={points.length === 0 || isSaving}
+                  disabled={!activeCanUndo || isSaving}
                   type="button"
                   variant="outline"
                   onClick={handleUndo}
@@ -185,7 +318,7 @@ export function MapBoundaryStep({
                   {t.map_boundary_undo()}
                 </Button>
                 <Button
-                  disabled={points.length === 0 || isSaving}
+                  disabled={!activeCanClear || isSaving}
                   type="button"
                   variant="outline"
                   onClick={handleClear}
@@ -199,7 +332,7 @@ export function MapBoundaryStep({
               {mode === 'adjust' ? t.map_create_cancel() : t.map_boundary_maybe_later()}
             </Button>
             <Button
-              disabled={isSaving || initial.unsupported || (isCustom && !customIsValid)}
+              disabled={isSaving || initial.unsupported || (isCustom && points.length === 0)}
               loading={isSaving}
               type="button"
               onClick={handleSave}

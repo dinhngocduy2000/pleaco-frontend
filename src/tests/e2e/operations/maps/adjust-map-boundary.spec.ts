@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Locator, type Page, test } from '@playwright/test'
 import { GeometryType, MapBoundarySource } from '@/enum/maps'
 import type { IMapListInfo, ISaveMapBoundaries } from '@/interface/maps'
 import profileData from '../../data/profile.json' with { type: 'json' }
@@ -76,17 +76,23 @@ async function openEditor(page: Page) {
     .getByRole('article', { name: 'Adjustment warehouse' })
     .getByRole('button', { name: 'Map options' })
     .click()
-  await page.getByRole('menuitem', { name: 'Adjust boundary' }).click()
+  await page.getByRole('menuitem', { name: 'Adjust layout' }).click()
   const dialog = page
     .getByRole('dialog')
-    .filter({ has: page.getByRole('heading', { name: 'Adjust boundary' }) })
-  await expect(dialog.getByRole('heading', { name: 'Adjust boundary' })).toBeVisible()
+    .filter({ has: page.getByRole('heading', { name: 'Adjust layout' }) })
+  await expect(dialog.getByRole('heading', { name: 'Adjust layout' })).toBeVisible()
   await dialog.evaluate(async (element) => {
     await Promise.allSettled(
       element.getAnimations({ subtree: true }).map((animation) => animation.finished),
     )
   })
   return dialog
+}
+
+async function clickCanvasPoint(page: Page, canvas: Locator, x: number, y: number) {
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('Boundary canvas is missing')
+  await page.mouse.click(box.x + x, box.y + y)
 }
 
 for (const role of ['admin', 'owner']) {
@@ -126,7 +132,7 @@ for (const role of ['member', 'moderator', 'guest', '']) {
   test(`${role || 'unknown role'} cannot adjust boundaries`, async ({ page }) => {
     const { card, requests } = await setup(page, role)
     await card.getByRole('button', { name: 'Map options' }).click()
-    const action = page.getByRole('menuitem', { name: 'Adjust boundary' })
+    const action = page.getByRole('menuitem', { name: 'Adjust layout' })
     await expect(action).toBeDisabled()
     await page.keyboard.press('a')
     await page.keyboard.press('Enter')
@@ -179,4 +185,88 @@ test('saving blocks dismissal and duplicate requests', async ({ page }) => {
     releaseSave()
   }
   await expect(dialog).not.toBeVisible()
+})
+
+test('draws, selects, and deletes a session-only zone with layout tools', async ({ page }) => {
+  const { requests } = await setup(page, 'owner')
+  const dialog = await openEditor(page)
+  const toolbar = dialog.getByRole('toolbar', { name: 'Map layout tools' })
+  await expect(toolbar).toBeVisible()
+  await expect(toolbar.getByRole('button', { name: 'Boundary' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  for (const name of ['Obstacle', 'No-go', 'Cleaning zone', 'Select']) {
+    await expect(toolbar.getByRole('button', { name, exact: true })).toBeVisible()
+  }
+
+  await toolbar.getByRole('button', { name: 'Obstacle' }).click()
+  await expect(dialog.getByRole('combobox', { name: 'Boundary method' })).toBeDisabled()
+  const canvas = dialog
+    .getByRole('region', { name: 'Map boundary editor' })
+    .locator('canvas')
+    .last()
+  await clickCanvasPoint(page, canvas, 30, 130)
+  await expect(dialog.getByText(/Zones must form a valid polygon/)).toBeVisible()
+
+  await clickCanvasPoint(page, canvas, 60, 110)
+  await clickCanvasPoint(page, canvas, 100, 110)
+  await clickCanvasPoint(page, canvas, 80, 80)
+  await clickCanvasPoint(page, canvas, 68, 110)
+  await expect(dialog.getByRole('button', { name: 'Undo' })).toBeEnabled()
+
+  await toolbar.getByRole('button', { name: 'Select', exact: true }).click()
+  const deleteZone = toolbar.getByRole('button', { name: 'Delete selected zone' })
+  await expect(deleteZone).toBeDisabled()
+  await clickCanvasPoint(page, canvas, 80, 100)
+  await expect(deleteZone).toBeEnabled()
+  await deleteZone.click()
+  await expect(deleteZone).toBeDisabled()
+
+  await toolbar.getByRole('button', { name: 'Boundary' }).click()
+  await expect(dialog.getByRole('combobox', { name: 'Boundary method' })).toBeEnabled()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(dialog).not.toBeVisible()
+  expect(requests).toHaveLength(1)
+  expect(requests[0]).toEqual({
+    map_id: '00000000-0000-4000-8000-000000000001',
+    source: MapBoundarySource.CUSTOM,
+    geometry: {
+      type: GeometryType.POLYGON,
+      coordinates: [
+        [
+          [2, 2],
+          [10, 2],
+          [6, 8],
+          [2, 2],
+        ],
+      ],
+    },
+  })
+})
+
+test('preserves an open zone draft and blocks the boundary request until it is cleared', async ({
+  page,
+}) => {
+  const { requests } = await setup(page, 'owner')
+  const dialog = await openEditor(page)
+  const toolbar = dialog.getByRole('toolbar', { name: 'Map layout tools' })
+  await toolbar.getByRole('button', { name: 'No-go' }).click()
+  const canvas = dialog
+    .getByRole('region', { name: 'Map boundary editor' })
+    .locator('canvas')
+    .last()
+  await clickCanvasPoint(page, canvas, 60, 110)
+
+  await toolbar.getByRole('button', { name: 'Cleaning zone' }).click()
+  await toolbar.getByRole('button', { name: 'No-go' }).click()
+  await expect(dialog.getByText('1 polygon points')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.getByText('Finish or clear every open polygon before saving.')).toBeVisible()
+  expect(requests).toEqual([])
+
+  await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(dialog).not.toBeVisible()
+  expect(requests).toHaveLength(1)
 })
