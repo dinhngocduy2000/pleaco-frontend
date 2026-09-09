@@ -29,18 +29,35 @@ export type InitialBoundaryState = {
 /**
  * Compares both world-coordinate components using the floating-point tolerance.
  *
- * @param first - First world coordinate to compare.
- * @param second - Second world coordinate to compare.
+ * @param firstCoordinate - First world coordinate to compare.
+ * @param secondCoordinate - Second world coordinate to compare.
  * @returns Whether both coordinate components are equal within `EPSILON`.
+ *
+ * @example
+ * ```text
+ * [1, 2] •≈• [1.000000001, 2] → true
+ * [1, 2]  ≠  [1.1, 2]         → false
+ * ```
  */
-const coordinatesEqual = (first: IMapBoundaryCoordinate, second: IMapBoundaryCoordinate) =>
-  Math.abs(first[0] - second[0]) < EPSILON && Math.abs(first[1] - second[1]) < EPSILON
+const coordinatesEqual = (
+  firstCoordinate: IMapBoundaryCoordinate,
+  secondCoordinate: IMapBoundaryCoordinate,
+) =>
+  Math.abs(firstCoordinate[0] - secondCoordinate[0]) < EPSILON &&
+  Math.abs(firstCoordinate[1] - secondCoordinate[1]) < EPSILON
 
 /**
  * Detects repeated vertices anywhere in the boundary, including nonadjacent vertices.
  *
  * @param points - Ordered world-coordinate vertices to inspect.
  * @returns Whether any two vertices are equal within the coordinate tolerance.
+ *
+ * @example
+ * ```text
+ * A → B → C → A
+ * ↑             ↑
+ * same coordinate → duplicate found
+ * ```
  */
 const hasDuplicateCoordinates = (points: IMapBoundaryCoordinate[]) =>
   points.some((point, index) =>
@@ -50,72 +67,140 @@ const hasDuplicateCoordinates = (points: IMapBoundaryCoordinate[]) =>
 /**
  * Calculates the signed turn formed by three ordered coordinates.
  *
- * @param first - First coordinate in the turn.
- * @param second - Shared middle coordinate.
- * @param third - Final coordinate in the turn.
+ * @param pathStart - Coordinate where the path enters the turn.
+ * @param turnVertex - Shared vertex where the direction may change.
+ * @param pathEnd - Coordinate where the path exits the turn.
  * @returns Positive for clockwise, negative for counterclockwise, or zero for collinear points.
+ *
+ * @example
+ * ```text
+ * Clockwise:         Counterclockwise:   Collinear:
+ * A → B              A → B               A → B → C
+ *     ↓ C                ↑ C
+ * result > 0         result < 0           result ≈ 0
+ * ```
  */
 const orientation = (
-  first: IMapBoundaryCoordinate,
-  second: IMapBoundaryCoordinate,
-  third: IMapBoundaryCoordinate,
+  pathStart: IMapBoundaryCoordinate,
+  turnVertex: IMapBoundaryCoordinate,
+  pathEnd: IMapBoundaryCoordinate,
 ) =>
-  (second[1] - first[1]) * (third[0] - second[0]) - (second[0] - first[0]) * (third[1] - second[1])
+  (turnVertex[1] - pathStart[1]) * (pathEnd[0] - turnVertex[0]) -
+  (turnVertex[0] - pathStart[0]) * (pathEnd[1] - turnVertex[1])
 
 /**
  * Checks inclusive segment bounds with tolerance. The caller must establish collinearity.
  *
- * @param first - First endpoint of the segment.
+ * @param segmentStart - Start endpoint of the segment.
  * @param point - Collinear coordinate to test.
- * @param second - Second endpoint of the segment.
+ * @param segmentEnd - End endpoint of the segment.
  * @returns Whether the coordinate lies within the segment's inclusive bounds.
+ *
+ * @example
+ * ```text
+ * A────P────B  → P is on segment AB
+ * A────────B  P → P is on line AB, but outside segment AB
+ * ```
  */
 const isPointOnSegment = (
-  first: IMapBoundaryCoordinate,
+  segmentStart: IMapBoundaryCoordinate,
   point: IMapBoundaryCoordinate,
-  second: IMapBoundaryCoordinate,
+  segmentEnd: IMapBoundaryCoordinate,
 ) =>
-  point[0] <= Math.max(first[0], second[0]) + EPSILON &&
-  point[0] >= Math.min(first[0], second[0]) - EPSILON &&
-  point[1] <= Math.max(first[1], second[1]) + EPSILON &&
-  point[1] >= Math.min(first[1], second[1]) - EPSILON
+  point[0] <= Math.max(segmentStart[0], segmentEnd[0]) + EPSILON &&
+  point[0] >= Math.min(segmentStart[0], segmentEnd[0]) - EPSILON &&
+  point[1] <= Math.max(segmentStart[1], segmentEnd[1]) + EPSILON &&
+  point[1] >= Math.min(segmentStart[1], segmentEnd[1]) - EPSILON
 
 /**
  * Detects crossings, endpoint touches, and collinear overlaps between two segments.
  *
- * @param firstStart - Start coordinate of the first segment.
- * @param firstEnd - End coordinate of the first segment.
- * @param secondStart - Start coordinate of the second segment.
- * @param secondEnd - End coordinate of the second segment.
+ * @param firstSegmentStart - Start coordinate of the first segment.
+ * @param firstSegmentEnd - End coordinate of the first segment.
+ * @param secondSegmentStart - Start coordinate of the second segment.
+ * @param secondSegmentEnd - End coordinate of the second segment.
  * @returns Whether the two closed segments intersect or overlap.
+ *
+ * @example
+ * ```text
+ * Crossing:       Touching:          Overlapping:
+ * A╲  ╱C          A────(B=C)────D    A──C──B──D
+ *   ╳
+ * D╱  ╲B
+ * ```
  */
 const segmentsIntersect = (
-  firstStart: IMapBoundaryCoordinate,
-  firstEnd: IMapBoundaryCoordinate,
-  secondStart: IMapBoundaryCoordinate,
-  secondEnd: IMapBoundaryCoordinate,
+  firstSegmentStart: IMapBoundaryCoordinate,
+  firstSegmentEnd: IMapBoundaryCoordinate,
+  secondSegmentStart: IMapBoundaryCoordinate,
+  secondSegmentEnd: IMapBoundaryCoordinate,
 ) => {
-  const firstOrientation = orientation(firstStart, firstEnd, secondStart)
-  const secondOrientation = orientation(firstStart, firstEnd, secondEnd)
-  const thirdOrientation = orientation(secondStart, secondEnd, firstStart)
-  const fourthOrientation = orientation(secondStart, secondEnd, firstEnd)
+  // Identifies which side of the first segment's line contains the second segment's start.
+  const secondSegmentStartRelativeToFirstSegmentLine = orientation(
+    firstSegmentStart,
+    firstSegmentEnd,
+    secondSegmentStart,
+  )
+  // Identifies which side of the first segment's line contains the second segment's end.
+  const secondSegmentEndRelativeToFirstSegmentLine = orientation(
+    firstSegmentStart,
+    firstSegmentEnd,
+    secondSegmentEnd,
+  )
+  // Identifies which side of the second segment's line contains the first segment's start.
+  const firstSegmentStartRelativeToSecondSegmentLine = orientation(
+    secondSegmentStart,
+    secondSegmentEnd,
+    firstSegmentStart,
+  )
+  // Identifies which side of the second segment's line contains the first segment's end.
+  const firstSegmentEndRelativeToSecondSegmentLine = orientation(
+    secondSegmentStart,
+    secondSegmentEnd,
+    firstSegmentEnd,
+  )
+  // For first segment A→B and second segment C→D:
+  // C and D are on opposite sides of line AB when one result is positive and the other is negative:
+  // orientation(A, B, C) and orientation(A, B, D).
+  const secondSegmentCrossesFirstSegmentLine =
+    (secondSegmentStartRelativeToFirstSegmentLine > EPSILON &&
+      secondSegmentEndRelativeToFirstSegmentLine < -EPSILON) ||
+    (secondSegmentStartRelativeToFirstSegmentLine < -EPSILON &&
+      secondSegmentEndRelativeToFirstSegmentLine > EPSILON)
+  // A and B are on opposite sides of line CD when one result is positive and the other is negative:
+  // orientation(C, D, A) and orientation(C, D, B).
+  const firstSegmentCrossesSecondSegmentLine =
+    (firstSegmentStartRelativeToSecondSegmentLine > EPSILON &&
+      firstSegmentEndRelativeToSecondSegmentLine < -EPSILON) ||
+    (firstSegmentStartRelativeToSecondSegmentLine < -EPSILON &&
+      firstSegmentEndRelativeToSecondSegmentLine > EPSILON)
 
-  if (
-    ((firstOrientation > EPSILON && secondOrientation < -EPSILON) ||
-      (firstOrientation < -EPSILON && secondOrientation > EPSILON)) &&
-    ((thirdOrientation > EPSILON && fourthOrientation < -EPSILON) ||
-      (thirdOrientation < -EPSILON && fourthOrientation > EPSILON))
-  ) {
+  if (secondSegmentCrossesFirstSegmentLine && firstSegmentCrossesSecondSegmentLine) {
     return true
   }
 
+  // C lies on segment AB when it is on line AB and between A and B.
+  const secondSegmentStartTouchesFirstSegment =
+    Math.abs(secondSegmentStartRelativeToFirstSegmentLine) <= EPSILON &&
+    isPointOnSegment(firstSegmentStart, secondSegmentStart, firstSegmentEnd)
+  // D lies on segment AB when it is on line AB and between A and B.
+  const secondSegmentEndTouchesFirstSegment =
+    Math.abs(secondSegmentEndRelativeToFirstSegmentLine) <= EPSILON &&
+    isPointOnSegment(firstSegmentStart, secondSegmentEnd, firstSegmentEnd)
+  // A lies on segment CD when it is on line CD and between C and D.
+  const firstSegmentStartTouchesSecondSegment =
+    Math.abs(firstSegmentStartRelativeToSecondSegmentLine) <= EPSILON &&
+    isPointOnSegment(secondSegmentStart, firstSegmentStart, secondSegmentEnd)
+  // B lies on segment CD when it is on line CD and between C and D.
+  const firstSegmentEndTouchesSecondSegment =
+    Math.abs(firstSegmentEndRelativeToSecondSegmentLine) <= EPSILON &&
+    isPointOnSegment(secondSegmentStart, firstSegmentEnd, secondSegmentEnd)
+
   return (
-    (Math.abs(firstOrientation) <= EPSILON &&
-      isPointOnSegment(firstStart, secondStart, firstEnd)) ||
-    (Math.abs(secondOrientation) <= EPSILON && isPointOnSegment(firstStart, secondEnd, firstEnd)) ||
-    (Math.abs(thirdOrientation) <= EPSILON &&
-      isPointOnSegment(secondStart, firstStart, secondEnd)) ||
-    (Math.abs(fourthOrientation) <= EPSILON && isPointOnSegment(secondStart, firstEnd, secondEnd))
+    secondSegmentStartTouchesFirstSegment ||
+    secondSegmentEndTouchesFirstSegment ||
+    firstSegmentStartTouchesSecondSegment ||
+    firstSegmentEndTouchesSecondSegment
   )
 }
 
@@ -125,6 +210,12 @@ const segmentsIntersect = (
  * @param points - Ordered path vertices without a repeated closing coordinate.
  * @param closed - Whether to connect the final vertex back to the first.
  * @returns Ordered pairs representing each path segment.
+ *
+ * @example
+ * ```text
+ * Open A→B→C:   AB, BC
+ * Closed A→B→C: AB, BC, CA
+ * ```
  */
 const getSegments = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   const segments = points.slice(1).map((point, index) => [points[index], point] as const)
@@ -134,26 +225,47 @@ const getSegments = (points: IMapBoundaryCoordinate[], closed: boolean) => {
 }
 
 /**
- * Detects collinear backtracking across neighboring edges, including the closing seam.
+ * Checks whether two connected edges lie on the same line and retrace each other.
  *
- * @param points - Ordered path vertices without a repeated closing coordinate.
- * @param closed - Whether to inspect adjacency across the closing seam.
- * @returns Whether neighboring edges overlap instead of continuing without backtracking.
+ * @param points - Path points without a repeated closing point.
+ * @param closed - Whether to also check the edges connected through the first point.
+ * @returns Whether any two connected edges overlap.
+ *
+ * @example
+ * ```text
+ * Path order: A → B → C
+ *
+ * No overlap—the path keeps moving forward:
+ * A────B────C
+ *
+ * Overlap—the path reaches B, then moves backward to C:
+ * A────C────B
+ *      C←───B  (this part retraces the A→B edge)
+ * ```
  */
 const hasAdjacentOverlap = (points: IMapBoundaryCoordinate[], closed: boolean) => {
-  const triples: [IMapBoundaryCoordinate, IMapBoundaryCoordinate, IMapBoundaryCoordinate][] = points
-    .slice(2)
-    .map((point, index) => [points[index], points[index + 1], point])
-  const lastPoint = points.at(-1)
-  const previousPoint = points.at(-2)
-  if (closed && points.length > 2 && lastPoint && previousPoint) {
-    triples.push([previousPoint, lastPoint, points[0]])
-    triples.push([lastPoint, points[0], points[1]])
+  const connectedEdgePoints: [
+    IMapBoundaryCoordinate,
+    IMapBoundaryCoordinate,
+    IMapBoundaryCoordinate,
+  ][] = points.slice(2).map((edgeEnd, index) => [points[index], points[index + 1], edgeEnd])
+  const finalPoint = points.at(-1)
+  const pointBeforeFinal = points.at(-2)
+  if (closed && points.length > 2 && finalPoint && pointBeforeFinal) {
+    connectedEdgePoints.push([pointBeforeFinal, finalPoint, points[0]])
+    connectedEdgePoints.push([finalPoint, points[0], points[1]])
   }
 
-  return triples.some(([first, shared, second]) => {
-    if (Math.abs(orientation(first, shared, second)) > EPSILON) return false
-    return isPointOnSegment(first, second, shared) || isPointOnSegment(shared, first, second)
+  return connectedEdgePoints.some(([edgeStart, sharedVertex, edgeEnd]) => {
+    const edgesAreOnSameLine = Math.abs(orientation(edgeStart, sharedVertex, edgeEnd)) <= EPSILON
+    if (!edgesAreOnSameLine) return false
+
+    // The second edge ends within the first edge, so it retraces part of the first edge.
+    const secondEdgeEndsInsideFirstEdge = isPointOnSegment(edgeStart, edgeEnd, sharedVertex)
+    // The first edge starts within the second edge, so the second edge retraces the first edge.
+    const firstEdgeStartsInsideSecondEdge = isPointOnSegment(sharedVertex, edgeStart, edgeEnd)
+
+    return secondEdgeEndsInsideFirstEdge || firstEdgeStartsInsideSecondEdge
   })
 }
 
@@ -164,17 +276,27 @@ const hasAdjacentOverlap = (points: IMapBoundaryCoordinate[], closed: boolean) =
  * @param points - Ordered world-coordinate vertices without a repeated closing point.
  * @param closed - Whether to include the last-to-first edge.
  * @returns Whether the path contains an adjacent overlap or nonadjacent intersection.
+ *
+ * @example
+ * ```text
+ * Valid polygon:      Self-intersecting polygon:
+ * A────B              A╲  ╱C
+ * │    │                ╳
+ * D────C              D╱  ╲B
+ * ```
  */
 export const hasSelfIntersection = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   if (hasAdjacentOverlap(points, closed)) return true
   const segments = getSegments(points, closed)
 
-  return segments.some((segment, firstIndex) =>
-    segments.some((candidate, secondIndex) => {
-      if (secondIndex <= firstIndex) return false
-      if (Math.abs(firstIndex - secondIndex) === 1) return false
-      if (closed && firstIndex === 0 && secondIndex === segments.length - 1) return false
-      return segmentsIntersect(segment[0], segment[1], candidate[0], candidate[1])
+  return segments.some((firstSegment, firstSegmentIndex) =>
+    segments.some((secondSegment, secondSegmentIndex) => {
+      if (secondSegmentIndex <= firstSegmentIndex) return false
+      if (Math.abs(firstSegmentIndex - secondSegmentIndex) === 1) return false
+      if (closed && firstSegmentIndex === 0 && secondSegmentIndex === segments.length - 1) {
+        return false
+      }
+      return segmentsIntersect(firstSegment[0], firstSegment[1], secondSegment[0], secondSegment[1])
     }),
   )
 }
@@ -184,6 +306,13 @@ export const hasSelfIntersection = (points: IMapBoundaryCoordinate[], closed: bo
  *
  * @param points - Ordered world-coordinate vertices in meters.
  * @returns Zero for fewer than three vertices; self-intersecting inputs may cancel area.
+ *
+ * @example
+ * ```text
+ * D(0,2)────C(3,2)
+ *   │          │      area = 3 × 2 = 6 m²
+ * A(0,0)────B(3,0)
+ * ```
  */
 export const getPolygonArea = (points: IMapBoundaryCoordinate[]) => {
   if (points.length < 3) return 0
@@ -203,6 +332,14 @@ export const getPolygonArea = (points: IMapBoundaryCoordinate[]) => {
  * @param points - Ordered world-coordinate vertices without a repeated closing point.
  * @param closed - Whether the editor considers the boundary closed.
  * @returns Whether the vertices form a valid closed polygon.
+ *
+ * @example
+ * ```text
+ * Valid:             Invalid:
+ *    B               A╲  ╱C
+ *   ╱ ╲                ╳     path A→B→C→D
+ *  A───C             D╱  ╲B  has crossed edges
+ * ```
  */
 export const isValidBoundaryPolygon = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   if (!closed || points.length < 3 || getPolygonArea(points) <= EPSILON) return false
@@ -216,6 +353,15 @@ export const isValidBoundaryPolygon = (points: IMapBoundaryCoordinate[], closed:
  * @param point - World coordinate to test.
  * @param boundary - Closed polygon vertices without a repeated closing coordinate.
  * @returns Whether the point lies inside or on the boundary polygon.
+ *
+ * @example
+ * ```text
+ * A────────B
+ * │  P     │  P is inside  → true
+ * │        Q  Q is on edge → true
+ * D────────C     R outside → false
+ *              R
+ * ```
  */
 export const isPointInBoundary = (
   point: IMapBoundaryCoordinate,
@@ -225,18 +371,21 @@ export const isPointInBoundary = (
   let inside = false
 
   for (let index = 0; index < boundary.length; index += 1) {
-    const start = boundary[index]
-    const end = boundary[(index + 1) % boundary.length]
+    const boundaryEdgeStart = boundary[index]
+    const boundaryEdgeEnd = boundary[(index + 1) % boundary.length]
     if (
-      Math.abs(orientation(start, point, end)) <= EPSILON &&
-      isPointOnSegment(start, point, end)
+      Math.abs(orientation(boundaryEdgeStart, point, boundaryEdgeEnd)) <= EPSILON &&
+      isPointOnSegment(boundaryEdgeStart, point, boundaryEdgeEnd)
     ) {
       return true
     }
 
     const crossesRay =
-      start[1] > point[1] !== end[1] > point[1] &&
-      point[0] < ((end[0] - start[0]) * (point[1] - start[1])) / (end[1] - start[1]) + start[0]
+      boundaryEdgeStart[1] > point[1] !== boundaryEdgeEnd[1] > point[1] &&
+      point[0] <
+        ((boundaryEdgeEnd[0] - boundaryEdgeStart[0]) * (point[1] - boundaryEdgeStart[1])) /
+          (boundaryEdgeEnd[1] - boundaryEdgeStart[1]) +
+          boundaryEdgeStart[0]
     if (crossesRay) inside = !inside
   }
 
@@ -251,6 +400,15 @@ export const isPointInBoundary = (
  * @param boundaryStart - Start coordinate of the boundary segment.
  * @param boundaryEnd - End coordinate of the boundary segment.
  * @returns Normalized path parameters in the inclusive range from zero to one.
+ *
+ * @example
+ * ```text
+ * pathStart────────X────────pathEnd
+ * t = 0           t = 0.5       t = 1
+ *                  │
+ *            boundary segment
+ * returns [0.5]
+ * ```
  */
 const getSegmentIntersectionParameters = (
   pathStart: IMapBoundaryCoordinate,
@@ -290,36 +448,52 @@ const getSegmentIntersectionParameters = (
 /**
  * Checks one complete segment by sampling every interval split by boundary intersections.
  *
- * @param start - Start coordinate of the path segment.
- * @param end - End coordinate of the path segment.
+ * @param segmentStart - Start coordinate of the path segment.
+ * @param segmentEnd - End coordinate of the path segment.
  * @param boundary - Polygon vertices defining the allowed area.
  * @returns Whether the entire segment is inside or touching the boundary.
+ *
+ * @example
+ * ```text
+ * ┌─────────────┐
+ * │ S────────E  │ → true: the whole segment is inside
+ * └─────────────┘
+ *
+ * ┌───────┐
+ * │ S─────┼────E  → false: part of the segment is outside
+ * └───────┘
+ * ```
  */
 const isSegmentInBoundary = (
-  start: IMapBoundaryCoordinate,
-  end: IMapBoundaryCoordinate,
+  segmentStart: IMapBoundaryCoordinate,
+  segmentEnd: IMapBoundaryCoordinate,
   boundary: IMapBoundaryCoordinate[],
 ) => {
-  if (!isPointInBoundary(start, boundary) || !isPointInBoundary(end, boundary)) return false
+  if (!isPointInBoundary(segmentStart, boundary) || !isPointInBoundary(segmentEnd, boundary)) {
+    return false
+  }
   const parameters = [0, 1]
   for (let index = 0; index < boundary.length; index += 1) {
     parameters.push(
       ...getSegmentIntersectionParameters(
-        start,
-        end,
+        segmentStart,
+        segmentEnd,
         boundary[index],
         boundary[(index + 1) % boundary.length],
       ),
     )
   }
   const sortedParameters = parameters
-    .sort((first, second) => first - second)
+    .sort((firstParameter, secondParameter) => firstParameter - secondParameter)
     .filter((parameter, index, values) => index === 0 || parameter - values[index - 1] > EPSILON)
 
   return sortedParameters.slice(1).every((parameter, index) => {
     const midpoint = (sortedParameters[index] + parameter) / 2
     return isPointInBoundary(
-      [start[0] + (end[0] - start[0]) * midpoint, start[1] + (end[1] - start[1]) * midpoint],
+      [
+        segmentStart[0] + (segmentEnd[0] - segmentStart[0]) * midpoint,
+        segmentStart[1] + (segmentEnd[1] - segmentStart[1]) * midpoint,
+      ],
       boundary,
     )
   })
@@ -332,6 +506,17 @@ const isSegmentInBoundary = (
  * @param boundary - Polygon vertices defining the allowed area.
  * @param closed - Whether to validate the last-to-first path segment.
  * @returns Whether the entire path is contained within or touches the boundary.
+ *
+ * @example
+ * ```text
+ * Boundary          Boundary
+ * ┌──────────┐      ┌──────────┐
+ * │ A──B     │      │ A────────┼──B
+ * │    ╲     │      │          │
+ * │     C    │      └──────────┘
+ * └──────────┘
+ * contained: true   contained: false
+ * ```
  */
 export const isPathContainedInBoundary = (
   points: IMapBoundaryCoordinate[],
@@ -341,7 +526,9 @@ export const isPathContainedInBoundary = (
   if (points.length === 0) return true
   if (!points.every((point) => isPointInBoundary(point, boundary))) return false
   const segments = getSegments(points, closed)
-  return segments.every(([start, end]) => isSegmentInBoundary(start, end, boundary))
+  return segments.every(([segmentStart, segmentEnd]) =>
+    isSegmentInBoundary(segmentStart, segmentEnd, boundary),
+  )
 }
 
 /**
@@ -352,6 +539,15 @@ export const isPathContainedInBoundary = (
  * @param closed - Whether the proposed path includes its last-to-first segment.
  * @param polygons - Completed polygons to compare against.
  * @returns Whether the proposed path intersects, touches, contains, or enters any polygon.
+ *
+ * @example
+ * ```text
+ * Existing zone
+ * ┌──────────┐
+ * │      P───┼────Q  proposed path P→Q
+ * └──────────┘
+ * returns true because the path crosses the zone edge
+ * ```
  */
 export const doesPathOverlapPolygons = (
   points: IMapBoundaryCoordinate[],
@@ -386,6 +582,13 @@ export const doesPathOverlapPolygons = (
  * @param points - Proposed world-coordinate vertices without a repeated closing point.
  * @param closed - Whether to require a complete, valid polygon.
  * @returns False for duplicate vertices, intersections, or an invalid closed polygon.
+ *
+ * @example
+ * ```text
+ * A→B→C           A→B→A
+ * open path       duplicate A
+ * accepted        rejected
+ * ```
  */
 export const canCommitBoundaryPoints = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   if (hasDuplicateCoordinates(points)) return false
@@ -400,6 +603,12 @@ export const canCommitBoundaryPoints = (points: IMapBoundaryCoordinate[], closed
  * @param dimensionX - Nonnegative map width in meters.
  * @param dimensionY - Nonnegative map height in meters.
  * @returns A coordinate constrained to the inclusive map rectangle.
+ *
+ * @example
+ * ```text
+ * Map bounds: x = 0..10, y = 0..6
+ * input [-2, 8] ──clamp──▶ output [0, 6]
+ * ```
  */
 export const clampBoundaryCoordinate = (
   coordinate: IMapBoundaryCoordinate,
@@ -417,6 +626,16 @@ export const clampBoundaryCoordinate = (
  * @param dimensionY - Map height in meters.
  * @param pixelsPerMeter - Positive pixel density, including the current zoom.
  * @returns The corresponding bottom-left-origin world coordinate in meters.
+ *
+ * @example
+ * ```text
+ * Canvas origin            World origin
+ * (0,0) ──▶ x              y ▲
+ *   │                         │
+ *   ▼ y                  (0,0)└──▶ x
+ * canvas [20, 30] ──convert──▶ world [2, 7]
+ * dimensionY = 10, pixelsPerMeter = 10
+ * ```
  */
 export const canvasPointToWorld = (
   point: MapCanvasPoint,
@@ -431,6 +650,16 @@ export const canvasPointToWorld = (
  * @param dimensionY - Map height in meters.
  * @param pixelsPerMeter - Positive pixel density, including the current zoom.
  * @returns Map-local pixels, excluding canvas padding.
+ *
+ * @example
+ * ```text
+ * World origin             Canvas origin
+ * y ▲                      (0,0) ──▶ x
+ *   │                        │
+ *   └──▶ x                   ▼ y
+ * world [2, 7] ──convert──▶ canvas [20, 30]
+ * dimensionY = 10, pixelsPerMeter = 10
+ * ```
  */
 export const worldPointToCanvas = (
   coordinate: IMapBoundaryCoordinate,
@@ -446,6 +675,14 @@ export const worldPointToCanvas = (
  *
  * @param points - Ordered map-local pixel positions.
  * @returns Alternating x and y components in drawing order.
+ *
+ * @example
+ * ```text
+ * [{x: 1, y: 2}, {x: 3, y: 4}]
+ *                │
+ *                ▼
+ *          [1, 2, 3, 4]
+ * ```
  */
 export const flattenCanvasPoints = (points: MapCanvasPoint[]) =>
   points.flatMap((point) => [point.x, point.y])
@@ -458,6 +695,15 @@ export const flattenCanvasPoints = (points: MapCanvasPoint[]) =>
  * @param mapHeight - Map height in pixels, excluding padding.
  * @param padding - Origin offset in pixels; leave at zero for map-local positions.
  * @returns A map-local coordinate constrained to the inclusive pixel bounds.
+ *
+ * @example
+ * ```text
+ * padded point [15, 140], padding = 20
+ * map size = 100 × 100
+ *             │ remove padding and clamp
+ *             ▼
+ * local point [0, 100]
+ * ```
  */
 export const clampCanvasPoint = (
   point: MapCanvasPoint,
@@ -472,30 +718,45 @@ export const clampCanvasPoint = (
 /**
  * Checks whether pixel travel meets the inclusive drag threshold.
  *
- * @param start - Initial canvas position.
- * @param end - Current canvas position in the same coordinate space.
+ * @param movementStart - Initial canvas position.
+ * @param movementEnd - Current canvas position in the same coordinate space.
  * @param threshold - Minimum Euclidean distance in pixels.
  * @returns Whether the distance between positions meets or exceeds the threshold.
+ *
+ * @example
+ * ```text
+ * start (0,0) ───── 5 px ─────▶ end (3,4)
+ * threshold = 5 px → true
+ * ```
  */
 export const hasMinimumCanvasMovement = (
-  start: MapCanvasPoint,
-  end: MapCanvasPoint,
+  movementStart: MapCanvasPoint,
+  movementEnd: MapCanvasPoint,
   threshold: number,
-) => Math.hypot(end.x - start.x, end.y - start.y) >= threshold
+) => Math.hypot(movementEnd.x - movementStart.x, movementEnd.y - movementStart.y) >= threshold
 
 /**
  * Checks whether two canvas positions are within an inclusive pixel radius.
  *
- * @param first - Reference canvas position.
- * @param second - Candidate position in the same coordinate space.
+ * @param referencePoint - Reference canvas position.
+ * @param candidatePoint - Candidate position in the same coordinate space.
  * @param tolerance - Maximum Euclidean distance in pixels.
  * @returns Whether the positions are within the inclusive tolerance radius.
+ *
+ * @example
+ * ```text
+ *       candidate •
+ *                 │ 5 px
+ *       reference •
+ * tolerance = 5 px → true
+ * ```
  */
 export const isCanvasPointWithinTolerance = (
-  first: MapCanvasPoint,
-  second: MapCanvasPoint,
+  referencePoint: MapCanvasPoint,
+  candidatePoint: MapCanvasPoint,
   tolerance: number,
-) => Math.hypot(second.x - first.x, second.y - first.y) <= tolerance
+) =>
+  Math.hypot(candidatePoint.x - referencePoint.x, candidatePoint.y - referencePoint.y) <= tolerance
 
 /**
  * Proposes closing an open boundary near its first vertex, or appending a clamped vertex.
@@ -511,6 +772,16 @@ export const isCanvasPointWithinTolerance = (
  * @param options.pixelsPerMeter - Positive pixel density, including zoom.
  * @param options.closureTolerance - Radius in pixels around the first vertex for closure.
  * @returns Accepted update, or undefined when geometry validation rejects it.
+ *
+ * @example
+ * ```text
+ * Append a point:          Close near the first point:
+ * A──B                    A●────B
+ *     ╲      click C       ╲    │
+ *      C                   C────┘ click near A
+ * → {points: [A,B,C],      → {points: [A,B,C],
+ *    closed: false}           closed: true}
+ * ```
  */
 export const getBoundaryPointUpdate = ({
   canvasPoint,
@@ -562,6 +833,15 @@ export const getBoundaryPointUpdate = ({
  * @param options.pixelsPerMeter - Positive pixel density, including zoom.
  * @param options.closed - Whether the moved boundary must remain a valid closed polygon.
  * @returns Updated vertices, or undefined when geometry validation rejects the move.
+ *
+ * @example
+ * ```text
+ * Before drag:       After dragging B:
+ *    B                    B′
+ *   ╱ ╲                  ╱ ╲
+ *  A───C                A───C
+ * returns [A, B′, C] when the polygon remains valid
+ * ```
  */
 export const getMovedBoundaryPoints = ({
   points,
@@ -594,6 +874,12 @@ export const getMovedBoundaryPoints = ({
  *
  * @param value - Coordinate component to round.
  * @returns The component rounded to at most two decimal places.
+ *
+ * @example
+ * ```text
+ * 1.234 ──round──▶ 1.23
+ * 9.999 ──round──▶ 10
+ * ```
  */
 const roundCoordinate = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
 
@@ -603,6 +889,13 @@ const roundCoordinate = (value: number) => Math.round((value + Number.EPSILON) *
  *
  * @param points - World vertices without a repeated closing point.
  * @returns One explicitly closed polygon for nonempty input.
+ *
+ * @example
+ * ```text
+ * Input:  A → B → C
+ * Output: A → B → C → A
+ *         first point is repeated to close the polygon
+ * ```
  */
 export const serializeBoundary = (points: IMapBoundaryCoordinate[]): IMapBoundaries => {
   const polygon: IMapBoundaryPolygon = points.map(([x, y]) => [
@@ -620,6 +913,14 @@ export const serializeBoundary = (points: IMapBoundaryCoordinate[]): IMapBoundar
  * @param dimensionX - Map width in meters.
  * @param dimensionY - Map height in meters.
  * @returns A single polygon in the API boundary envelope.
+ *
+ * @example
+ * ```text
+ * (0,y)────────(x,y)
+ *   │              │
+ * (0,0)────────(x,0)
+ * Output order: (0,0) → (x,0) → (x,y) → (0,y) → (0,0)
+ * ```
  */
 export const getFullMapBoundaries = (dimensionX: number, dimensionY: number): IMapBoundaries => [
   [
@@ -640,6 +941,13 @@ export const getFullMapBoundaries = (dimensionX: number, dimensionY: number): IM
  * @param map - Saved geometry and map dimensions in world-coordinate meters.
  * @param mode - Whether to start creation defaults or load the saved boundary for adjustment.
  * @returns Editor vertices, closure state, method, and whether saving must be blocked.
+ *
+ * @example
+ * ```text
+ * Create or no geometry ──▶ DIMENSIONS, empty editable points
+ * Valid saved polygon   ──▶ CUSTOM, closed copied points
+ * Invalid geometry      ──▶ CUSTOM, unsupported = true
+ * ```
  */
 export function getInitialBoundary(
   map: IMapListInfo,
@@ -650,9 +958,11 @@ export function getInitialBoundary(
     return { points: [], closed: false, unsupported: false, method: MapBoundarySource.DIMENSIONS }
   }
   const points = (geometry.coordinates[0] ?? []).map(([x, y]): IMapBoundaryCoordinate => [x, y])
-  const first = points[0]
-  const last = points.at(-1)
-  if (first && last && first[0] === last[0] && first[1] === last[1]) points.pop()
+  const firstPoint = points[0]
+  const lastPoint = points.at(-1)
+  if (firstPoint && lastPoint && firstPoint[0] === lastPoint[0] && firstPoint[1] === lastPoint[1]) {
+    points.pop()
+  }
   const unsupported =
     geometry.type !== GeometryType.POLYGON ||
     geometry.coordinates.length !== 1 ||
