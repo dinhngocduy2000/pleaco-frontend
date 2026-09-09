@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapBoundarySource } from '@/enum/maps'
+import { GeometryType, MapBoundarySource, type MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
@@ -11,37 +11,70 @@ vi.mock('sonner', () => ({ toast }))
 vi.mock('@/queries/use-maps-query', () => ({ useSaveMapBoundariesMutation }))
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor', () => ({
   MapBoundaryEditor: ({
+    activeZoneType,
+    canChange,
     closed,
+    drafts,
     interactive,
     onChange,
     onInvalid,
+    onSelectZone,
     points,
+    zones,
   }: {
+    activeZoneType: MapZoneType
+    canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
     closed: boolean
+    drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
     interactive: boolean
     onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
     onInvalid: () => void
+    onSelectZone: (clientId: string) => void
     points: IMapBoundaryCoordinate[]
+    zones: { clientId: string }[]
   }) => (
-    <div data-testid="boundary-editor" data-closed={closed} data-points={points.length}>
+    <div
+      data-testid="boundary-editor"
+      data-active-zone={activeZoneType}
+      data-closed={closed}
+      data-points={points.length}
+      data-zone-drafts={Object.values(drafts).filter((draft) => draft.points.length > 0).length}
+      data-zones={zones.length}
+    >
       <span>{interactive ? 'Interactive editor' : 'Read-only editor'}</span>
+      <button
+        type="button"
+        onClick={() => {
+          const nextPoints: IMapBoundaryCoordinate[] = [
+            [1.234, 1.236],
+            [8.888, 1],
+            [4, 7.777],
+          ]
+          if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
+          else onInvalid()
+        }}
+      >
+        Draw valid boundary
+      </button>
       <button
         type="button"
         onClick={() =>
           onChange(
             [
-              [1.234, 1.236],
-              [8.888, 1],
-              [4, 7.777],
+              [1, 1],
+              [8, 1],
             ],
-            true,
+            false,
           )
         }
       >
-        Draw valid boundary
+        Draw open polygon
       </button>
       <button type="button" onClick={onInvalid}>
         Draw invalid boundary
+      </button>
+      <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
+        Select first zone
       </button>
     </div>
   ),
@@ -104,7 +137,7 @@ describe('MapBoundaryStep', () => {
     const original = structuredClone(geometry)
     const user = userEvent.setup()
     render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={vi.fn()} />)
-    expect(screen.getByRole('heading', { name: 'Adjust boundary' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Adjust layout' })).toBeInTheDocument()
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '3')
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-closed', 'true')
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -183,6 +216,73 @@ describe('MapBoundaryStep', () => {
       'aria-disabled',
       'true',
     )
+  })
+
+  it('shows layout tools only while adjusting and gates the boundary method by tool', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    expect(screen.getByRole('toolbar', { name: 'Map layout tools' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Boundary' })).toHaveAttribute('aria-pressed', 'true')
+    for (const name of ['Obstacle', 'No-go', 'Cleaning zone', 'Select']) {
+      expect(screen.getByRole('button', { name })).toBeEnabled()
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    expect(screen.getByRole('combobox', { name: 'Boundary method' })).toBeDisabled()
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-active-zone', 'OBSTACLE')
+    await user.click(screen.getByRole('button', { name: 'Boundary' }))
+    expect(screen.getByRole('combobox', { name: 'Boundary method' })).toBeEnabled()
+
+    unmount()
+    render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
+    expect(screen.queryByRole('toolbar', { name: 'Map layout tools' })).not.toBeInTheDocument()
+  })
+
+  it('preserves drafts per zone type and blocks saving while one is open', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw open polygon' }))
+    await user.click(screen.getByRole('button', { name: 'No-go' }))
+    await user.click(screen.getByRole('button', { name: 'Draw open polygon' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zone-drafts', '2')
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(toast.error).toHaveBeenCalledWith('Finish or clear every open polygon before saving.')
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+  })
+
+  it('creates, selects, and deletes a session-only zone', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Cleaning zone' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
+
+    await user.click(screen.getByRole('button', { name: 'Select' }))
+    await user.click(screen.getByRole('button', { name: 'Select first zone' }))
+    const deleteButton = screen.getByRole('button', { name: 'Delete selected zone' })
+    expect(deleteButton).toBeEnabled()
+    await user.click(deleteButton)
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '0')
+  })
+
+  it('rejects a point or polygon that overlaps an existing zone', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'No-go' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+
+    expect(screen.getByText('Zones cannot overlap or touch another zone.')).toBeInTheDocument()
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
   })
 
   it('saves the dimensions source without geometry before closing', async () => {

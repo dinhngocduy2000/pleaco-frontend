@@ -23,3 +23,10 @@ export enum MapBoundarySource {
   CUSTOM = 'CUSTOM',
   TEACH_MODE = 'TEACH_MODE',
 }
+
+export enum MapZoneType {
+  BOUNDARY = 'BOUNDARY',
+  OBSTACLE = 'OBSTACLE',
+  NO_GO = 'NO_GO',
+  CLEANING_ZONE = 'CLEANING_ZONE',
+}

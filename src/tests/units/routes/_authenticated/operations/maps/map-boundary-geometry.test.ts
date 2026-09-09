@@ -6,6 +6,7 @@ import {
   canvasPointToWorld,
   clampBoundaryCoordinate,
   clampCanvasPoint,
+  doesPathOverlapPolygons,
   flattenCanvasPoints,
   getBoundaryPointUpdate,
   getFullMapBoundaries,
@@ -15,6 +16,8 @@ import {
   hasMinimumCanvasMovement,
   hasSelfIntersection,
   isCanvasPointWithinTolerance,
+  isPathContainedInBoundary,
+  isPointInBoundary,
   isValidBoundaryPolygon,
   serializeBoundary,
   worldPointToCanvas,
@@ -187,6 +190,101 @@ describe('map boundary geometry', () => {
     ]
     expect(hasSelfIntersection(bowTie, true)).toBe(true)
     expect(isValidBoundaryPolygon(bowTie, true)).toBe(false)
+  })
+
+  it('accepts paths inside or touching the boundary and rejects outside vertices', () => {
+    const boundary: [number, number][] = [
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [0, 10],
+    ]
+
+    expect(isPointInBoundary([0, 5], boundary)).toBe(true)
+    expect(
+      isPathContainedInBoundary(
+        [
+          [0, 2],
+          [4, 2],
+          [4, 6],
+          [0, 6],
+        ],
+        boundary,
+        true,
+      ),
+    ).toBe(true)
+    expect(isPathContainedInBoundary([[11, 5]], boundary, false)).toBe(false)
+  })
+
+  it('rejects a segment that exits a concave boundary between valid endpoints', () => {
+    const concaveBoundary: [number, number][] = [
+      [0, 0],
+      [6, 0],
+      [6, 6],
+      [4, 6],
+      [4, 2],
+      [2, 2],
+      [2, 6],
+      [0, 6],
+    ]
+
+    expect(isPointInBoundary([1, 5], concaveBoundary)).toBe(true)
+    expect(isPointInBoundary([5, 5], concaveBoundary)).toBe(true)
+    expect(
+      isPathContainedInBoundary(
+        [
+          [1, 5],
+          [5, 5],
+        ],
+        concaveBoundary,
+        false,
+      ),
+    ).toBe(false)
+  })
+
+  it('detects points, crossings, contact, and containment overlapping another polygon', () => {
+    const existingZone: [number, number][] = [
+      [2, 2],
+      [6, 2],
+      [6, 6],
+      [2, 6],
+    ]
+
+    expect(doesPathOverlapPolygons([[3, 3]], false, [existingZone])).toBe(true)
+    expect(
+      doesPathOverlapPolygons(
+        [
+          [1, 4],
+          [7, 4],
+        ],
+        false,
+        [existingZone],
+      ),
+    ).toBe(true)
+    expect(doesPathOverlapPolygons([[2, 4]], false, [existingZone])).toBe(true)
+    expect(
+      doesPathOverlapPolygons(
+        [
+          [1, 1],
+          [7, 1],
+          [7, 7],
+          [1, 7],
+        ],
+        true,
+        [existingZone],
+      ),
+    ).toBe(true)
+    expect(
+      doesPathOverlapPolygons(
+        [
+          [7, 7],
+          [9, 7],
+          [9, 9],
+        ],
+        true,
+        [existingZone],
+      ),
+    ).toBe(false)
   })
 })
 

@@ -1,13 +1,26 @@
 import { Minus, Plus } from 'lucide-react'
 import { Circle, Layer, Line, Stage } from 'react-konva'
 import { Button } from '@/components/ui/button'
+import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
-import { flattenCanvasPoints } from './-map-boundary-geometry'
+import { flattenCanvasPoints, worldPointToCanvas } from './-map-boundary-geometry'
 import { MAP_CANVAS_PADDING, MapGridLayer } from './-map-grid-preview'
+import { type IMapZoneDrafts, type IMapZoneShape, MAP_ZONE_STYLES } from './-map-zone-types'
 import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './-use-map-boundary-editor'
 
 const VERTEX_RADIUS = 5
 const t = getTranslations()
+
+type MapLayoutEditorProps = MapBoundaryEditorProps & {
+  activeZoneType?: MapZoneType
+  boundaryClosed?: boolean
+  boundaryPoints?: MapBoundaryEditorProps['points']
+  drafts?: IMapZoneDrafts
+  selectedZoneId?: string
+  selectionMode?: boolean
+  zones?: IMapZoneShape[]
+  onSelectZone?: (clientId: string) => void
+}
 
 export function MapBoundaryEditor({
   dimensionX,
@@ -17,7 +30,17 @@ export function MapBoundaryEditor({
   interactive,
   onChange,
   onInvalid,
-}: MapBoundaryEditorProps) {
+  canChange,
+  onBackgroundClick,
+  activeZoneType = MapZoneType.BOUNDARY,
+  boundaryClosed = closed,
+  boundaryPoints = points,
+  drafts,
+  selectedZoneId,
+  selectionMode = false,
+  zones = [],
+  onSelectZone,
+}: MapLayoutEditorProps) {
   const {
     canvasPoints,
     canZoomIn,
@@ -41,9 +64,18 @@ export function MapBoundaryEditor({
     interactive,
     onChange,
     onInvalid,
+    canChange,
+    onBackgroundClick,
   })
 
   if (!geometry) return null
+
+  const activeStyle = MAP_ZONE_STYLES[activeZoneType]
+  const pixelsPerMeter = geometry.mapWidth / dimensionX
+  const getCanvasPoints = (worldPoints: MapBoundaryEditorProps['points']) =>
+    flattenCanvasPoints(
+      worldPoints.map((point) => worldPointToCanvas(point, dimensionY, pixelsPerMeter)),
+    )
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -63,14 +95,65 @@ export function MapBoundaryEditor({
               <MapGridLayer geometry={geometry} />
             </Layer>
             <Layer x={MAP_CANVAS_PADDING} y={MAP_CANVAS_PADDING}>
+              {(activeZoneType !== MapZoneType.BOUNDARY || selectionMode) &&
+                boundaryPoints.length > 1 && (
+                  <Line
+                    closed={boundaryClosed}
+                    dash={MAP_ZONE_STYLES.BOUNDARY.dash}
+                    fill={MAP_ZONE_STYLES.BOUNDARY.fill}
+                    listening={false}
+                    points={getCanvasPoints(boundaryPoints)}
+                    stroke={MAP_ZONE_STYLES.BOUNDARY.stroke}
+                    strokeWidth={MAP_ZONE_STYLES.BOUNDARY.strokeWidth}
+                  />
+                )}
+              {zones.map((zone) => {
+                if (zone.clientId === selectedZoneId) return null
+                const style = MAP_ZONE_STYLES[zone.zoneType]
+                const zonePoints = zone.geometry.coordinates[0] ?? []
+                return (
+                  <Line
+                    key={zone.clientId}
+                    closed
+                    dash={style.dash}
+                    fill={style.fill}
+                    listening={selectionMode}
+                    name={`map-zone-${zone.zoneType}`}
+                    points={getCanvasPoints(zonePoints)}
+                    stroke={style.stroke}
+                    strokeWidth={style.strokeWidth}
+                    onClick={(event) => {
+                      event.cancelBubble = true
+                      onSelectZone?.(zone.clientId)
+                    }}
+                  />
+                )
+              })}
+              {drafts &&
+                Object.entries(drafts).map(([zoneType, draft]) => {
+                  if (zoneType === activeZoneType || draft.points.length < 2) return null
+                  const style = MAP_ZONE_STYLES[zoneType as MapZoneType]
+                  return (
+                    <Line
+                      key={`draft-${zoneType}`}
+                      dash={style.dash}
+                      fill={style.fill}
+                      listening={false}
+                      points={getCanvasPoints(draft.points)}
+                      stroke={style.stroke}
+                      strokeWidth={style.strokeWidth}
+                    />
+                  )
+                })}
               {canvasPoints.length > 1 && (
                 <Line
                   closed={closed}
-                  fill={closed ? 'rgb(97 95 255 / 0.12)' : undefined}
+                  dash={activeStyle.dash}
+                  fill={closed ? activeStyle.fill : undefined}
                   listening={false}
                   points={flattenCanvasPoints(canvasPoints)}
-                  stroke="#4f46e5"
-                  strokeWidth={3}
+                  stroke={activeStyle.stroke}
+                  strokeWidth={activeStyle.strokeWidth}
                 />
               )}
               {extension && (
@@ -83,7 +166,7 @@ export function MapBoundaryEditor({
                     extension.preview.x,
                     extension.preview.y,
                   ]}
-                  stroke="#4f46e5"
+                  stroke={activeStyle.stroke}
                   strokeWidth={2}
                 />
               )}
@@ -93,9 +176,9 @@ export function MapBoundaryEditor({
                   <Circle
                     key={`${points[index][0]}-${points[index][1]}`}
                     draggable={interactive && !isEndpoint}
-                    fill={index === 0 ? '#4f46e5' : '#ffffff'}
+                    fill={index === 0 ? activeStyle.stroke : '#ffffff'}
                     radius={VERTEX_RADIUS}
-                    stroke="#4f46e5"
+                    stroke={activeStyle.stroke}
                     strokeWidth={2}
                     x={point.x}
                     y={point.y}
