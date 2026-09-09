@@ -6,6 +6,7 @@ import {
   canvasPointToWorld,
   clampBoundaryCoordinate,
   clampCanvasPoint,
+  doesPathOverlapPolygons,
   flattenCanvasPoints,
   getBoundaryPointUpdate,
   getFullMapBoundaries,
@@ -237,6 +238,51 @@ describe('map boundary geometry', () => {
         ],
         concaveBoundary,
         false,
+      ),
+    ).toBe(false)
+  })
+
+  it('detects points, crossings, contact, and containment overlapping another polygon', () => {
+    const existingZone: [number, number][] = [
+      [2, 2],
+      [6, 2],
+      [6, 6],
+      [2, 6],
+    ]
+
+    expect(doesPathOverlapPolygons([[3, 3]], false, [existingZone])).toBe(true)
+    expect(
+      doesPathOverlapPolygons(
+        [
+          [1, 4],
+          [7, 4],
+        ],
+        false,
+        [existingZone],
+      ),
+    ).toBe(true)
+    expect(doesPathOverlapPolygons([[2, 4]], false, [existingZone])).toBe(true)
+    expect(
+      doesPathOverlapPolygons(
+        [
+          [1, 1],
+          [7, 1],
+          [7, 7],
+          [1, 7],
+        ],
+        true,
+        [existingZone],
+      ),
+    ).toBe(true)
+    expect(
+      doesPathOverlapPolygons(
+        [
+          [7, 7],
+          [9, 7],
+          [9, 9],
+        ],
+        true,
+        [existingZone],
       ),
     ).toBe(false)
   })

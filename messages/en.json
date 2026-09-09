@@ -122,6 +122,7 @@
   "map_layout_zone_instructions": "Draw a closed polygon inside the boundary. Switch tools to preserve an unfinished polygon.",
   "map_layout_select_instructions": "Select a zone to reshape or delete it.",
   "map_layout_invalid_zone": "Zones must form a valid polygon and stay inside the boundary.",
+  "map_layout_zone_overlap_error": "Zones cannot overlap or touch another zone.",
   "map_layout_open_polygon_error": "Finish or clear every open polygon before saving.",
   "map_layout_polygon_closed": "Polygon closed",
   "map_layout_polygon_open": "Polygon open",

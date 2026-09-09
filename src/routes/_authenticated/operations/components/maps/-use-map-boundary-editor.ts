@@ -56,6 +56,15 @@ type ExtensionState = {
  * Rejected edits call `onInvalid`; accepted edits are emitted through `onChange`.
  *
  * @param props - Map dimensions, controlled boundary state, interaction flag, and callbacks.
+ * @param props.dimensionX - Map width in meters.
+ * @param props.dimensionY - Map height in meters.
+ * @param props.points - Controlled world-coordinate vertices without a repeated closing point.
+ * @param props.closed - Whether the controlled polygon is closed.
+ * @param props.interactive - Whether pointer and vertex editing interactions are enabled.
+ * @param props.onChange - Receives accepted vertices and closure state.
+ * @param props.onInvalid - Reports a rejected shared or feature-specific geometry update.
+ * @param props.canChange - Optional feature-specific validator applied after shared validation.
+ * @param props.onBackgroundClick - Optional callback for clicks outside a closed polygon.
  * @returns Canvas geometry, zoom availability, extension preview, and Konva event handlers.
  */
 export function useMapBoundaryEditor({
@@ -78,6 +87,9 @@ export function useMapBoundaryEditor({
 
   /**
    * Reads the stage pointer, removes canvas padding, and clamps it to the map bounds.
+   *
+   * @param stage - Konva stage supplying the current pointer position.
+   * @returns The clamped map-local pointer, or undefined when it cannot be resolved.
    */
   const getCanvasPointer = (stage: Konva.Stage) => {
     const pointer = stage.getPointerPosition()
@@ -87,6 +99,9 @@ export function useMapBoundaryEditor({
 
   /**
    * Emits an accepted append/closure update or reports invalid geometry.
+   *
+   * @param canvasPoint - Candidate map-local canvas position.
+   * @returns Nothing; invokes either `onChange` or `onInvalid`.
    */
   const commitCanvasPoint = (canvasPoint: MapCanvasPoint) => {
     const update = getBoundaryPointUpdate({
@@ -105,6 +120,9 @@ export function useMapBoundaryEditor({
 
   /**
    * Adds or closes a boundary on click, consuming the synthetic click after an extension drag.
+   *
+   * @param event - Konva mouse event emitted by the stage.
+   * @returns Nothing; may emit an accepted point update or background-click callback.
    */
   const handleStageClick = (event: KonvaEventObject<MouseEvent>) => {
     if (!interactive) return
@@ -125,6 +143,9 @@ export function useMapBoundaryEditor({
 
   /**
    * Starts an endpoint extension preview and prevents the event from bubbling to the stage.
+   *
+   * @param event - Konva mouse event emitted by an endpoint handle.
+   * @returns Nothing; may initialize the extension preview.
    */
   const handleEndpointMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (!interactive || closed || points.length === 0) return
@@ -137,6 +158,9 @@ export function useMapBoundaryEditor({
 
   /**
    * Updates the clamped extension preview while an endpoint gesture is active.
+   *
+   * @param event - Konva mouse event emitted as the pointer moves over the stage.
+   * @returns Nothing; may update the extension preview position.
    */
   const handleStageMouseMove = (event: KonvaEventObject<MouseEvent>) => {
     if (!extension) return
@@ -148,6 +172,9 @@ export function useMapBoundaryEditor({
 
   /**
    * Ends the preview and commits drags of at least two pixels, suppressing the following click.
+   *
+   * @param event - Konva mouse event emitted when the stage pointer is released.
+   * @returns Nothing; may commit a new endpoint and clear the extension preview.
    */
   const handleStageMouseUp = (event: KonvaEventObject<MouseEvent>) => {
     if (!extension) return
@@ -163,6 +190,10 @@ export function useMapBoundaryEditor({
 
   /**
    * Stops vertex-click bubbling and attempts closure when the first of at least three vertices is clicked.
+   *
+   * @param index - Zero-based index of the clicked vertex.
+   * @param event - Konva mouse event emitted by the vertex handle.
+   * @returns Nothing; may close the polygon or report invalid geometry.
    */
   const handleVertexClick = (index: number, event: KonvaEventObject<MouseEvent>) => {
     event.cancelBubble = true
@@ -178,12 +209,17 @@ export function useMapBoundaryEditor({
       pixelsPerMeter,
       closureTolerance: CLOSURE_TOLERANCE,
     })
-    if (update) onChange(update.points, update.closed)
-    else onInvalid()
+    if (update && (!canChange || canChange(update.points, update.closed))) {
+      onChange(update.points, update.closed)
+    } else onInvalid()
   }
 
   /**
    * Validates and emits a moved vertex. The caller must disable dragging when editing is unavailable.
+   *
+   * @param index - Zero-based index of the dragged vertex.
+   * @param event - Konva drag event containing the vertex's final canvas position.
+   * @returns Nothing; emits the updated vertices or reports invalid geometry.
    */
   const handleVertexDragEnd = (index: number, event: KonvaEventObject<DragEvent>) => {
     if (!geometry) return
@@ -206,10 +242,14 @@ export function useMapBoundaryEditor({
 
   /**
    * Increases display scale by one step, capped at the maximum zoom.
+   *
+   * @returns Nothing; updates the local zoom scale.
    */
   const handleZoomIn = () => setScale((current) => Math.min(MAX_SCALE, current + SCALE_STEP))
   /**
    * Decreases display scale by one step, capped at the minimum zoom.
+   *
+   * @returns Nothing; updates the local zoom scale.
    */
   const handleZoomOut = () => setScale((current) => Math.max(MIN_SCALE, current - SCALE_STEP))
 

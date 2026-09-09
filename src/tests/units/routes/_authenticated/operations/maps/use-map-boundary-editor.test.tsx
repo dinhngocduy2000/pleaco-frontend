@@ -120,6 +120,32 @@ describe('useMapBoundaryEditor', () => {
     expect(onChange).toHaveBeenCalledWith(points, true)
   })
 
+  it('applies feature validation when closing from the first vertex', () => {
+    const onChange = vi.fn()
+    const onInvalid = vi.fn()
+    const canChange = vi.fn(() => false)
+    const points: IMapBoundaryCoordinate[] = [
+      [1, 1],
+      [8, 1],
+      [4, 8],
+    ]
+    const { result } = renderHook(() =>
+      useMapBoundaryEditor({
+        ...defaultParams,
+        points,
+        onChange,
+        onInvalid,
+        canChange,
+      }),
+    )
+
+    act(() => result.current.handleVertexClick(0, createKonvaEvent({ x: 30, y: 110 }) as never))
+
+    expect(canChange).toHaveBeenCalledWith(points, true)
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onInvalid).toHaveBeenCalledOnce()
+  })
+
   it('commits valid vertex movement and rejects an invalid duplicate', () => {
     const onChange = vi.fn()
     const onInvalid = vi.fn()

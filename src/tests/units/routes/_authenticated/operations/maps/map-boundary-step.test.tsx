@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapBoundarySource } from '@/enum/maps'
+import { GeometryType, MapBoundarySource, type MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
@@ -12,6 +12,7 @@ vi.mock('@/queries/use-maps-query', () => ({ useSaveMapBoundariesMutation }))
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor', () => ({
   MapBoundaryEditor: ({
     activeZoneType,
+    canChange,
     closed,
     drafts,
     interactive,
@@ -22,6 +23,7 @@ vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor
     zones,
   }: {
     activeZoneType: MapZoneType
+    canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
     closed: boolean
     drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
     interactive: boolean
@@ -42,16 +44,15 @@ vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor
       <span>{interactive ? 'Interactive editor' : 'Read-only editor'}</span>
       <button
         type="button"
-        onClick={() =>
-          onChange(
-            [
-              [1.234, 1.236],
-              [8.888, 1],
-              [4, 7.777],
-            ],
-            true,
-          )
-        }
+        onClick={() => {
+          const nextPoints: IMapBoundaryCoordinate[] = [
+            [1.234, 1.236],
+            [8.888, 1],
+            [4, 7.777],
+          ]
+          if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
+          else onInvalid()
+        }}
       >
         Draw valid boundary
       </button>
@@ -269,6 +270,19 @@ describe('MapBoundaryStep', () => {
     expect(deleteButton).toBeEnabled()
     await user.click(deleteButton)
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '0')
+  })
+
+  it('rejects a point or polygon that overlaps an existing zone', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'No-go' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+
+    expect(screen.getByText('Zones cannot overlap or touch another zone.')).toBeInTheDocument()
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
   })
 
   it('saves the dimensions source without geometry before closing', async () => {

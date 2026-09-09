@@ -13,13 +13,11 @@ import {
   getFullMapBoundaries,
   getInitialBoundary,
   type InitialBoundaryState,
-  isPathContainedInBoundary,
   isValidBoundaryPolygon,
   serializeBoundary,
 } from './-map-boundary-geometry'
 import { MapLayoutToolbar } from './-map-layout-toolbar'
-import type { IMapZoneShape, MapLayoutTool } from './-map-zone-types'
-import { useMapZones } from './-use-map-zones'
+import { type MapLayoutValidationError, useMapZones } from './-use-map-zones'
 
 const t = getTranslations()
 
@@ -30,11 +28,12 @@ type MapBoundaryStepProps = {
   onSavingChange?: (saving: boolean) => void
 }
 
-const isAreaZoneType = (tool: MapLayoutTool): tool is IMapZoneShape['zoneType'] =>
-  tool === MapZoneType.OBSTACLE || tool === MapZoneType.NO_GO || tool === MapZoneType.CLEANING_ZONE
-
-const geometryToEditorPoints = (zone: IMapZoneShape | undefined) =>
-  (zone?.geometry.coordinates[0] ?? []).slice(0, -1).map(([x, y]): IMapBoundaryCoordinate => [x, y])
+const getValidationMessage = (error: MapLayoutValidationError | undefined) => {
+  if (error === 'BOUNDARY_INVALID') return t.map_boundary_invalid_shape()
+  if (error === 'ZONE_OVERLAP') return t.map_layout_zone_overlap_error()
+  if (error === 'ZONE_INVALID') return t.map_layout_invalid_zone()
+  return undefined
+}
 
 export function MapBoundaryStep({
   map,
@@ -43,12 +42,9 @@ export function MapBoundaryStep({
   onSavingChange,
 }: MapBoundaryStepProps) {
   const [initial] = useState<InitialBoundaryState>(() => getInitialBoundary(map, mode))
-  const [activeTool, setActiveTool] = useState<MapLayoutTool>(MapZoneType.BOUNDARY)
   const [method, setMethod] = useState<MapBoundarySource>(initial.method)
   const [points, setPoints] = useState<IMapBoundaryCoordinate[]>(initial.points)
   const [closed, setClosed] = useState<boolean>(initial.closed)
-  const [error, setError] = useState<string>()
-  const zoneEditor = useMapZones()
   const methodOptions = useMemo<IOption[]>(
     () => [
       { label: t.map_boundary_method_full(), value: MapBoundarySource.DIMENSIONS },
@@ -83,108 +79,38 @@ export function MapBoundaryStep({
   const boundaryPoints = isCustom ? points : fullMapPoints
   const boundaryClosed = isCustom ? closed : true
   const boundaryIsValid = isValidBoundaryPolygon(boundaryPoints, boundaryClosed)
-  const selectedZonePoints = geometryToEditorPoints(zoneEditor.selectedZone)
-  const activeZoneType =
-    activeTool === 'SELECT'
-      ? (zoneEditor.selectedZone?.zoneType ?? MapZoneType.BOUNDARY)
-      : activeTool
-  const activePoints =
-    activeTool === MapZoneType.BOUNDARY
-      ? boundaryPoints
-      : activeTool === 'SELECT'
-        ? selectedZonePoints
-        : zoneEditor.drafts[activeTool].points
-  const activeClosed =
-    activeTool === MapZoneType.BOUNDARY ? boundaryClosed : activeTool === 'SELECT'
-  const activeInteractive =
-    !isSaving &&
-    !initial.unsupported &&
-    (activeTool === MapZoneType.BOUNDARY
-      ? isCustom
-      : activeTool === 'SELECT'
-        ? Boolean(zoneEditor.selectedZone)
-        : boundaryIsValid)
-  const hasOpenPolygon =
-    (isCustom && points.length > 0 && !closed) ||
-    Object.values(zoneEditor.drafts).some((draft) => draft.points.length > 0)
-  const activeCanUndo =
-    activeTool === MapZoneType.BOUNDARY
-      ? isCustom && points.length > 0
-      : isAreaZoneType(activeTool) &&
-        (zoneEditor.drafts[activeTool].points.length > 0 ||
-          zoneEditor.zones.some((zone) => zone.zoneType === activeTool))
-  const activeCanClear =
-    activeTool === MapZoneType.BOUNDARY
-      ? isCustom && points.length > 0
-      : isAreaZoneType(activeTool) && zoneEditor.drafts[activeTool].points.length > 0
-
-  const zonesFitBoundary = (nextBoundary: IMapBoundaryCoordinate[]) =>
-    zoneEditor.zones.every((zone) =>
-      isPathContainedInBoundary(geometryToEditorPoints(zone), nextBoundary, true),
-    ) &&
-    Object.values(zoneEditor.drafts).every((draft) =>
-      isPathContainedInBoundary(draft.points, nextBoundary, false),
-    )
-
-  const handleMethodChange = (option: IOption | undefined) => {
-    if (!option || option.disabled) return
-    setMethod(option.value as MapBoundarySource)
-    setError(undefined)
-    if (option.value !== MapBoundarySource.CUSTOM) {
-      setPoints([])
-      setClosed(false)
-    }
-  }
 
   const handleBoundaryChange = (nextPoints: IMapBoundaryCoordinate[], nextClosed: boolean) => {
     setPoints(nextPoints)
     setClosed(nextClosed)
-    setError(undefined)
   }
 
-  const handleActiveChange = (nextPoints: IMapBoundaryCoordinate[], nextClosed: boolean) => {
-    if (activeTool === MapZoneType.BOUNDARY) {
-      handleBoundaryChange(nextPoints, nextClosed)
-    } else if (activeTool === 'SELECT') {
-      zoneEditor.handleSelectedZoneChange(nextPoints)
-      setError(undefined)
-    } else {
-      zoneEditor.handleZoneChange(activeTool, nextPoints, nextClosed)
-      setError(undefined)
-    }
-  }
-
-  const canChangeActive = (nextPoints: IMapBoundaryCoordinate[], nextClosed: boolean) => {
-    if (activeTool === MapZoneType.BOUNDARY) {
-      return !nextClosed || zonesFitBoundary(nextPoints)
-    }
-    return isPathContainedInBoundary(nextPoints, boundaryPoints, nextClosed)
-  }
-
-  const handleUndo = () => {
-    setError(undefined)
-    if (activeTool === MapZoneType.BOUNDARY) {
-      if (closed) setClosed(false)
-      else setPoints((current) => current.slice(0, -1))
-    } else if (isAreaZoneType(activeTool)) {
-      zoneEditor.handleUndoZone(activeTool)
-    }
-  }
-
-  const handleClear = () => {
-    setError(undefined)
-    if (activeTool === MapZoneType.BOUNDARY) {
+  const zoneEditor = useMapZones({
+    boundaryPoints,
+    boundaryClosed,
+    boundaryEditable: isCustom,
+    boundaryValid: boundaryIsValid,
+    disabled: isSaving || initial.unsupported,
+    onBoundaryChange: handleBoundaryChange,
+    onBoundaryClear: () => {
       setPoints([])
       setClosed(false)
-    } else if (isAreaZoneType(activeTool)) {
-      zoneEditor.handleClearZoneDraft(activeTool)
-    }
-  }
+    },
+    onBoundaryUndo: () => {
+      if (closed) setClosed(false)
+      else setPoints((current) => current.slice(0, -1))
+    },
+  })
+  const hasOpenPolygon = (isCustom && points.length > 0 && !closed) || zoneEditor.hasOpenPolygon
 
-  const handleToolChange = (tool: MapLayoutTool) => {
-    setActiveTool(tool)
-    setError(undefined)
-    if (tool !== 'SELECT') zoneEditor.setSelectedZoneId(undefined)
+  const handleMethodChange = (option: IOption | undefined) => {
+    if (!option || option.disabled) return
+    setMethod(option.value as MapBoundarySource)
+    zoneEditor.clearValidationError()
+    if (option.value !== MapBoundarySource.CUSTOM) {
+      setPoints([])
+      setClosed(false)
+    }
   }
 
   const handleSave = () => {
@@ -208,7 +134,7 @@ export function MapBoundaryStep({
   }
 
   const showDrawingActions =
-    (mode === 'create' && isCustom) || (mode === 'adjust' && activeTool !== 'SELECT')
+    (mode === 'create' && isCustom) || (mode === 'adjust' && zoneEditor.activeTool !== 'SELECT')
 
   return (
     <div className="flex min-h-0 h-full flex-col">
@@ -235,37 +161,31 @@ export function MapBoundaryStep({
         </div>
         {mode === 'adjust' && (
           <MapLayoutToolbar
-            activeTool={activeTool}
+            activeTool={zoneEditor.activeTool}
             deleteDisabled={!zoneEditor.selectedZoneId}
             disabled={isSaving || initial.unsupported}
             zoneToolsDisabled={!boundaryIsValid}
             onDelete={zoneEditor.handleDeleteSelectedZone}
-            onToolChange={handleToolChange}
+            onToolChange={zoneEditor.handleToolChange}
           />
         )}
         <MapBoundaryEditor
-          activeZoneType={activeZoneType}
+          activeZoneType={zoneEditor.activeZoneType}
           boundaryClosed={boundaryClosed}
           boundaryPoints={boundaryPoints}
-          canChange={mode === 'adjust' ? canChangeActive : undefined}
-          closed={activeClosed}
+          canChange={mode === 'adjust' ? zoneEditor.canChangeActive : undefined}
+          closed={zoneEditor.activeClosed}
           dimensionX={map.dimension_x}
           dimensionY={map.dimension_y}
           drafts={zoneEditor.drafts}
-          interactive={activeInteractive}
-          points={activePoints}
+          interactive={zoneEditor.activeInteractive}
+          points={zoneEditor.activePoints}
           selectedZoneId={zoneEditor.selectedZoneId}
-          selectionMode={activeTool === 'SELECT'}
+          selectionMode={zoneEditor.activeTool === 'SELECT'}
           zones={zoneEditor.zones}
           onBackgroundClick={() => zoneEditor.setSelectedZoneId(undefined)}
-          onChange={handleActiveChange}
-          onInvalid={() =>
-            setError(
-              activeTool === MapZoneType.BOUNDARY
-                ? t.map_boundary_invalid_shape()
-                : t.map_layout_invalid_zone(),
-            )
-          }
+          onChange={zoneEditor.handleActiveChange}
+          onInvalid={zoneEditor.handleInvalid}
           onSelectZone={zoneEditor.setSelectedZoneId}
         />
       </div>
@@ -275,32 +195,38 @@ export function MapBoundaryStep({
             <span className="text-sm font-medium">{t.map_boundary_method_label()}</span>
             <AppSelectComponent
               ariaLabel={t.map_boundary_method_label()}
-              disabled={isSaving || initial.unsupported || activeTool !== MapZoneType.BOUNDARY}
+              disabled={
+                isSaving || initial.unsupported || zoneEditor.activeTool !== MapZoneType.BOUNDARY
+              }
               options={methodOptions}
               value={selectedMethod}
               onChange={handleMethodChange}
             />
             <p className="text-sm text-muted-foreground">
-              {activeTool === MapZoneType.BOUNDARY
+              {zoneEditor.activeTool === MapZoneType.BOUNDARY
                 ? isCustom
                   ? t.map_boundary_custom_instructions()
                   : t.map_boundary_full_instructions()
-                : activeTool === 'SELECT'
+                : zoneEditor.activeTool === 'SELECT'
                   ? t.map_layout_select_instructions()
                   : t.map_layout_zone_instructions()}
             </p>
             <p aria-live="polite" className="text-sm text-destructive">
-              {initial.unsupported ? t.map_boundary_adjust_unsupported() : error}
+              {initial.unsupported
+                ? t.map_boundary_adjust_unsupported()
+                : getValidationMessage(zoneEditor.validationError)}
             </p>
-            {activeTool !== 'SELECT' && activePoints.length > 0 && (
+            {zoneEditor.activeTool !== 'SELECT' && zoneEditor.activePoints.length > 0 && (
               <>
                 <p aria-live="polite" className="text-xs text-muted-foreground">
-                  {activeTool === MapZoneType.BOUNDARY
-                    ? t.map_boundary_point_count({ count: activePoints.length })
-                    : t.map_layout_point_count({ count: activePoints.length })}
+                  {zoneEditor.activeTool === MapZoneType.BOUNDARY
+                    ? t.map_boundary_point_count({ count: zoneEditor.activePoints.length })
+                    : t.map_layout_point_count({ count: zoneEditor.activePoints.length })}
                 </p>
                 <span className="sr-only">
-                  {activeClosed ? t.map_layout_polygon_closed() : t.map_layout_polygon_open()}
+                  {zoneEditor.activeClosed
+                    ? t.map_layout_polygon_closed()
+                    : t.map_layout_polygon_open()}
                 </span>
               </>
             )}
@@ -309,19 +235,19 @@ export function MapBoundaryStep({
             {showDrawingActions && (
               <>
                 <Button
-                  disabled={!activeCanUndo || isSaving}
+                  disabled={!zoneEditor.activeCanUndo || isSaving}
                   type="button"
                   variant="outline"
-                  onClick={handleUndo}
+                  onClick={zoneEditor.handleUndo}
                 >
                   <Undo2 />
                   {t.map_boundary_undo()}
                 </Button>
                 <Button
-                  disabled={!activeCanClear || isSaving}
+                  disabled={!zoneEditor.activeCanClear || isSaving}
                   type="button"
                   variant="outline"
-                  onClick={handleClear}
+                  onClick={zoneEditor.handleClear}
                 >
                   <Trash2 />
                   {t.map_boundary_clear()}

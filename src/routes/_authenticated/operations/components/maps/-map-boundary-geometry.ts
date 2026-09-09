@@ -26,17 +26,35 @@ export type InitialBoundaryState = {
   method: MapBoundarySource
 }
 
-/** Compares both world-coordinate components using the floating-point tolerance. */
+/**
+ * Compares both world-coordinate components using the floating-point tolerance.
+ *
+ * @param first - First world coordinate to compare.
+ * @param second - Second world coordinate to compare.
+ * @returns Whether both coordinate components are equal within `EPSILON`.
+ */
 const coordinatesEqual = (first: IMapBoundaryCoordinate, second: IMapBoundaryCoordinate) =>
   Math.abs(first[0] - second[0]) < EPSILON && Math.abs(first[1] - second[1]) < EPSILON
 
-/** Detects repeated vertices anywhere in the boundary, including nonadjacent vertices. */
+/**
+ * Detects repeated vertices anywhere in the boundary, including nonadjacent vertices.
+ *
+ * @param points - Ordered world-coordinate vertices to inspect.
+ * @returns Whether any two vertices are equal within the coordinate tolerance.
+ */
 const hasDuplicateCoordinates = (points: IMapBoundaryCoordinate[]) =>
   points.some((point, index) =>
     points.slice(index + 1).some((other) => coordinatesEqual(point, other)),
   )
 
-/** Returns a signed turn value: positive clockwise, negative counterclockwise, zero collinear. */
+/**
+ * Calculates the signed turn formed by three ordered coordinates.
+ *
+ * @param first - First coordinate in the turn.
+ * @param second - Shared middle coordinate.
+ * @param third - Final coordinate in the turn.
+ * @returns Positive for clockwise, negative for counterclockwise, or zero for collinear points.
+ */
 const orientation = (
   first: IMapBoundaryCoordinate,
   second: IMapBoundaryCoordinate,
@@ -44,7 +62,14 @@ const orientation = (
 ) =>
   (second[1] - first[1]) * (third[0] - second[0]) - (second[0] - first[0]) * (third[1] - second[1])
 
-/** Checks inclusive segment bounds with tolerance. The caller must establish collinearity. */
+/**
+ * Checks inclusive segment bounds with tolerance. The caller must establish collinearity.
+ *
+ * @param first - First endpoint of the segment.
+ * @param point - Collinear coordinate to test.
+ * @param second - Second endpoint of the segment.
+ * @returns Whether the coordinate lies within the segment's inclusive bounds.
+ */
 const isPointOnSegment = (
   first: IMapBoundaryCoordinate,
   point: IMapBoundaryCoordinate,
@@ -55,7 +80,15 @@ const isPointOnSegment = (
   point[1] <= Math.max(first[1], second[1]) + EPSILON &&
   point[1] >= Math.min(first[1], second[1]) - EPSILON
 
-/** Detects crossings, endpoint touches, and collinear overlaps between two segments. */
+/**
+ * Detects crossings, endpoint touches, and collinear overlaps between two segments.
+ *
+ * @param firstStart - Start coordinate of the first segment.
+ * @param firstEnd - End coordinate of the first segment.
+ * @param secondStart - Start coordinate of the second segment.
+ * @param secondEnd - End coordinate of the second segment.
+ * @returns Whether the two closed segments intersect or overlap.
+ */
 const segmentsIntersect = (
   firstStart: IMapBoundaryCoordinate,
   firstEnd: IMapBoundaryCoordinate,
@@ -86,7 +119,13 @@ const segmentsIntersect = (
   )
 }
 
-/** Builds consecutive edges, adding the last-to-first edge for closed boundaries with 3+ vertices. */
+/**
+ * Builds consecutive path edges and optionally adds the closing edge.
+ *
+ * @param points - Ordered path vertices without a repeated closing coordinate.
+ * @param closed - Whether to connect the final vertex back to the first.
+ * @returns Ordered pairs representing each path segment.
+ */
 const getSegments = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   const segments = points.slice(1).map((point, index) => [points[index], point] as const)
   const lastPoint = points.at(-1)
@@ -94,7 +133,13 @@ const getSegments = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   return segments
 }
 
-/** Detects collinear backtracking across neighboring edges, including the closing seam. */
+/**
+ * Detects collinear backtracking across neighboring edges, including the closing seam.
+ *
+ * @param points - Ordered path vertices without a repeated closing coordinate.
+ * @param closed - Whether to inspect adjacency across the closing seam.
+ * @returns Whether neighboring edges overlap instead of continuing without backtracking.
+ */
 const hasAdjacentOverlap = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   const triples: [IMapBoundaryCoordinate, IMapBoundaryCoordinate, IMapBoundaryCoordinate][] = points
     .slice(2)
@@ -118,6 +163,7 @@ const hasAdjacentOverlap = (points: IMapBoundaryCoordinate[], closed: boolean) =
  *
  * @param points - Ordered world-coordinate vertices without a repeated closing point.
  * @param closed - Whether to include the last-to-first edge.
+ * @returns Whether the path contains an adjacent overlap or nonadjacent intersection.
  */
 export const hasSelfIntersection = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   if (hasAdjacentOverlap(points, closed)) return true
@@ -156,6 +202,7 @@ export const getPolygonArea = (points: IMapBoundaryCoordinate[]) => {
  *
  * @param points - Ordered world-coordinate vertices without a repeated closing point.
  * @param closed - Whether the editor considers the boundary closed.
+ * @returns Whether the vertices form a valid closed polygon.
  */
 export const isValidBoundaryPolygon = (points: IMapBoundaryCoordinate[], closed: boolean) => {
   if (!closed || points.length < 3 || getPolygonArea(points) <= EPSILON) return false
@@ -163,7 +210,13 @@ export const isValidBoundaryPolygon = (points: IMapBoundaryCoordinate[], closed:
   return !hasSelfIntersection(points, true)
 }
 
-/** Returns whether a point is inside a polygon or lies on one of its edges. */
+/**
+ * Checks whether a point is inside a polygon or lies on one of its edges.
+ *
+ * @param point - World coordinate to test.
+ * @param boundary - Closed polygon vertices without a repeated closing coordinate.
+ * @returns Whether the point lies inside or on the boundary polygon.
+ */
 export const isPointInBoundary = (
   point: IMapBoundaryCoordinate,
   boundary: IMapBoundaryCoordinate[],
@@ -190,7 +243,15 @@ export const isPointInBoundary = (
   return inside
 }
 
-/** Finds positions along a path segment where it intersects a boundary segment. */
+/**
+ * Finds positions along a path segment where it intersects a boundary segment.
+ *
+ * @param pathStart - Start coordinate of the path segment.
+ * @param pathEnd - End coordinate of the path segment.
+ * @param boundaryStart - Start coordinate of the boundary segment.
+ * @param boundaryEnd - End coordinate of the boundary segment.
+ * @returns Normalized path parameters in the inclusive range from zero to one.
+ */
 const getSegmentIntersectionParameters = (
   pathStart: IMapBoundaryCoordinate,
   pathEnd: IMapBoundaryCoordinate,
@@ -226,7 +287,14 @@ const getSegmentIntersectionParameters = (
     .map((parameter) => Math.min(1, Math.max(0, parameter)))
 }
 
-/** Checks one complete segment by sampling every interval split by boundary intersections. */
+/**
+ * Checks one complete segment by sampling every interval split by boundary intersections.
+ *
+ * @param start - Start coordinate of the path segment.
+ * @param end - End coordinate of the path segment.
+ * @param boundary - Polygon vertices defining the allowed area.
+ * @returns Whether the entire segment is inside or touching the boundary.
+ */
 const isSegmentInBoundary = (
   start: IMapBoundaryCoordinate,
   end: IMapBoundaryCoordinate,
@@ -257,7 +325,14 @@ const isSegmentInBoundary = (
   })
 }
 
-/** Checks every vertex and segment of an open or closed path against a polygon boundary. */
+/**
+ * Checks every vertex and segment of an open or closed path against a polygon boundary.
+ *
+ * @param points - Ordered path vertices without a repeated closing coordinate.
+ * @param boundary - Polygon vertices defining the allowed area.
+ * @param closed - Whether to validate the last-to-first path segment.
+ * @returns Whether the entire path is contained within or touches the boundary.
+ */
 export const isPathContainedInBoundary = (
   points: IMapBoundaryCoordinate[],
   boundary: IMapBoundaryCoordinate[],
@@ -267,6 +342,42 @@ export const isPathContainedInBoundary = (
   if (!points.every((point) => isPointInBoundary(point, boundary))) return false
   const segments = getSegments(points, closed)
   return segments.every(([start, end]) => isSegmentInBoundary(start, end, boundary))
+}
+
+/**
+ * Checks whether an open or closed path overlaps any completed polygon.
+ * Touching an existing polygon's edge or vertex counts as overlap.
+ *
+ * @param points - Proposed path vertices without a repeated closing coordinate.
+ * @param closed - Whether the proposed path includes its last-to-first segment.
+ * @param polygons - Completed polygons to compare against.
+ * @returns Whether the proposed path intersects, touches, contains, or enters any polygon.
+ */
+export const doesPathOverlapPolygons = (
+  points: IMapBoundaryCoordinate[],
+  closed: boolean,
+  polygons: IMapBoundaryCoordinate[][],
+) => {
+  if (points.length === 0) return false
+  const pathSegments = getSegments(points, closed)
+
+  return polygons.some((polygon) => {
+    if (polygon.length < 3) return false
+    if (points.some((point) => isPointInBoundary(point, polygon))) return true
+
+    const polygonSegments = getSegments(polygon, true)
+    if (
+      pathSegments.some(([pathStart, pathEnd]) =>
+        polygonSegments.some(([polygonStart, polygonEnd]) =>
+          segmentsIntersect(pathStart, pathEnd, polygonStart, polygonEnd),
+        ),
+      )
+    ) {
+      return true
+    }
+
+    return closed && polygon.some((point) => isPointInBoundary(point, points))
+  })
 }
 
 /**
@@ -288,6 +399,7 @@ export const canCommitBoundaryPoints = (points: IMapBoundaryCoordinate[], closed
  * @param coordinate - Position in meters.
  * @param dimensionX - Nonnegative map width in meters.
  * @param dimensionY - Nonnegative map height in meters.
+ * @returns A coordinate constrained to the inclusive map rectangle.
  */
 export const clampBoundaryCoordinate = (
   coordinate: IMapBoundaryCoordinate,
@@ -304,6 +416,7 @@ export const clampBoundaryCoordinate = (
  * @param point - Map-local pixels, excluding canvas padding.
  * @param dimensionY - Map height in meters.
  * @param pixelsPerMeter - Positive pixel density, including the current zoom.
+ * @returns The corresponding bottom-left-origin world coordinate in meters.
  */
 export const canvasPointToWorld = (
   point: MapCanvasPoint,
@@ -332,6 +445,7 @@ export const worldPointToCanvas = (
  * Flattens canvas vertices into the alternating x/y array expected by Konva lines.
  *
  * @param points - Ordered map-local pixel positions.
+ * @returns Alternating x and y components in drawing order.
  */
 export const flattenCanvasPoints = (points: MapCanvasPoint[]) =>
   points.flatMap((point) => [point.x, point.y])
@@ -343,6 +457,7 @@ export const flattenCanvasPoints = (points: MapCanvasPoint[]) =>
  * @param mapWidth - Map width in pixels, excluding padding.
  * @param mapHeight - Map height in pixels, excluding padding.
  * @param padding - Origin offset in pixels; leave at zero for map-local positions.
+ * @returns A map-local coordinate constrained to the inclusive pixel bounds.
  */
 export const clampCanvasPoint = (
   point: MapCanvasPoint,
@@ -360,6 +475,7 @@ export const clampCanvasPoint = (
  * @param start - Initial canvas position.
  * @param end - Current canvas position in the same coordinate space.
  * @param threshold - Minimum Euclidean distance in pixels.
+ * @returns Whether the distance between positions meets or exceeds the threshold.
  */
 export const hasMinimumCanvasMovement = (
   start: MapCanvasPoint,
@@ -373,6 +489,7 @@ export const hasMinimumCanvasMovement = (
  * @param first - Reference canvas position.
  * @param second - Candidate position in the same coordinate space.
  * @param tolerance - Maximum Euclidean distance in pixels.
+ * @returns Whether the positions are within the inclusive tolerance radius.
  */
 export const isCanvasPointWithinTolerance = (
   first: MapCanvasPoint,
@@ -472,7 +589,12 @@ export const getMovedBoundaryPoints = ({
   return canCommitBoundaryPoints(nextPoints, closed) ? nextPoints : undefined
 }
 
-/** Rounds a world-coordinate component to two decimal places for serialization. */
+/**
+ * Rounds a world-coordinate component to two decimal places for serialization.
+ *
+ * @param value - Coordinate component to round.
+ * @returns The component rounded to at most two decimal places.
+ */
 const roundCoordinate = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
 
 /**
