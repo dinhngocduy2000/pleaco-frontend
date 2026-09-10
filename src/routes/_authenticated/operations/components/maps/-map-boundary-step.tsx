@@ -1,39 +1,13 @@
 import { Trash2, Undo2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import { AppSelectComponent } from '@/components/reusable/app-select-component/app-select-component'
 import { Button } from '@/components/ui/button'
-import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
-import type { IMapBoundaryCoordinate, IMapListInfo } from '@/interface/maps'
-import type { IAxiosError, IOption } from '@/interface/utils'
+import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
-import { useSaveMapBoundariesMutation } from '@/queries/use-maps-query'
 import { MapBoundaryEditor } from './-map-boundary-editor'
-import {
-  getFullMapBoundaries,
-  getInitialBoundary,
-  type InitialBoundaryState,
-  isValidBoundaryPolygon,
-  serializeBoundary,
-} from './-map-boundary-geometry'
 import { MapLayoutToolbar } from './-map-layout-toolbar'
-import { type MapLayoutValidationError, useMapZones } from './-use-map-zones'
+import { type MapBoundaryStepProps, useBoundaryStep } from './-use-boundary-step'
 
 const t = getTranslations()
-
-type MapBoundaryStepProps = {
-  map: IMapListInfo
-  onClose: () => void
-  mode?: 'create' | 'adjust'
-  onSavingChange?: (saving: boolean) => void
-}
-
-const getValidationMessage = (error: MapLayoutValidationError | undefined) => {
-  if (error === 'BOUNDARY_INVALID') return t.map_boundary_invalid_shape()
-  if (error === 'ZONE_OVERLAP') return t.map_layout_zone_overlap_error()
-  if (error === 'ZONE_INVALID') return t.map_layout_invalid_zone()
-  return undefined
-}
 
 export function MapBoundaryStep({
   map,
@@ -41,100 +15,24 @@ export function MapBoundaryStep({
   mode = 'create',
   onSavingChange,
 }: MapBoundaryStepProps) {
-  const [initial] = useState<InitialBoundaryState>(() => getInitialBoundary(map, mode))
-  const [method, setMethod] = useState<MapBoundarySource>(initial.method)
-  const [points, setPoints] = useState<IMapBoundaryCoordinate[]>(initial.points)
-  const [closed, setClosed] = useState<boolean>(initial.closed)
-  const methodOptions = useMemo<IOption[]>(
-    () => [
-      { label: t.map_boundary_method_full(), value: MapBoundarySource.DIMENSIONS },
-      { label: t.map_boundary_method_custom(), value: MapBoundarySource.CUSTOM },
-      {
-        disabled: true,
-        label: t.map_boundary_method_teach(),
-        subLabel: t.map_boundary_coming_soon(),
-        value: MapBoundarySource.TEACH_MODE,
-      },
-    ],
-    [],
-  )
-  const { mutate: saveMapBoundaries, isPending: isSaving } = useSaveMapBoundariesMutation({
-    onSuccess: () => {
-      toast.success(t.map_boundary_save_success())
-      onClose()
-    },
-    onError: (saveError) => {
-      const detail = (saveError as IAxiosError)?.response?.data?.detail
-      toast.error(typeof detail === 'string' && detail ? detail : t.map_boundary_save_error())
-    },
-  })
-
-  useEffect(() => {
-    onSavingChange?.(isSaving)
-  }, [isSaving, onSavingChange])
-
-  const selectedMethod = methodOptions.find((option) => option.value === method)
-  const isCustom = method === MapBoundarySource.CUSTOM
-  const fullMapPoints = getFullMapBoundaries(map.dimension_x, map.dimension_y)[0].slice(0, -1)
-  const boundaryPoints = isCustom ? points : fullMapPoints
-  const boundaryClosed = isCustom ? closed : true
-  const boundaryIsValid = isValidBoundaryPolygon(boundaryPoints, boundaryClosed)
-
-  const handleBoundaryChange = (nextPoints: IMapBoundaryCoordinate[], nextClosed: boolean) => {
-    setPoints(nextPoints)
-    setClosed(nextClosed)
-  }
-
-  const zoneEditor = useMapZones({
-    boundaryPoints,
+  const {
     boundaryClosed,
-    boundaryEditable: isCustom,
-    boundaryValid: boundaryIsValid,
-    disabled: isSaving || initial.unsupported,
-    onBoundaryChange: handleBoundaryChange,
-    onBoundaryClear: () => {
-      setPoints([])
-      setClosed(false)
-    },
-    onBoundaryUndo: () => {
-      if (closed) setClosed(false)
-      else setPoints((current) => current.slice(0, -1))
-    },
-  })
-  const hasOpenPolygon = (isCustom && points.length > 0 && !closed) || zoneEditor.hasOpenPolygon
-
-  const handleMethodChange = (option: IOption | undefined) => {
-    if (!option || option.disabled) return
-    setMethod(option.value as MapBoundarySource)
-    zoneEditor.clearValidationError()
-    if (option.value !== MapBoundarySource.CUSTOM) {
-      setPoints([])
-      setClosed(false)
-    }
-  }
-
-  const handleSave = () => {
-    if (isSaving || initial.unsupported || (isCustom && points.length === 0)) return
-    if (hasOpenPolygon) {
-      toast.error(t.map_layout_open_polygon_error())
-      return
-    }
-    saveMapBoundaries(
-      isCustom
-        ? {
-            map_id: map.id,
-            source: MapBoundarySource.CUSTOM,
-            geometry: {
-              type: GeometryType.POLYGON,
-              coordinates: serializeBoundary(points),
-            },
-          }
-        : { map_id: map.id, source: MapBoundarySource.DIMENSIONS },
-    )
-  }
-
-  const showDrawingActions =
-    (mode === 'create' && isCustom) || (mode === 'adjust' && zoneEditor.activeTool !== 'SELECT')
+    boundaryMethodDisabled,
+    boundaryPoints,
+    handleMethodChange,
+    handleSave,
+    isCustom,
+    isSaving,
+    methodOptions,
+    saveDisabled,
+    selectedMethod,
+    showDrawingActions,
+    toolbarDisabled,
+    unsupported,
+    validationMessage,
+    zoneEditor,
+    zoneToolsDisabled,
+  } = useBoundaryStep({ map, mode, onClose, onSavingChange })
 
   return (
     <div className="flex min-h-0 h-full flex-col">
@@ -163,8 +61,8 @@ export function MapBoundaryStep({
           <MapLayoutToolbar
             activeTool={zoneEditor.activeTool}
             deleteDisabled={!zoneEditor.selectedZoneId}
-            disabled={isSaving || initial.unsupported}
-            zoneToolsDisabled={!boundaryIsValid}
+            disabled={toolbarDisabled}
+            zoneToolsDisabled={zoneToolsDisabled}
             onDelete={zoneEditor.handleDeleteSelectedZone}
             onToolChange={zoneEditor.handleToolChange}
           />
@@ -195,9 +93,7 @@ export function MapBoundaryStep({
             <span className="text-sm font-medium">{t.map_boundary_method_label()}</span>
             <AppSelectComponent
               ariaLabel={t.map_boundary_method_label()}
-              disabled={
-                isSaving || initial.unsupported || zoneEditor.activeTool !== MapZoneType.BOUNDARY
-              }
+              disabled={boundaryMethodDisabled}
               options={methodOptions}
               value={selectedMethod}
               onChange={handleMethodChange}
@@ -212,9 +108,7 @@ export function MapBoundaryStep({
                   : t.map_layout_zone_instructions()}
             </p>
             <p aria-live="polite" className="text-sm text-destructive">
-              {initial.unsupported
-                ? t.map_boundary_adjust_unsupported()
-                : getValidationMessage(zoneEditor.validationError)}
+              {unsupported ? t.map_boundary_adjust_unsupported() : validationMessage}
             </p>
             {zoneEditor.activeTool !== 'SELECT' && zoneEditor.activePoints.length > 0 && (
               <>
@@ -257,12 +151,7 @@ export function MapBoundaryStep({
             <Button disabled={isSaving} type="button" variant="ghost" onClick={onClose}>
               {mode === 'adjust' ? t.map_create_cancel() : t.map_boundary_maybe_later()}
             </Button>
-            <Button
-              disabled={isSaving || initial.unsupported || (isCustom && points.length === 0)}
-              loading={isSaving}
-              type="button"
-              onClick={handleSave}
-            >
+            <Button disabled={saveDisabled} loading={isSaving} type="button" onClick={handleSave}>
               {t.map_boundary_save()}
             </Button>
           </div>

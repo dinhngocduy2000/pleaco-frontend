@@ -1,8 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMapApi, getMapsApi, saveMapBoundariesApi } from '@/api/maps'
+import {
+  createEnvironmentZonesApi,
+  createMapApi,
+  getMapsApi,
+  saveMapBoundariesApi,
+} from '@/api/maps'
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
+  ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
   IMapListInfo,
   IMapListRequest,
@@ -57,6 +63,24 @@ export const useSaveMapBoundariesMutation = ({
 
   return useMutation({
     mutationFn: saveMapBoundariesApi,
+    onSuccess: async (data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
+      onSuccess?.(data, variables)
+    },
+    onError,
+    onMutate,
+  })
+}
+
+export const useCreateEnvironmentZonesMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<void, ICreateEnvironmentZonesRequest> = {}) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createEnvironmentZonesApi,
     onSuccess: async (data, variables) => {
       await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
       onSuccess?.(data, variables)

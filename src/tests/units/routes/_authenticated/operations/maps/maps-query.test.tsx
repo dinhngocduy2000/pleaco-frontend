@@ -6,14 +6,21 @@ import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import { MapOrderDirection, MapStatus } from '@/enum/maps'
 
 const createMapApi = vi.hoisted(() => vi.fn())
+const createEnvironmentZonesApi = vi.hoisted(() => vi.fn())
 const getMapsApi = vi.hoisted(() => vi.fn())
 const saveMapBoundariesApi = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api/maps', () => ({ createMapApi, getMapsApi, saveMapBoundariesApi }))
+vi.mock('@/api/maps', () => ({
+  createEnvironmentZonesApi,
+  createMapApi,
+  getMapsApi,
+  saveMapBoundariesApi,
+}))
 
 import {
   getMapListQueryKey,
   getMapsQueryKey,
+  useCreateEnvironmentZonesMutation,
   useCreateMapMutation,
   useSaveMapBoundariesMutation,
 } from '@/queries/use-maps-query'
@@ -21,6 +28,7 @@ import {
 describe('useCreateMapMutation', () => {
   beforeEach(() => {
     createMapApi.mockReset()
+    createEnvironmentZonesApi.mockReset()
     getMapsApi.mockReset()
     saveMapBoundariesApi.mockReset()
   })
@@ -89,6 +97,42 @@ describe('useCreateMapMutation', () => {
       await mutation
     })
     expect(mutationSettled).toBe(true)
+  })
+
+  it('creates environment zones and invalidates all map lists', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const payload = {
+      map_id: 'map-123',
+      zones: [
+        {
+          type: 'OBSTACLE',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [1, 1],
+                [2, 1],
+                [1, 2],
+                [1, 1],
+              ],
+            ],
+          },
+        },
+      ],
+    }
+    createEnvironmentZonesApi.mockResolvedValue(undefined)
+    const { result } = renderHook(() => useCreateEnvironmentZonesMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload as never)
+    })
+
+    expect(createEnvironmentZonesApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
   })
 
   it('includes every paginated list parameter in the list query key', () => {
