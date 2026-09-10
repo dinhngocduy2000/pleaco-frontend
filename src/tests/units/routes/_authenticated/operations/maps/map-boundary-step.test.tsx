@@ -1,14 +1,19 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapBoundarySource, type MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
+const createEnvironmentZones = vi.hoisted(() => vi.fn())
 const saveMapBoundaries = vi.hoisted(() => vi.fn())
+const useCreateEnvironmentZonesMutation = vi.hoisted(() => vi.fn())
 const useSaveMapBoundariesMutation = vi.hoisted(() => vi.fn())
 vi.mock('sonner', () => ({ toast }))
-vi.mock('@/queries/use-maps-query', () => ({ useSaveMapBoundariesMutation }))
+vi.mock('@/queries/use-maps-query', () => ({
+  useCreateEnvironmentZonesMutation,
+  useSaveMapBoundariesMutation,
+}))
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor', () => ({
   MapBoundaryEditor: ({
     activeZoneType,
@@ -45,11 +50,29 @@ vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor
       <button
         type="button"
         onClick={() => {
-          const nextPoints: IMapBoundaryCoordinate[] = [
-            [1.234, 1.236],
-            [8.888, 1],
-            [4, 7.777],
-          ]
+          const pointsByZoneType: Record<MapZoneType, IMapBoundaryCoordinate[]> = {
+            BOUNDARY: [
+              [1.234, 1.236],
+              [8.888, 1],
+              [4, 7.777],
+            ],
+            OBSTACLE: [
+              [3, 2],
+              [4, 2],
+              [3.5, 3],
+            ],
+            NO_GO: [
+              [5, 2],
+              [6, 2],
+              [5.5, 3],
+            ],
+            CLEANING_ZONE: [
+              [4, 4],
+              [5, 4],
+              [4.5, 5],
+            ],
+          }
+          const nextPoints = pointsByZoneType[activeZoneType]
           if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
           else onInvalid()
         }}
@@ -75,6 +98,38 @@ vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor
       </button>
       <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
         Select first zone
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          for (let index = 0; index < 101; index += 1) {
+            const x = 0.01 + index * 0.001
+            onChange(
+              [
+                [x, 0.01],
+                [x + 0.0005, 0.01],
+                [x, 0.0105],
+              ],
+              true,
+            )
+          }
+        }}
+      >
+        Draw 101 zones
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const overlappingPoints: IMapBoundaryCoordinate[] = [
+            [3, 2],
+            [4, 2],
+            [3.5, 3],
+          ]
+          if (!canChange || canChange(overlappingPoints, true)) onChange(overlappingPoints, true)
+          else onInvalid()
+        }}
+      >
+        Draw overlapping zone
       </button>
     </div>
   ),
@@ -111,14 +166,14 @@ describe('MapBoundaryStep', () => {
   beforeEach(() => {
     toast.error.mockReset()
     toast.success.mockReset()
+    createEnvironmentZones.mockReset()
+    createEnvironmentZones.mockResolvedValue(undefined)
     saveMapBoundaries.mockReset()
-    useSaveMapBoundariesMutation.mockImplementation(({ onSuccess }) => ({
-      isPending: false,
-      mutate: (payload: unknown) => {
-        saveMapBoundaries(payload)
-        onSuccess?.()
-      },
-    }))
+    saveMapBoundaries.mockResolvedValue(undefined)
+    useCreateEnvironmentZonesMutation.mockReturnValue({
+      mutateAsync: createEnvironmentZones,
+    })
+    useSaveMapBoundariesMutation.mockReturnValue({ mutateAsync: saveMapBoundaries })
   })
 
   const geometry = {
@@ -133,7 +188,7 @@ describe('MapBoundaryStep', () => {
     ] as IMapBoundaryCoordinate[][],
   }
 
-  it('preloads and saves a closed polygon without mutating saved coordinates', async () => {
+  it('preloads a closed polygon and skips saving when its GeoJSON is unchanged', async () => {
     const original = structuredClone(geometry)
     const user = userEvent.setup()
     render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={vi.fn()} />)
@@ -141,12 +196,61 @@ describe('MapBoundaryStep', () => {
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '3')
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-closed', 'true')
     await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+    expect(geometry).toEqual(original)
+  })
+
+  it('saves an adjusted boundary when its GeoJSON changes', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
     expect(saveMapBoundaries).toHaveBeenCalledWith({
       map_id: map.id,
       source: MapBoundarySource.CUSTOM,
-      geometry,
+      geometry: {
+        type: GeometryType.POLYGON,
+        coordinates: [
+          [
+            [1.23, 1.24],
+            [8.89, 1],
+            [4, 7.78],
+            [1.23, 1.24],
+          ],
+        ],
+      },
     })
-    expect(geometry).toEqual(original)
+  })
+
+  it('skips boundary saving when only the method changes but the GeoJSON stays the same', async () => {
+    const user = userEvent.setup()
+    const fullMapGeometry = {
+      type: GeometryType.POLYGON,
+      coordinates: [
+        [
+          [0, 0],
+          [20, 0],
+          [20, 12],
+          [0, 12],
+          [0, 0],
+        ],
+      ] as IMapBoundaryCoordinate[][],
+    }
+    render(
+      <MapBoundaryStep
+        map={{ ...map, geometry: fullMapGeometry }}
+        mode="adjust"
+        onClose={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('combobox', { name: 'Boundary method' }))
+    await user.click(screen.getByRole('option', { name: 'Use full map area' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -272,6 +376,83 @@ describe('MapBoundaryStep', () => {
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '0')
   })
 
+  it('saves every zone type without an unchanged boundary and omits editor-only IDs', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={onClose} />)
+
+    for (const zoneType of ['Obstacle', 'No-go', 'Cleaning zone']) {
+      await user.click(screen.getByRole('button', { name: zoneType }))
+      await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    }
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+    expect(createEnvironmentZones).toHaveBeenCalledWith({
+      map_id: map.id,
+      zones: [
+        {
+          type: 'OBSTACLE',
+          geometry: {
+            type: GeometryType.POLYGON,
+            coordinates: [
+              [
+                [3, 2],
+                [4, 2],
+                [3.5, 3],
+                [3, 2],
+              ],
+            ],
+          },
+        },
+        {
+          type: 'NO_GO',
+          geometry: {
+            type: GeometryType.POLYGON,
+            coordinates: [
+              [
+                [5, 2],
+                [6, 2],
+                [5.5, 3],
+                [5, 2],
+              ],
+            ],
+          },
+        },
+        {
+          type: 'CLEANING_ZONE',
+          geometry: {
+            type: GeometryType.POLYGON,
+            coordinates: [
+              [
+                [4, 4],
+                [5, 4],
+                [4.5, 5],
+                [4, 4],
+              ],
+            ],
+          },
+        },
+      ],
+    })
+    expect(toast.success).toHaveBeenCalledWith('Layout saved successfully.')
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('blocks more than 100 zones before making a save request', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw 101 zones' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '101')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(toast.error).toHaveBeenCalledWith('A layout can contain at most 100 zones.')
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+    expect(createEnvironmentZones).not.toHaveBeenCalled()
+  })
+
   it('rejects a point or polygon that overlaps an existing zone', async () => {
     const user = userEvent.setup()
     render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
@@ -279,7 +460,7 @@ describe('MapBoundaryStep', () => {
     await user.click(screen.getByRole('button', { name: 'Obstacle' }))
     await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
     await user.click(screen.getByRole('button', { name: 'No-go' }))
-    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Draw overlapping zone' }))
 
     expect(screen.getByText('Zones cannot overlap or touch another zone.')).toBeInTheDocument()
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
@@ -297,6 +478,7 @@ describe('MapBoundaryStep', () => {
       source: MapBoundarySource.DIMENSIONS,
     })
     expect(toast.success).toHaveBeenCalledWith('Boundary saved successfully.')
+    expect(createEnvironmentZones).not.toHaveBeenCalled()
     expect(onClose).toHaveBeenCalledOnce()
   })
 
@@ -364,27 +546,47 @@ describe('MapBoundaryStep', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
-  it('shows the API detail and keeps the boundary step open when saving fails', async () => {
+  it('skips zones and keeps the layout open when boundary saving fails', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    useSaveMapBoundariesMutation.mockImplementation(({ onError }) => ({
-      isPending: false,
-      mutate: () =>
-        onError?.({ response: { data: { detail: 'Boundary service is unavailable' } } }),
-    }))
-    render(<MapBoundaryStep map={map} onClose={onClose} />)
+    saveMapBoundaries.mockRejectedValueOnce({
+      response: { data: { detail: 'Boundary service is unavailable' } },
+    })
+    render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={onClose} />)
 
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(toast.error).toHaveBeenCalledWith('Boundary service is unavailable')
+    expect(createEnvironmentZones).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('keeps zones and the layout open when zone saving fails', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    createEnvironmentZones.mockRejectedValueOnce({
+      response: { data: { detail: 'Zone overlaps an existing zone' } },
+    })
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={onClose} />)
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+    expect(createEnvironmentZones).toHaveBeenCalledOnce()
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('Zone overlaps an existing zone')
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
     expect(onClose).not.toHaveBeenCalled()
   })
 
   it('uses the localized fallback when the API has no error detail', async () => {
     const user = userEvent.setup()
-    useSaveMapBoundariesMutation.mockImplementation(({ onError }) => {
-      return { isPending: false, mutate: () => onError?.(new Error('Unavailable')) }
-    })
+    saveMapBoundaries.mockRejectedValueOnce(new Error('Unavailable'))
     render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
@@ -392,16 +594,51 @@ describe('MapBoundaryStep', () => {
     expect(toast.error).toHaveBeenCalledWith('Unable to save the boundary. Please try again.')
   })
 
-  it('disables actions while saving', () => {
-    useSaveMapBoundariesMutation.mockReturnValue({
-      isPending: true,
-      mutate: saveMapBoundaries,
-    })
-    render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
+  it('disables actions throughout the save sequence', async () => {
+    const user = userEvent.setup()
+    let finishBoundarySave: VoidFunction = () => undefined
+    let finishZoneSave: VoidFunction = () => undefined
+    saveMapBoundaries.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishBoundarySave = resolve
+      }),
+    )
+    createEnvironmentZones.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishZoneSave = resolve
+      }),
+    )
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('combobox', { name: 'Boundary method' }))
+    await user.click(screen.getByRole('option', { name: 'Draw a custom boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(screen.getByRole('combobox', { name: 'Boundary method' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Maybe later' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
     expect(screen.getByRole('button', { name: /^Save/ })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Close' })).toBeDisabled()
+
+    await act(async () => finishBoundarySave())
+    await waitFor(() => expect(createEnvironmentZones).toHaveBeenCalledOnce())
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Save/ })).toBeDisabled()
+
+    await act(async () => finishZoneSave())
+  })
+
+  it('uses the layout fallback when zone saving fails without an API detail', async () => {
+    const user = userEvent.setup()
+    createEnvironmentZones.mockRejectedValueOnce(new Error('Unavailable'))
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(toast.error).toHaveBeenCalledWith('Unable to save the layout. Please try again.')
   })
 })

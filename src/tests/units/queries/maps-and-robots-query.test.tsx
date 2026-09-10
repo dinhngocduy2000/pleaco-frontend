@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BOTS_ENDPOINTS, MAPS_ENDPOINTS } from '@/enum/endpoints'
 
 const mapApi = vi.hoisted(() => ({
+  createEnvironmentZonesApi: vi.fn(),
   createMapApi: vi.fn(),
   getMapsApi: vi.fn(),
   saveMapBoundariesApi: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock('@/api/maps', () => mapApi)
 vi.mock('@/api/robots', () => robotApi)
 
 import {
+  useCreateEnvironmentZonesMutation,
   useCreateMapMutation,
   useMapsQuery,
   useSaveMapBoundariesMutation,
@@ -82,6 +84,21 @@ describe('maps and robots query hooks', () => {
     })
 
     expect(mapApi.saveMapBoundariesApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+  })
+
+  it('creates environment zones and invalidates every map list', async () => {
+    mapApi.createEnvironmentZonesApi.mockResolvedValue(undefined)
+    const { client, wrapper } = createWrapper()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const payload = { map_id: 'map-1', zones: [] }
+    const { result } = renderHook(() => useCreateEnvironmentZonesMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload as never)
+    })
+
+    expect(mapApi.createEnvironmentZonesApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
   })
 

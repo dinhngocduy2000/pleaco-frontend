@@ -4,6 +4,7 @@ import type {
   MapBoundarySource,
   MapOrderDirectionType,
   MapStatusType,
+  MapZoneType,
 } from '@/enum/maps'
 import type { createMapFormSchema } from '@/schemas/map-schemas'
 import type { ITagInfo } from './tags'
@@ -25,6 +26,16 @@ export type ISaveMapBoundaries = {
 export type Geometry = {
   type: GeometryType
   coordinates: IMapBoundaries
+}
+
+export type IEnvironmentZoneCreateItem = {
+  type: Exclude<MapZoneType, MapZoneType.BOUNDARY>
+  geometry: Geometry
+}
+
+export type ICreateEnvironmentZonesRequest = {
+  map_id: string
+  zones: IEnvironmentZoneCreateItem[]
 }
 
 export type ICreateMapRequest = {

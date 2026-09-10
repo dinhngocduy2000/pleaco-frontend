@@ -38,7 +38,12 @@ import {
   inviteGroupMembersApi,
   updateGroupMemberAPI,
 } from '@/api/groups'
-import { createMapApi, getMapsApi, saveMapBoundariesApi } from '@/api/maps'
+import {
+  createEnvironmentZonesApi,
+  createMapApi,
+  getMapsApi,
+  saveMapBoundariesApi,
+} from '@/api/maps'
 import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
 import { getTagsApi } from '@/api/tags'
 
@@ -74,6 +79,7 @@ describe('API functions', () => {
     const signal = new AbortController().signal
     await createMapApi({} as never)
     await saveMapBoundariesApi({} as never)
+    await createEnvironmentZonesApi({} as never)
     await getMapsApi({ page: 1, page_size: 10 } as never, signal)
     await createRobotApi({} as never)
     await deleteRobotApi('robot-1')
@@ -96,6 +102,7 @@ describe('API functions', () => {
 
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE, {})
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.SAVE_BOUNDARY, {})
+    expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE_ZONES, {})
     expect(authenticatedClient.get).toHaveBeenCalledWith(
       MAPS_ENDPOINTS.LIST,
       expect.objectContaining({ signal }),

@@ -1,6 +1,7 @@
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
+  ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
   IMapListInfo,
   IMapListRequest,
@@ -17,6 +18,12 @@ export const createMapApi = async (
 
 export const saveMapBoundariesApi = async (data: ISaveMapBoundaries): Promise<void> => {
   await axiosConfig.post(MAPS_ENDPOINTS.SAVE_BOUNDARY, data)
+}
+
+export const createEnvironmentZonesApi = async (
+  data: ICreateEnvironmentZonesRequest,
+): Promise<void> => {
+  await axiosConfig.post(MAPS_ENDPOINTS.CREATE_ZONES, data)
 }
 
 export const getMapsApi = async (
