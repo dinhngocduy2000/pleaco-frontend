@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
-import type { IMapBoundaryCoordinate, IMapListInfo, ISaveMapBoundaries } from '@/interface/maps'
+import type {
+  Geometry,
+  IMapBoundaryCoordinate,
+  IMapListInfo,
+  ISaveMapBoundaries,
+} from '@/interface/maps'
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
 import {
@@ -65,6 +70,36 @@ const createBoundaryRequest = (
     : { map_id: mapId, source: MapBoundarySource.DIMENSIONS }
 
 /**
+ * Creates the effective GeoJSON polygon for the current boundary editor state.
+ *
+ * @param map - Map dimensions used by the full-map boundary method.
+ * @param method - Selected boundary method.
+ * @param points - Custom boundary points without the repeated closing point.
+ * @returns A normalized, explicitly closed polygon geometry.
+ */
+const createBoundaryGeometry = (
+  map: IMapListInfo,
+  method: MapBoundarySource,
+  points: IMapBoundaryCoordinate[],
+): Geometry => ({
+  type: GeometryType.POLYGON,
+  coordinates:
+    method === MapBoundarySource.CUSTOM
+      ? serializeBoundary(points)
+      : getFullMapBoundaries(map.dimension_x, map.dimension_y),
+})
+
+/**
+ * Compares two normalized boundary GeoJSON objects, including point order.
+ *
+ * @param initialGeometry - Boundary geometry when the editor opened.
+ * @param currentGeometry - Boundary geometry when Save was selected.
+ * @returns Whether both GeoJSON polygon representations are identical.
+ */
+const boundaryGeometriesEqual = (initialGeometry: Geometry, currentGeometry: Geometry) =>
+  JSON.stringify(initialGeometry) === JSON.stringify(currentGeometry)
+
+/**
  * Coordinates boundary editing, zone editing, validation, and sequential layout saving.
  *
  * @param options - Map data, editor mode, and modal lifecycle callbacks.
@@ -84,6 +119,9 @@ export function useBoundaryStep({
   const [method, setMethod] = useState<MapBoundarySource>(initial.method)
   const [points, setPoints] = useState<IMapBoundaryCoordinate[]>(initial.points)
   const [closed, setClosed] = useState<boolean>(initial.closed)
+  const [initialBoundaryGeometry] = useState<Geometry>(() =>
+    createBoundaryGeometry(map, initial.method, initial.points),
+  )
   const [isSaving, setIsSaving] = useState(false)
   const { mutateAsync: saveMapBoundaries } = useSaveMapBoundariesMutation()
   const { mutateAsync: createEnvironmentZones } = useCreateEnvironmentZonesMutation()
@@ -156,7 +194,14 @@ export function useBoundaryStep({
 
     setIsSaving(true)
     try {
-      await saveMapBoundaries(createBoundaryRequest(map.id, method, points))
+      const currentBoundaryGeometry = createBoundaryGeometry(map, method, points)
+      const boundaryWasEdited = !boundaryGeometriesEqual(
+        initialBoundaryGeometry,
+        currentBoundaryGeometry,
+      )
+      if (mode === 'create' || boundaryWasEdited) {
+        await saveMapBoundaries(createBoundaryRequest(map.id, method, points))
+      }
       if (mode === 'adjust' && zoneEditor.zones.length > 0) {
         await createEnvironmentZones({
           map_id: map.id,

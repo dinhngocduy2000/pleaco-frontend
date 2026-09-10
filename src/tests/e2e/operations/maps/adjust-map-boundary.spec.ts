@@ -129,6 +129,19 @@ async function drawObstacleZone(page: Page, dialog: Locator) {
   await clickCanvasPoint(page, canvas, 68, 110)
 }
 
+async function moveSavedBoundaryVertex(page: Page, dialog: Locator) {
+  const canvas = dialog
+    .getByRole('region', { name: 'Map boundary editor' })
+    .locator('canvas')
+    .last()
+  const box = await canvas.boundingBox()
+  if (!box) throw new Error('Boundary canvas is missing')
+  await page.mouse.move(box.x + 40, box.y + 120)
+  await page.mouse.down()
+  await page.mouse.move(box.x + 50, box.y + 110, { steps: 5 })
+  await page.mouse.up()
+}
+
 for (const role of ['admin', 'owner']) {
   test(`${role} adjusts a saved vertex and reopens the persisted replacement`, async ({ page }) => {
     const { requests, createRequests } = await setup(page, role)
@@ -137,16 +150,7 @@ for (const role of ['admin', 'owner']) {
       'Draw a custom boundary',
     )
     // Konva uses a canvas; pointer coordinates are relative to its world-coordinate projection.
-    const canvas = dialog
-      .getByRole('region', { name: 'Map boundary editor' })
-      .locator('canvas')
-      .last()
-    const box = await canvas.boundingBox()
-    if (!box) throw new Error('Boundary canvas is missing')
-    await page.mouse.move(box.x + 40, box.y + 120)
-    await page.mouse.down()
-    await page.mouse.move(box.x + 50, box.y + 110, { steps: 5 })
-    await page.mouse.up()
+    await moveSavedBoundaryVertex(page, dialog)
     await dialog.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(dialog).not.toBeVisible()
     expect(requests).toHaveLength(1)
@@ -157,7 +161,7 @@ for (const role of ['admin', 'owner']) {
     dialog = await openEditor(page)
     await dialog.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(dialog).not.toBeVisible()
-    expect(requests[1]).toEqual(requests[0])
+    expect(requests).toHaveLength(1)
     expect(createRequests).toEqual([])
   })
 }
@@ -206,6 +210,7 @@ test('saving blocks dismissal and duplicate requests', async ({ page }) => {
   })
   const { requests } = await setup(page, 'owner', false, saveGate)
   const dialog = await openEditor(page)
+  await moveSavedBoundaryVertex(page, dialog)
   try {
     await dialog.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(dialog.getByRole('button', { name: /^Save/ })).toBeDisabled()
@@ -221,7 +226,7 @@ test('saving blocks dismissal and duplicate requests', async ({ page }) => {
   await expect(dialog).not.toBeVisible()
 })
 
-test('saves zones only after the boundary succeeds', async ({ page }) => {
+test('saves zones without resaving an unchanged boundary', async ({ page }) => {
   const { requests, zoneRequests, requestOrder } = await setup(page, 'owner')
   const dialog = await openEditor(page)
   await drawObstacleZone(page, dialog)
@@ -230,9 +235,9 @@ test('saves zones only after the boundary succeeds', async ({ page }) => {
 
   await expect(page.getByText('Layout saved successfully.')).toBeVisible()
   await expect(dialog).not.toBeVisible()
-  expect(requests).toHaveLength(1)
+  expect(requests).toHaveLength(0)
   expect(zoneRequests).toHaveLength(1)
-  expect(requestOrder).toEqual(['boundary', 'zones'])
+  expect(requestOrder).toEqual(['zones'])
   expect(zoneRequests[0].map_id).toBe('00000000-0000-4000-8000-000000000001')
   expect(zoneRequests[0].zones).toHaveLength(1)
   expect(zoneRequests[0].zones[0].type).toBe('OBSTACLE')
@@ -244,6 +249,7 @@ test('saves zones only after the boundary succeeds', async ({ page }) => {
 test('skips zone saving when the boundary request fails', async ({ page }) => {
   const { requests, zoneRequests, requestOrder } = await setup(page, 'owner', true)
   const dialog = await openEditor(page)
+  await moveSavedBoundaryVertex(page, dialog)
   await drawObstacleZone(page, dialog)
 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
@@ -270,16 +276,16 @@ test('keeps the layout open when zone saving fails', async ({ page }) => {
 
   await expect(page.getByText('Please retry zone save.')).toBeVisible()
   await expect(dialog).toBeVisible()
-  expect(requests).toHaveLength(1)
+  expect(requests).toHaveLength(0)
   expect(zoneRequests).toHaveLength(1)
-  expect(requestOrder).toEqual(['boundary', 'zones'])
+  expect(requestOrder).toEqual(['zones'])
 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('Layout saved successfully.')).toBeVisible()
   await expect(dialog).not.toBeVisible()
-  expect(requests).toHaveLength(2)
+  expect(requests).toHaveLength(0)
   expect(zoneRequests).toHaveLength(2)
-  expect(requestOrder).toEqual(['boundary', 'zones', 'boundary', 'zones'])
+  expect(requestOrder).toEqual(['zones', 'zones'])
 })
 
 test('draws, selects, and deletes a session-only zone with layout tools', async ({ page }) => {
@@ -322,22 +328,7 @@ test('draws, selects, and deletes a session-only zone with layout tools', async 
   await expect(dialog.getByRole('combobox', { name: 'Boundary method' })).toBeEnabled()
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog).not.toBeVisible()
-  expect(requests).toHaveLength(1)
-  expect(requests[0]).toEqual({
-    map_id: '00000000-0000-4000-8000-000000000001',
-    source: MapBoundarySource.CUSTOM,
-    geometry: {
-      type: GeometryType.POLYGON,
-      coordinates: [
-        [
-          [2, 2],
-          [10, 2],
-          [6, 8],
-          [2, 2],
-        ],
-      ],
-    },
-  })
+  expect(requests).toHaveLength(0)
 })
 
 test('preserves an open zone draft and blocks the boundary request until it is cleared', async ({
@@ -363,5 +354,5 @@ test('preserves an open zone draft and blocks the boundary request until it is c
   await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog).not.toBeVisible()
-  expect(requests).toHaveLength(1)
+  expect(requests).toHaveLength(0)
 })
