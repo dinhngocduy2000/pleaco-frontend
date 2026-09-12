@@ -18,6 +18,7 @@ type MapLayoutEditorProps = MapBoundaryEditorProps & {
   drafts?: IMapZoneDrafts
   selectedZoneId?: string
   selectionMode?: boolean
+  showBoundary?: boolean
   zones?: IMapZoneShape[]
   onSelectZone?: (clientId: string) => void
 }
@@ -38,6 +39,7 @@ export function MapBoundaryEditor({
   drafts,
   selectedZoneId,
   selectionMode = false,
+  showBoundary = false,
   zones = [],
   onSelectZone,
 }: MapLayoutEditorProps) {
@@ -78,7 +80,7 @@ export function MapBoundaryEditor({
     )
 
   return (
-    <div className="relative min-h-0 flex-1">
+    <div className="relative min-h-0 flex-1 overflow-auto">
       <section
         aria-label={t.map_boundary_canvas_label()}
         className="size-full overflow-auto rounded-md border bg-background"
@@ -95,7 +97,7 @@ export function MapBoundaryEditor({
               <MapGridLayer geometry={geometry} />
             </Layer>
             <Layer x={MAP_CANVAS_PADDING} y={MAP_CANVAS_PADDING}>
-              {(activeZoneType !== MapZoneType.BOUNDARY || selectionMode) &&
+              {(activeZoneType !== MapZoneType.BOUNDARY || selectionMode || showBoundary) &&
                 boundaryPoints.length > 1 && (
                   <Line
                     closed={boundaryClosed}

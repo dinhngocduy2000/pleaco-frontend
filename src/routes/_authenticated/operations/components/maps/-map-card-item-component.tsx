@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/vi'
+import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +35,7 @@ type MapCardItemComponentProps = {
 }
 
 export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
+  const navigate = useNavigate()
   const { data: profile } = useProfileQuery()
   const role = profile?.data.group?.role
   const canAdjustBoundary = hasRoleAccess(role, [GroupRole.ADMIN, GroupRole.OWNER])
@@ -96,6 +98,12 @@ export function MapCardItemComponent({ map }: MapCardItemComponentProps) {
           </TypographySmall>
           <MapActionsDropdown
             canAdjustBoundary={canAdjustBoundary}
+            onViewDetails={() =>
+              navigate({
+                to: '/operations/maps/$map_id',
+                params: { map_id: map.id },
+              })
+            }
             onAdjustBoundary={() => {
               if (canAdjustBoundary) setOpen(true)
             }}

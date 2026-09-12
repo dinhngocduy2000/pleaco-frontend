@@ -19,7 +19,7 @@ import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
-import { Route } from '../../maps'
+import { Route } from '../../maps/index'
 import { MapCreateModal } from './-map-create-modal'
 
 const t = getTranslations()

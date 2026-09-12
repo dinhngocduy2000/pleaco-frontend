@@ -6,6 +6,11 @@ import type {
   MapStatusType,
   MapZoneType,
 } from '@/enum/maps'
+import type {
+  RobotConnectionStatusType,
+  RobotModelType,
+  RobotOperationStatusType,
+} from '@/enum/robot'
 import type { createMapFormSchema } from '@/schemas/map-schemas'
 import type { ITagInfo } from './tags'
 
@@ -67,4 +72,39 @@ export type IMapListRequest = {
   status?: MapStatusType
   tag_ids?: string[]
   order_direction: MapOrderDirectionType
+}
+
+export type IMapDetailTagInfo = {
+  id: string
+  name: string
+}
+
+export type IMapDetailRobotInfo = {
+  id: string
+  name: string
+  serial_num: string
+  model: RobotModelType
+  connection_status: RobotConnectionStatusType
+  operational_status: RobotOperationStatusType
+}
+
+export type IMapDetailZoneInfo = {
+  id: string
+  type: Exclude<MapZoneType, MapZoneType.BOUNDARY>
+  geometry: Geometry
+}
+
+export type IMapDetailInfo = {
+  id: string
+  name: string
+  description: string | null
+  status: MapStatusType
+  dimension_x: number
+  dimension_y: number
+  created_at: string
+  updated_at: string
+  tags: IMapDetailTagInfo[]
+  robots: IMapDetailRobotInfo[]
+  boundary: Geometry | null
+  zones: IMapDetailZoneInfo[]
 }

@@ -8,11 +8,13 @@ const t = getTranslations()
 type MapActionsDropdownProps = {
   canAdjustBoundary: boolean
   onAdjustBoundary: () => void
+  onViewDetails: () => void
 }
 
 export function MapActionsDropdown({
   canAdjustBoundary,
   onAdjustBoundary,
+  onViewDetails,
 }: MapActionsDropdownProps) {
   return (
     <AppDropdownMenu
@@ -32,7 +34,7 @@ export function MapActionsDropdown({
             </>
           ),
           value: 'view-details',
-          onClick: () => undefined,
+          onClick: onViewDetails,
         },
         {
           label: (

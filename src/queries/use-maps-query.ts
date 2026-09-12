@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createEnvironmentZonesApi,
   createMapApi,
+  getMapDetailApi,
   getMapsApi,
   saveMapBoundariesApi,
 } from '@/api/maps'
@@ -10,6 +11,7 @@ import type { IResponseData, IResponseDataWithPage } from '@/interface/api-respo
 import type {
   ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
+  IMapDetailInfo,
   IMapListInfo,
   IMapListRequest,
   ISaveMapBoundaries,
@@ -23,6 +25,20 @@ export const getMapListQueryKey = (params: IMapListRequest, queryKey: unknown[] 
   params,
   ...queryKey,
 ]
+
+export const getMapDetailQueryKey = (mapId: string, groupId?: string) => [
+  MAPS_ENDPOINTS.DETAIL,
+  mapId,
+  groupId,
+]
+
+export const useMapDetailQuery = (mapId: string, groupId?: string) => {
+  return useQuery<IResponseData<IMapDetailInfo>>({
+    queryKey: getMapDetailQueryKey(mapId, groupId),
+    queryFn: ({ signal }) => getMapDetailApi(mapId, signal),
+    enabled: Boolean(mapId),
+  })
+}
 
 export const useMapsQuery = ({
   params,
