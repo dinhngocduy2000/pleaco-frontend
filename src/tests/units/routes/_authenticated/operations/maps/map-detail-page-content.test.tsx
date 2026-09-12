@@ -1,9 +1,15 @@
 import { render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { type ComponentType, type ReactNode, Suspense } from 'react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS, RobotModel } from '@/enum/robot'
 import type { IMapDetailInfo } from '@/interface/maps'
+
+const { useMapDetailQueryMock, useProfileQueryMock, useRouteParamsMock } = vi.hoisted(() => ({
+  useMapDetailQueryMock: vi.fn(),
+  useProfileQueryMock: vi.fn(),
+  useRouteParamsMock: vi.fn(),
+}))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>()
@@ -11,9 +17,14 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   return {
     ...actual,
     Link: ({ children }: { children: ReactNode }) => <a href="/operations/maps">{children}</a>,
-    createFileRoute: () => () => ({}),
+    createFileRoute: () => (options: { component: () => ReactNode }) => ({
+      options,
+      useParams: useRouteParamsMock,
+    }),
   }
 })
+vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: useProfileQueryMock }))
+vi.mock('@/queries/use-maps-query', () => ({ useMapDetailQuery: useMapDetailQueryMock }))
 vi.mock('@/routes/_authenticated/operations/components/maps/detail/-map-detail-grid', () => ({
   MapDetailGrid: ({ map }: { map: IMapDetailInfo }) => (
     <section className="order-first" data-testid="map-detail-grid">
@@ -26,7 +37,21 @@ import {
   getBoundaryEditorPoints,
   getZoneCounts,
 } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-utils'
-import { MapDetailPageContent } from '@/routes/_authenticated/operations/maps/$map_id'
+import { Route } from '@/routes/_authenticated/operations/maps/$map_id'
+
+const MapDetailPage = (Route as unknown as { options: { component: ComponentType } }).options
+  .component
+
+const renderMapDetailPage = async () => {
+  const preloadablePage = MapDetailPage as ComponentType & { preload?: () => Promise<void> }
+  await preloadablePage.preload?.()
+
+  return render(
+    <Suspense fallback={null}>
+      <MapDetailPage />
+    </Suspense>,
+  )
+}
 
 const map: IMapDetailInfo = {
   id: 'map-1',
@@ -93,10 +118,21 @@ const map: IMapDetailInfo = {
   ],
 }
 
-describe('MapDetailPageContent', () => {
-  it('renders map metadata, compact robots, and a first-ordered map grid', () => {
-    render(<MapDetailPageContent error={false} isLoading={false} map={map} />)
+describe('MapDetailPage', () => {
+  beforeEach(() => {
+    useRouteParamsMock.mockReturnValue({ map_id: 'map-1' })
+    useProfileQueryMock.mockReturnValue({ data: { data: { group_id: 'group-1' } } })
+    useMapDetailQueryMock.mockReturnValue({
+      data: { data: map },
+      isError: false,
+      isLoading: false,
+    })
+  })
 
+  it('renders map metadata, compact robots, and a first-ordered map grid', async () => {
+    await renderMapDetailPage()
+
+    expect(useMapDetailQueryMock).toHaveBeenCalledWith('map-1', 'group-1')
     expect(screen.getByRole('heading', { level: 1, name: map.name })).toBeInTheDocument()
     expect(screen.getByText('Map Details')).toBeInTheDocument()
     expect(screen.getByText('24m × 18m')).toBeInTheDocument()
@@ -112,15 +148,17 @@ describe('MapDetailPageContent', () => {
     expect(screen.getByRole('button', { name: 'Manage Robot Assignment' })).toBeInTheDocument()
   })
 
-  it('renders a dedicated failure state', () => {
-    render(<MapDetailPageContent error isLoading={false} />)
+  it('renders a dedicated failure state', async () => {
+    useMapDetailQueryMock.mockReturnValue({ data: undefined, isError: true, isLoading: false })
+    await renderMapDetailPage()
 
     expect(screen.getByText('Unable to load map details.')).toBeInTheDocument()
     expect(screen.getByText('Try returning to Maps and opening the map again.')).toBeInTheDocument()
   })
 
-  it('renders a loading state before map data is available', () => {
-    render(<MapDetailPageContent error={false} isLoading />)
+  it('renders a loading state before map data is available', async () => {
+    useMapDetailQueryMock.mockReturnValue({ data: undefined, isError: false, isLoading: true })
+    await renderMapDetailPage()
 
     expect(screen.getByText('Loading map details…')).toBeInTheDocument()
   })
