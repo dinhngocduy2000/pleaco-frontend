@@ -3,6 +3,7 @@ import { ArrowLeft, Map as MapIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
+import { MapOrderDirection } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
@@ -63,7 +64,16 @@ export function MapDetailPageContent({ error, isLoading, map }: MapDetailPageCon
     <section className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex items-center gap-3">
         <Button aria-label={t.map_detail_back_to_maps()} asChild size="icon" variant="ghost">
-          <Link to="/operations/maps">
+          <Link
+            search={{
+              page: 1,
+              search: undefined,
+              status: undefined,
+              tag_ids: undefined,
+              order_direction: MapOrderDirection.DESC,
+            }}
+            to="/operations/maps"
+          >
             <ArrowLeft aria-hidden="true" />
           </Link>
         </Button>
