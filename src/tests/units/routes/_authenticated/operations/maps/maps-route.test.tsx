@@ -15,16 +15,12 @@ vi.mock('@/routes/_authenticated/operations/components/maps/-maps-toolbar', () =
 }))
 vi.mock('@/lib/translation', () => ({ getTranslations: () => ({ sidebar_maps: () => 'Maps' }) }))
 
-import { Route } from '@/routes/_authenticated/operations/maps'
-
-const validateSearch = Route.validateSearch as (
-  search: Record<string, unknown>,
-) => Record<string, unknown>
+import { validateMapsSearch } from '@/routes/_authenticated/operations/maps/index'
 
 describe('maps route search validation', () => {
   it('normalizes valid values and applies defaults for omitted search fields', () => {
     expect(
-      validateSearch({
+      validateMapsSearch({
         page: '2',
         search: ' lobby ',
         status: 'ASSIGNED',
@@ -42,7 +38,7 @@ describe('maps route search validation', () => {
 
   it('rejects invalid pagination, filters, tags, and order direction', () => {
     expect(
-      validateSearch({
+      validateMapsSearch({
         page: 0,
         search: '  ',
         status: 'UNKNOWN',

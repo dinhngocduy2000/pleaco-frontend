@@ -5,6 +5,8 @@ import { GeometryType, MapStatus } from '@/enum/maps'
 import type { Geometry, IMapListInfo } from '@/interface/maps'
 
 const profileQuery = vi.hoisted(() => vi.fn())
+const navigate = vi.hoisted(() => vi.fn())
+vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
 vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: profileQuery }))
 vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-step', () => ({
   MapBoundaryStep: ({ map, onClose }: { map: IMapListInfo; onClose: () => void }) => (
@@ -94,6 +96,12 @@ describe('MapCardItemComponent', () => {
     expect(await screen.findByText('View details')).toBeInTheDocument()
     expect(screen.getByText('Edit')).toBeInTheDocument()
     expect(screen.getByText('Delete')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('menuitem', { name: 'View details' }))
+    expect(navigate).toHaveBeenCalledWith({
+      to: '/operations/maps/$map_id',
+      params: { map_id: map.id },
+    })
   })
 
   it('uses an em dash when the updated timestamp is invalid', () => {

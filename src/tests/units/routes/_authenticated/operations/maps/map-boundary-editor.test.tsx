@@ -173,6 +173,28 @@ describe('MapBoundaryEditor', () => {
     }
   })
 
+  it('renders persisted boundary points when requested by a read-only view', () => {
+    useMapBoundaryEditor.mockReturnValue({ ...editorState, canvasPoints: [] })
+
+    render(
+      <MapBoundaryEditor
+        {...defaultProps}
+        boundaryClosed
+        boundaryPoints={[
+          [0, 0],
+          [20, 0],
+          [20, 12],
+          [0, 12],
+        ]}
+        interactive={false}
+        points={[]}
+        showBoundary
+      />,
+    )
+
+    expect(screen.getByTestId('boundary-line')).toHaveAttribute('data-closed', 'true')
+  })
+
   it('forwards dragging a preloaded closed polygon vertex', () => {
     render(
       <MapBoundaryEditor

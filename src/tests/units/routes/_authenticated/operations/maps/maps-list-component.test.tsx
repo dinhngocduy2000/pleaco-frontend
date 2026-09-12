@@ -15,7 +15,7 @@ const profile = vi.hoisted(() => ({
 const useMapsQuery = vi.hoisted(() => vi.fn(() => maps))
 vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: () => profile }))
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
-vi.mock('@/routes/_authenticated/operations/maps', () => ({
+vi.mock('@/routes/_authenticated/operations/maps/index', () => ({
   Route: {
     fullPath: '/operations/maps',
     useSearch: () => ({

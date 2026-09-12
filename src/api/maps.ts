@@ -3,6 +3,7 @@ import type { IResponseData, IResponseDataWithPage } from '@/interface/api-respo
 import type {
   ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
+  IMapDetailInfo,
   IMapListInfo,
   IMapListRequest,
   ISaveMapBoundaries,
@@ -31,4 +32,11 @@ export const getMapsApi = async (
   signal?: AbortSignal,
 ): Promise<IResponseDataWithPage<IMapListInfo>> => {
   return await axiosConfig.get(MAPS_ENDPOINTS.LIST, { params, signal, paramsSerializer })
+}
+
+export const getMapDetailApi = async (
+  mapId: string,
+  signal?: AbortSignal,
+): Promise<IResponseData<IMapDetailInfo>> => {
+  return await axiosConfig.get(`${MAPS_ENDPOINTS.DETAIL}/${mapId}`, { signal })
 }

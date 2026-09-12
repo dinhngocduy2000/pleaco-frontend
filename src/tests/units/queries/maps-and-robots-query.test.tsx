@@ -7,6 +7,7 @@ import { BOTS_ENDPOINTS, MAPS_ENDPOINTS } from '@/enum/endpoints'
 const mapApi = vi.hoisted(() => ({
   createEnvironmentZonesApi: vi.fn(),
   createMapApi: vi.fn(),
+  getMapDetailApi: vi.fn(),
   getMapsApi: vi.fn(),
   saveMapBoundariesApi: vi.fn(),
 }))
@@ -22,6 +23,7 @@ vi.mock('@/api/robots', () => robotApi)
 import {
   useCreateEnvironmentZonesMutation,
   useCreateMapMutation,
+  useMapDetailQuery,
   useMapsQuery,
   useSaveMapBoundariesMutation,
 } from '@/queries/use-maps-query'
@@ -57,6 +59,19 @@ describe('maps and robots query hooks', () => {
     expect(client.getQueryData([MAPS_ENDPOINTS.LIST, params, 'screen'])).toEqual({
       items: [],
       total: 0,
+    })
+  })
+
+  it('fetches map detail without request params and scopes its cache by active group', async () => {
+    mapApi.getMapDetailApi.mockResolvedValue({ data: { id: 'map-1', name: 'Warehouse' } })
+    const { client, wrapper } = createWrapper()
+    const { result } = renderHook(() => useMapDetailQuery('map-1', 'group-1'), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(mapApi.getMapDetailApi).toHaveBeenCalledWith('map-1', expect.any(AbortSignal))
+    expect(client.getQueryData([MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1'])).toEqual({
+      data: { id: 'map-1', name: 'Warehouse' },
     })
   })
 

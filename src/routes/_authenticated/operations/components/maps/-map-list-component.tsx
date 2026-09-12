@@ -8,7 +8,7 @@ import type { IMapListRequest } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useMapsQuery } from '@/queries/use-maps-query'
-import { Route } from '../../maps'
+import { Route } from '../../maps/index'
 import { MapCardItemComponent } from './-map-card-item-component'
 
 const PAGE_SIZE = 10

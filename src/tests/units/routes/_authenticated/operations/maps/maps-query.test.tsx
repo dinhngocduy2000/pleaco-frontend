@@ -7,17 +7,20 @@ import { MapOrderDirection, MapStatus } from '@/enum/maps'
 
 const createMapApi = vi.hoisted(() => vi.fn())
 const createEnvironmentZonesApi = vi.hoisted(() => vi.fn())
+const getMapDetailApi = vi.hoisted(() => vi.fn())
 const getMapsApi = vi.hoisted(() => vi.fn())
 const saveMapBoundariesApi = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api/maps', () => ({
   createEnvironmentZonesApi,
   createMapApi,
+  getMapDetailApi,
   getMapsApi,
   saveMapBoundariesApi,
 }))
 
 import {
+  getMapDetailQueryKey,
   getMapListQueryKey,
   getMapsQueryKey,
   useCreateEnvironmentZonesMutation,
@@ -29,6 +32,7 @@ describe('useCreateMapMutation', () => {
   beforeEach(() => {
     createMapApi.mockReset()
     createEnvironmentZonesApi.mockReset()
+    getMapDetailApi.mockReset()
     getMapsApi.mockReset()
     saveMapBoundariesApi.mockReset()
   })
@@ -146,5 +150,16 @@ describe('useCreateMapMutation', () => {
     }
 
     expect(getMapListQueryKey(params)).toEqual([MAPS_ENDPOINTS.LIST, params])
+  })
+
+  it('includes both map and active group IDs in a detail query key', () => {
+    expect(getMapDetailQueryKey('map-1', 'group-1')).toEqual([
+      MAPS_ENDPOINTS.DETAIL,
+      'map-1',
+      'group-1',
+    ])
+    expect(getMapDetailQueryKey('map-1', 'group-2')).not.toEqual(
+      getMapDetailQueryKey('map-1', 'group-1'),
+    )
   })
 })
