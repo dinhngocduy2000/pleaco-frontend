@@ -27,12 +27,15 @@ export const getMapDetailStatusClassName = (status: IMapDetailInfo['status']) =>
 export const getBoundaryEditorPoints = (
   boundary: IMapDetailInfo['boundary'],
 ): IMapBoundaryCoordinate[] => {
-  const points = boundary?.coordinates[0] ?? []
-  const first = points[0]
-  const last = points.at(-1)
+  const boundaryPoints = boundary?.coordinates[0] ?? []
+  const startPoint = boundaryPoints[0]
+  const endPoint = boundaryPoints.at(-1)
 
-  if (first && last && first[0] === last[0] && first[1] === last[1]) return points.slice(0, -1)
-  return points
+  if (startPoint && endPoint && startPoint[0] === endPoint[0] && startPoint[1] === endPoint[1]) {
+    return boundaryPoints.slice(0, -1)
+  }
+
+  return boundaryPoints
 }
 
 /**
