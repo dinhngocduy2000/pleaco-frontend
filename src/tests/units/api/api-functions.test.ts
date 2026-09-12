@@ -41,6 +41,7 @@ import {
 import {
   createEnvironmentZonesApi,
   createMapApi,
+  getMapDetailApi,
   getMapsApi,
   saveMapBoundariesApi,
 } from '@/api/maps'
@@ -81,6 +82,7 @@ describe('API functions', () => {
     await saveMapBoundariesApi({} as never)
     await createEnvironmentZonesApi({} as never)
     await getMapsApi({ page: 1, page_size: 10 } as never, signal)
+    await getMapDetailApi('map-1', signal)
     await createRobotApi({} as never)
     await deleteRobotApi('robot-1')
     await getRobotsApi({ group_id: 'group-1', page: 1, page_size: 10 }, signal)
@@ -107,6 +109,9 @@ describe('API functions', () => {
       MAPS_ENDPOINTS.LIST,
       expect.objectContaining({ signal }),
     )
+    expect(authenticatedClient.get).toHaveBeenCalledWith(`${MAPS_ENDPOINTS.DETAIL}/map-1`, {
+      signal,
+    })
     expect(authenticatedClient.post).toHaveBeenCalledWith(BOTS_ENDPOINTS.CREATE, {})
     expect(authenticatedClient.delete).toHaveBeenCalledWith(`${BOTS_ENDPOINTS.DELETE}/robot-1`)
     expect(authenticatedClient.get).toHaveBeenCalledWith(BOTS_ENDPOINTS.LIST_KEY_VALUE, { signal })

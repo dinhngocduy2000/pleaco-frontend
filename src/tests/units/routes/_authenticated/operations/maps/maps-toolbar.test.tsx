@@ -15,7 +15,7 @@ const search = vi.hoisted(() => ({
 }))
 
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
-vi.mock('@/routes/_authenticated/operations/maps', () => ({
+vi.mock('@/routes/_authenticated/operations/maps/index', () => ({
   Route: { fullPath: '/operations/maps', useSearch: () => search },
 }))
 vi.mock('@/hooks/use-debounce', () => ({ useDebounce: (value: string) => value }))
