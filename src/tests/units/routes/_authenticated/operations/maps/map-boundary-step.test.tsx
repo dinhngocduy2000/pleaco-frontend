@@ -14,128 +14,131 @@ vi.mock('@/queries/use-maps-query', () => ({
   useCreateEnvironmentZonesMutation,
   useSaveMapBoundariesMutation,
 }))
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor', () => ({
-  MapBoundaryEditor: ({
-    activeZoneType,
-    canChange,
-    closed,
-    drafts,
-    interactive,
-    onChange,
-    onInvalid,
-    onSelectZone,
-    points,
-    zones,
-  }: {
-    activeZoneType: MapZoneType
-    canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
-    closed: boolean
-    drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
-    interactive: boolean
-    onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
-    onInvalid: () => void
-    onSelectZone: (clientId: string) => void
-    points: IMapBoundaryCoordinate[]
-    zones: { clientId: string }[]
-  }) => (
-    <div
-      data-testid="boundary-editor"
-      data-active-zone={activeZoneType}
-      data-closed={closed}
-      data-points={points.length}
-      data-zone-drafts={Object.values(drafts).filter((draft) => draft.points.length > 0).length}
-      data-zones={zones.length}
-    >
-      <span>{interactive ? 'Interactive editor' : 'Read-only editor'}</span>
-      <button
-        type="button"
-        onClick={() => {
-          const pointsByZoneType: Record<MapZoneType, IMapBoundaryCoordinate[]> = {
-            BOUNDARY: [
-              [1.234, 1.236],
-              [8.888, 1],
-              [4, 7.777],
-            ],
-            OBSTACLE: [
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-editor',
+  () => ({
+    MapBoundaryEditor: ({
+      activeZoneType,
+      canChange,
+      closed,
+      drafts,
+      interactive,
+      onChange,
+      onInvalid,
+      onSelectZone,
+      points,
+      zones,
+    }: {
+      activeZoneType: MapZoneType
+      canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
+      closed: boolean
+      drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
+      interactive: boolean
+      onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
+      onInvalid: () => void
+      onSelectZone: (clientId: string) => void
+      points: IMapBoundaryCoordinate[]
+      zones: { clientId: string }[]
+    }) => (
+      <div
+        data-testid="boundary-editor"
+        data-active-zone={activeZoneType}
+        data-closed={closed}
+        data-points={points.length}
+        data-zone-drafts={Object.values(drafts).filter((draft) => draft.points.length > 0).length}
+        data-zones={zones.length}
+      >
+        <span>{interactive ? 'Interactive editor' : 'Read-only editor'}</span>
+        <button
+          type="button"
+          onClick={() => {
+            const pointsByZoneType: Record<MapZoneType, IMapBoundaryCoordinate[]> = {
+              BOUNDARY: [
+                [1.234, 1.236],
+                [8.888, 1],
+                [4, 7.777],
+              ],
+              OBSTACLE: [
+                [3, 2],
+                [4, 2],
+                [3.5, 3],
+              ],
+              NO_GO: [
+                [5, 2],
+                [6, 2],
+                [5.5, 3],
+              ],
+              CLEANING_ZONE: [
+                [4, 4],
+                [5, 4],
+                [4.5, 5],
+              ],
+            }
+            const nextPoints = pointsByZoneType[activeZoneType]
+            if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
+            else onInvalid()
+          }}
+        >
+          Draw valid boundary
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            onChange(
+              [
+                [1, 1],
+                [8, 1],
+              ],
+              false,
+            )
+          }
+        >
+          Draw open polygon
+        </button>
+        <button type="button" onClick={onInvalid}>
+          Draw invalid boundary
+        </button>
+        <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
+          Select first zone
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            for (let index = 0; index < 101; index += 1) {
+              const x = 0.01 + index * 0.001
+              onChange(
+                [
+                  [x, 0.01],
+                  [x + 0.0005, 0.01],
+                  [x, 0.0105],
+                ],
+                true,
+              )
+            }
+          }}
+        >
+          Draw 101 zones
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const overlappingPoints: IMapBoundaryCoordinate[] = [
               [3, 2],
               [4, 2],
               [3.5, 3],
-            ],
-            NO_GO: [
-              [5, 2],
-              [6, 2],
-              [5.5, 3],
-            ],
-            CLEANING_ZONE: [
-              [4, 4],
-              [5, 4],
-              [4.5, 5],
-            ],
-          }
-          const nextPoints = pointsByZoneType[activeZoneType]
-          if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
-          else onInvalid()
-        }}
-      >
-        Draw valid boundary
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          onChange(
-            [
-              [1, 1],
-              [8, 1],
-            ],
-            false,
-          )
-        }
-      >
-        Draw open polygon
-      </button>
-      <button type="button" onClick={onInvalid}>
-        Draw invalid boundary
-      </button>
-      <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
-        Select first zone
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          for (let index = 0; index < 101; index += 1) {
-            const x = 0.01 + index * 0.001
-            onChange(
-              [
-                [x, 0.01],
-                [x + 0.0005, 0.01],
-                [x, 0.0105],
-              ],
-              true,
-            )
-          }
-        }}
-      >
-        Draw 101 zones
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          const overlappingPoints: IMapBoundaryCoordinate[] = [
-            [3, 2],
-            [4, 2],
-            [3.5, 3],
-          ]
-          if (!canChange || canChange(overlappingPoints, true)) onChange(overlappingPoints, true)
-          else onInvalid()
-        }}
-      >
-        Draw overlapping zone
-      </button>
-    </div>
-  ),
-}))
+            ]
+            if (!canChange || canChange(overlappingPoints, true)) onChange(overlappingPoints, true)
+            else onInvalid()
+          }}
+        >
+          Draw overlapping zone
+        </button>
+      </div>
+    ),
+  }),
+)
 
-import { MapBoundaryStep } from '@/routes/_authenticated/operations/components/maps/-map-boundary-step'
+import { MapBoundaryStep } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-step'
 
 const map = {
   id: 'map-123',

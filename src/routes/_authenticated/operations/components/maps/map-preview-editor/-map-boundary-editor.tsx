@@ -3,10 +3,10 @@ import { Circle, Layer, Line, Stage } from 'react-konva'
 import { Button } from '@/components/ui/button'
 import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
-import { flattenCanvasPoints, worldPointToCanvas } from './-map-boundary-geometry'
 import { MAP_CANVAS_PADDING, MapGridLayer } from './-map-grid-preview'
-import { type IMapZoneDrafts, type IMapZoneShape, MAP_ZONE_STYLES } from './-map-zone-types'
-import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './-use-map-boundary-editor'
+import { flattenCanvasPoints, worldPointToCanvas } from './utils/-map-boundary-geometry'
+import { type IMapZoneDrafts, type IMapZoneShape, MAP_ZONE_STYLES } from './utils/-map-zone-types'
+import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './utils/-use-map-boundary-editor'
 
 const VERTEX_RADIUS = 5
 const t = getTranslations()

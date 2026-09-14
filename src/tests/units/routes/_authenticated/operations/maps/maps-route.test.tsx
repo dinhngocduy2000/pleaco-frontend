@@ -7,10 +7,10 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     createFileRoute: () => (options: Record<string, unknown>) => options,
   }
 })
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-list-component', () => ({
+vi.mock('@/routes/_authenticated/operations/components/maps/list-maps/-map-list-component', () => ({
   MapsListComponent: () => null,
 }))
-vi.mock('@/routes/_authenticated/operations/components/maps/-maps-toolbar', () => ({
+vi.mock('@/routes/_authenticated/operations/components/maps/list-maps/-maps-toolbar', () => ({
   MapsToolbar: () => null,
 }))
 vi.mock('@/lib/translation', () => ({ getTranslations: () => ({ sidebar_maps: () => 'Maps' }) }))

@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
-import { useMapBoundaryEditor } from '@/routes/_authenticated/operations/components/maps/-use-map-boundary-editor'
+import { useMapBoundaryEditor } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-boundary-editor'
 
 const createKonvaEvent = (
   pointer: { x: number; y: number },

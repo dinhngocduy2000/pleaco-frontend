@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { MapZoneType } from '@/enum/maps'
-import { MapLayoutToolbar } from '@/routes/_authenticated/operations/components/maps/-map-layout-toolbar'
-import { MAP_ZONE_STYLES } from '@/routes/_authenticated/operations/components/maps/-map-zone-types'
+import { MapLayoutToolbar } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-layout-toolbar'
+import { MAP_ZONE_STYLES } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
 
 describe('MapLayoutToolbar', () => {
   it('defines the required boundary and zone color schemas', () => {

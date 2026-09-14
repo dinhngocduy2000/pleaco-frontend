@@ -7,8 +7,8 @@ import { TypographyH2, TypographyP, TypographySmall } from '@/components/ui/typo
 import { MapStatus } from '@/enum/maps'
 import type { IMapListInfo } from '@/interface/maps'
 import { getCurrentLanguage, getTranslations } from '@/lib/translation'
+import { MapGridPreview } from '../map-preview-editor/-map-grid-preview'
 import { MapActionsDropdown } from './-map-actions-dropdown'
-import { MapGridPreview } from './-map-grid-preview'
 
 dayjs.extend(relativeTime)
 

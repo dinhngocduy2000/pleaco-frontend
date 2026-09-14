@@ -55,9 +55,12 @@ vi.mock('@/components/reusable/app-dialog/app-dialog-component', () => ({
   default: ({ children, open }: React.PropsWithChildren<{ open: boolean }>) =>
     open ? <div>{children}</div> : null,
 }))
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-create-modal', () => ({
-  MapCreateModal: () => <div>Create map modal</div>,
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/create-map-modal/-map-create-modal',
+  () => ({
+    MapCreateModal: () => <div>Create map modal</div>,
+  }),
+)
 vi.mock('@/lib/translation', () => ({
   getTranslations: () => ({
     maps_filter_all: () => 'All',
@@ -73,7 +76,7 @@ vi.mock('@/lib/translation', () => ({
   }),
 }))
 
-import { MapsToolbar } from '@/routes/_authenticated/operations/components/maps/-maps-toolbar'
+import { MapsToolbar } from '@/routes/_authenticated/operations/components/maps/list-maps/-maps-toolbar'
 
 describe('MapsToolbar', () => {
   beforeEach(() => {

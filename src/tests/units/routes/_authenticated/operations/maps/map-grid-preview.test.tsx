@@ -37,7 +37,7 @@ vi.mock('react-konva', () => ({
 import {
   getMapGridPreviewGeometry,
   MapGridPreview,
-} from '@/routes/_authenticated/operations/components/maps/-map-grid-preview'
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-grid-preview'
 
 describe('getMapGridPreviewGeometry', () => {
   it('creates a 10-pixel grid for integer meter dimensions', () => {

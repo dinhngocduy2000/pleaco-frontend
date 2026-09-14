@@ -1,5 +1,5 @@
 import type { IMapDetailInfo } from '@/interface/maps'
-import { MapBoundaryEditor } from '../-map-boundary-editor'
+import { MapBoundaryEditor } from '../map-preview-editor/-map-boundary-editor'
 import { getBoundaryEditorPoints } from './-map-detail-utils'
 
 type MapDetailGridProps = {

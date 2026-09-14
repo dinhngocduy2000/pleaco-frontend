@@ -7,8 +7,8 @@ import {
   type MapStatusType,
 } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
-import { MapsListComponent } from '../components/maps/-map-list-component'
-import { MapsToolbar } from '../components/maps/-maps-toolbar'
+import { MapsListComponent } from '../components/maps/list-maps/-map-list-component'
+import { MapsToolbar } from '../components/maps/list-maps/-maps-toolbar'
 
 const parsePage = (value: unknown) => {
   const page = typeof value === 'number' ? value : Number(value)

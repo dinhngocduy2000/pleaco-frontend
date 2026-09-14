@@ -33,21 +33,24 @@ vi.mock('@/routes/_authenticated/operations/components/maps/detail/-map-detail-g
     </section>
   ),
 }))
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-step', () => ({
-  MapBoundaryStep: ({
-    map,
-    zones,
-  }: {
-    map: { geometry?: unknown; id: string }
-    zones?: { id: string }[]
-  }) => (
-    <div
-      data-editor-map={JSON.stringify(map)}
-      data-testid="map-boundary-step"
-      data-zones={zones?.map((zone) => zone.id).join(',')}
-    />
-  ),
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-step',
+  () => ({
+    MapBoundaryStep: ({
+      map,
+      zones,
+    }: {
+      map: { geometry?: unknown; id: string }
+      zones?: { id: string }[]
+    }) => (
+      <div
+        data-editor-map={JSON.stringify(map)}
+        data-testid="map-boundary-step"
+        data-zones={zones?.map((zone) => zone.id).join(',')}
+      />
+    ),
+  }),
+)
 
 import {
   getBoundaryEditorPoints,
