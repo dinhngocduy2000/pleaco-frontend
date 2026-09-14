@@ -12,10 +12,10 @@ import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useMapDetailQuery } from '@/queries/use-maps-query'
-import { MapBoundaryStep } from '@/routes/_authenticated/operations/components/maps/-map-boundary-step'
 import { MapDetailGrid } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-grid'
 import { MapDetailMetadataCard } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-metadata-card'
 import { MapDetailRobotsCard } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-robots-card'
+import { MapBoundaryStep } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-step'
 
 const t = getTranslations()
 

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { GeometryType } from '@/enum/maps'
 import type { Geometry } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
-import { flattenCanvasPoints, worldPointToCanvas } from './-map-boundary-geometry'
+import { flattenCanvasPoints, worldPointToCanvas } from './utils/-map-boundary-geometry'
 
 export const MAP_PIXELS_PER_METER = 10
 export const MAP_CANVAS_PADDING = 20

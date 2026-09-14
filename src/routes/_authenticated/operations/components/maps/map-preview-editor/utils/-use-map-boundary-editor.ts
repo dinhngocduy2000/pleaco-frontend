@@ -3,6 +3,11 @@ import type { KonvaEventObject } from 'konva/lib/Node'
 import { useRef, useState } from 'react'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 import {
+  getMapGridPreviewGeometry,
+  MAP_CANVAS_PADDING,
+  MAP_PIXELS_PER_METER,
+} from '../-map-grid-preview'
+import {
   clampCanvasPoint,
   getBoundaryPointUpdate,
   getMovedBoundaryPoints,
@@ -10,11 +15,6 @@ import {
   type MapCanvasPoint,
   worldPointToCanvas,
 } from './-map-boundary-geometry'
-import {
-  getMapGridPreviewGeometry,
-  MAP_CANVAS_PADDING,
-  MAP_PIXELS_PER_METER,
-} from './-map-grid-preview'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 3

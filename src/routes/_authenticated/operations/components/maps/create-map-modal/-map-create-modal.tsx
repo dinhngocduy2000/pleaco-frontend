@@ -25,8 +25,8 @@ import { useCreateMapMutation } from '@/queries/use-maps-query'
 import { useRobotsKeyValueQuery } from '@/queries/use-robots-query'
 import { useTagsQuery } from '@/queries/use-tags-query'
 import { createMapFormSchema } from '@/schemas/map-schemas'
-import { MapBoundaryStep } from './-map-boundary-step'
-import { MapGridPreview } from './-map-grid-preview'
+import { MapBoundaryStep } from '../map-preview-editor/-map-boundary-step'
+import { MapGridPreview } from '../map-preview-editor/-map-grid-preview'
 
 type MapCreateModalProps = {
   setOpen: Dispatch<SetStateAction<boolean>>

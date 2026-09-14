@@ -5,7 +5,7 @@ import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
 import { MapBoundaryEditor } from './-map-boundary-editor'
 import { MapLayoutToolbar } from './-map-layout-toolbar'
-import { type MapBoundaryStepProps, useBoundaryStep } from './-use-boundary-step'
+import { type MapBoundaryStepProps, useBoundaryStep } from './utils/-use-boundary-step'
 
 const t = getTranslations()
 
