@@ -376,6 +376,65 @@ describe('MapBoundaryStep', () => {
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '0')
   })
 
+  it('loads saved zones, validates against them, and includes their IDs in saves', async () => {
+    const user = userEvent.setup()
+    const savedZones = [
+      {
+        id: 'saved-obstacle',
+        type: 'OBSTACLE' as const,
+        geometry: {
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [3, 2],
+              [4, 2],
+              [3.5, 3],
+              [3, 2],
+            ],
+          ],
+        },
+      },
+    ]
+    render(<MapBoundaryStep map={map} mode="adjust" zones={savedZones} onClose={vi.fn()} />)
+
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
+    await user.click(screen.getByRole('button', { name: 'No-go' }))
+    await user.click(screen.getByRole('button', { name: 'Draw overlapping zone' }))
+    expect(screen.getByText('Zones cannot overlap or touch another zone.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Select' }))
+    await user.click(screen.getByRole('button', { name: 'Select first zone' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(createEnvironmentZones).toHaveBeenLastCalledWith({
+      map_id: map.id,
+      zones: [
+        {
+          id: 'saved-obstacle',
+          to_delete: false,
+          type: 'OBSTACLE',
+          geometry: savedZones[0].geometry,
+        },
+      ],
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Delete selected zone' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '0')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(createEnvironmentZones).toHaveBeenLastCalledWith({
+      map_id: map.id,
+      zones: [
+        {
+          id: 'saved-obstacle',
+          to_delete: true,
+          type: 'OBSTACLE',
+          geometry: savedZones[0].geometry,
+        },
+      ],
+    })
+  })
+
   it('saves every zone type without an unchanged boundary and omits editor-only IDs', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
@@ -392,6 +451,7 @@ describe('MapBoundaryStep', () => {
       map_id: map.id,
       zones: [
         {
+          to_delete: false,
           type: 'OBSTACLE',
           geometry: {
             type: GeometryType.POLYGON,
@@ -406,6 +466,7 @@ describe('MapBoundaryStep', () => {
           },
         },
         {
+          to_delete: false,
           type: 'NO_GO',
           geometry: {
             type: GeometryType.POLYGON,
@@ -420,6 +481,7 @@ describe('MapBoundaryStep', () => {
           },
         },
         {
+          to_delete: false,
           type: 'CLEANING_ZONE',
           geometry: {
             type: GeometryType.POLYGON,

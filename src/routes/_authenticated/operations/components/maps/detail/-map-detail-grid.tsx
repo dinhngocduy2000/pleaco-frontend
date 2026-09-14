@@ -25,6 +25,7 @@ export function MapDetailGrid({ map }: MapDetailGridProps) {
         showBoundary
         zones={map.zones.map((zone) => ({
           clientId: zone.id,
+          to_delete: false,
           zoneType: zone.type,
           geometry: zone.geometry,
         }))}

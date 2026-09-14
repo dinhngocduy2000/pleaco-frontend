@@ -1,12 +1,18 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, Map as MapIcon } from 'lucide-react'
+import { ArrowLeft, Map as MapIcon, ScanLine } from 'lucide-react'
+import { useState } from 'react'
+import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
+import { TypographyH3 } from '@/components/ui/typography'
+import { GroupRole } from '@/enum/group'
 import { MapOrderDirection } from '@/enum/maps'
+import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useMapDetailQuery } from '@/queries/use-maps-query'
+import { MapBoundaryStep } from '@/routes/_authenticated/operations/components/maps/-map-boundary-step'
 import { MapDetailGrid } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-grid'
 import { MapDetailMetadataCard } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-metadata-card'
 import { MapDetailRobotsCard } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-robots-card'
@@ -20,6 +26,8 @@ export const Route = createFileRoute('/_authenticated/operations/maps/$map_id')(
 function MapDetailPage() {
   const { map_id: mapId } = Route.useParams()
   const { data: profileResponse } = useProfileQuery()
+  const [adjustLayoutOpen, setAdjustLayoutOpen] = useState(false)
+  const [isSavingLayout, setIsSavingLayout] = useState(false)
   const {
     data: mapResponse,
     isError,
@@ -49,10 +57,28 @@ function MapDetailPage() {
     )
   }
 
+  const map = mapResponse.data
+  const canAdjustBoundary = hasRoleAccess(profileResponse?.data.group?.role, [
+    GroupRole.ADMIN,
+    GroupRole.OWNER,
+  ])
+  const boundaryEditorMap = {
+    id: map.id,
+    name: map.name,
+    dimension_x: map.dimension_x,
+    dimension_y: map.dimension_y,
+    geometry: map.boundary ?? undefined,
+  }
+
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <Button aria-label={t.map_detail_back_to_maps()} asChild size="icon" variant="ghost">
+      <div className="flex w-full items-center justify-between gap-3">
+        <Button
+          aria-label={t.map_detail_back_to_maps()}
+          size="icon"
+          variant="ghost"
+          className="w-fit"
+        >
           <Link
             search={{
               page: 1,
@@ -65,18 +91,43 @@ function MapDetailPage() {
           >
             <ArrowLeft aria-hidden="true" />
           </Link>
+          <TypographyH3 className="min-w-0 w-fit truncate font-bold">{map.name}</TypographyH3>
         </Button>
-        <h1 className="min-w-0 truncate text-2xl font-bold lg:text-3xl">
-          {mapResponse?.data.name}
-        </h1>
+        {canAdjustBoundary && (
+          <Button variant="outline" type="button" onClick={() => setAdjustLayoutOpen(true)}>
+            <ScanLine aria-hidden="true" />
+            {t.map_boundary_adjust_title()}
+          </Button>
+        )}
       </div>
       <div className="flex min-h-0 flex-1 flex-wrap items-stretch gap-4 overflow-y-auto pr-2">
-        <MapDetailGrid map={mapResponse?.data} />
+        <MapDetailGrid map={map} />
         <aside className="flex min-w-72 flex-1 basis-[calc((100%-1rem)/2)] flex-col gap-4">
-          <MapDetailMetadataCard map={mapResponse?.data} />
-          <MapDetailRobotsCard robots={mapResponse?.data.robots} />
+          <MapDetailMetadataCard map={map} />
+          <MapDetailRobotsCard robots={map.robots} />
         </aside>
       </div>
+      <AppDialogComponent
+        disableClickOverlay={isSavingLayout}
+        dialogProps={{
+          className:
+            'max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl p-0 sm:max-w-6xl md:w-[min(92vw,92rem)] lg:h-[85vh] lg:w-[50vw] lg:max-w-none',
+        }}
+        dialogTrigger={null}
+        footer={false}
+        header={false}
+        open={adjustLayoutOpen}
+        setOpen={setAdjustLayoutOpen}
+        title={t.map_boundary_adjust_title()}
+      >
+        <MapBoundaryStep
+          map={boundaryEditorMap}
+          mode="adjust"
+          zones={map.zones}
+          onClose={() => setAdjustLayoutOpen(false)}
+          onSavingChange={setIsSavingLayout}
+        />
+      </AppDialogComponent>
     </section>
   )
 }

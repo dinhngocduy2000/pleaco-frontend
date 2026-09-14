@@ -22,6 +22,7 @@ type UseMapZonesOptions = {
   boundaryEditable: boolean
   boundaryValid: boolean
   disabled: boolean
+  initialZones?: IMapZoneShape[]
   onBoundaryChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
   onBoundaryClear: () => void
   onBoundaryUndo: () => void
@@ -67,6 +68,7 @@ export function useMapZones({
   boundaryEditable,
   boundaryValid,
   disabled,
+  initialZones = [],
   onBoundaryChange,
   onBoundaryClear,
   onBoundaryUndo,
@@ -74,11 +76,12 @@ export function useMapZones({
   const nextId = useRef(1)
   const invalidReason = useRef<MapLayoutValidationError | undefined>(undefined)
   const [activeTool, setActiveTool] = useState<MapLayoutTool>(MapZoneType.BOUNDARY)
-  const [zones, setZones] = useState<IMapZoneShape[]>([])
+  const [zones, setZones] = useState<IMapZoneShape[]>(initialZones)
   const [drafts, setDrafts] = useState<IMapZoneDrafts>(createEmptyZoneDrafts)
   const [selectedZoneId, setSelectedZoneId] = useState<string>()
   const [validationError, setValidationError] = useState<MapLayoutValidationError>()
-  const selectedZone = zones.find((zone) => zone.clientId === selectedZoneId)
+  const visibleZones = zones.filter((zone) => !zone.to_delete)
+  const selectedZone = visibleZones.find((zone) => zone.clientId === selectedZoneId)
   const selectedZonePoints = geometryToPoints(selectedZone)
   const activeZoneType =
     activeTool === 'SELECT' ? (selectedZone?.zoneType ?? MapZoneType.BOUNDARY) : activeTool
@@ -101,7 +104,8 @@ export function useMapZones({
     activeTool === MapZoneType.BOUNDARY
       ? boundaryEditable && boundaryPoints.length > 0
       : isAreaZoneType(activeTool) &&
-        (drafts[activeTool].points.length > 0 || zones.some((zone) => zone.zoneType === activeTool))
+        (drafts[activeTool].points.length > 0 ||
+          visibleZones.some((zone) => zone.zoneType === activeTool))
   const activeCanClear =
     activeTool === MapZoneType.BOUNDARY
       ? boundaryEditable && boundaryPoints.length > 0
@@ -136,6 +140,7 @@ export function useMapZones({
       ...current,
       {
         clientId: `map-zone-${nextId.current++}`,
+        to_delete: false,
         zoneType,
         geometry: { type: GeometryType.POLYGON, coordinates: serializeBoundary(points) },
       },
@@ -181,7 +186,7 @@ export function useMapZones({
    * @returns Whether every current zone path is contained by the proposed boundary.
    */
   const zonesFitBoundary = (points: IMapBoundaryCoordinate[]) =>
-    zones.every((zone) => isPathContainedInBoundary(geometryToPoints(zone), points, true)) &&
+    visibleZones.every((zone) => isPathContainedInBoundary(geometryToPoints(zone), points, true)) &&
     Object.values(drafts).every((draft) => isPathContainedInBoundary(draft.points, points, false))
 
   /**
@@ -197,7 +202,7 @@ export function useMapZones({
     if (!isPathContainedInBoundary(points, boundaryPoints, closed)) return false
 
     const excludedZoneId = activeTool === 'SELECT' ? selectedZoneId : undefined
-    const otherZones = zones
+    const otherZones = visibleZones
       .filter((zone) => zone.clientId !== excludedZoneId)
       .map(geometryToPoints)
     if (!doesPathOverlapPolygons(points, closed, otherZones)) return true
@@ -231,13 +236,19 @@ export function useMapZones({
       }))
       return
     }
-    const latestIndex = zones.reduce(
+    const latestIndex = visibleZones.reduce(
       (latest, zone, index) => (zone.zoneType === zoneType ? index : latest),
       -1,
     )
     if (latestIndex < 0) return
-    const latestZone = zones[latestIndex]
-    setZones((current) => current.filter((_, index) => index !== latestIndex))
+    const latestZone = visibleZones[latestIndex]
+    setZones((current) =>
+      latestZone.id === undefined
+        ? current.filter((zone) => zone.clientId !== latestZone.clientId)
+        : current.map((zone) =>
+            zone.clientId === latestZone.clientId ? { ...zone, to_delete: true } : zone,
+          ),
+    )
     setDrafts((current) => ({ ...current, [zoneType]: { points: geometryToPoints(latestZone) } }))
     if (selectedZoneId === latestZone.clientId) setSelectedZoneId(undefined)
   }
@@ -285,7 +296,14 @@ export function useMapZones({
    */
   const handleDeleteSelectedZone = () => {
     if (!selectedZoneId) return
-    setZones((current) => current.filter((zone) => zone.clientId !== selectedZoneId))
+    setZones((current) => {
+      const selectedZone = current.find((zone) => zone.clientId === selectedZoneId)
+      if (!selectedZone?.id) return current.filter((zone) => zone.clientId !== selectedZoneId)
+
+      return current.map((zone) =>
+        zone.clientId === selectedZoneId ? { ...zone, to_delete: true } : zone,
+      )
+    })
     setSelectedZoneId(undefined)
   }
 
@@ -310,6 +328,7 @@ export function useMapZones({
     selectedZoneId,
     setSelectedZoneId,
     validationError,
+    visibleZones,
     zones,
   }
 }

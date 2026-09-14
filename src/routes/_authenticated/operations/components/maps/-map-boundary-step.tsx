@@ -11,6 +11,7 @@ const t = getTranslations()
 
 export function MapBoundaryStep({
   map,
+  zones,
   onClose,
   mode = 'create',
   onSavingChange,
@@ -32,7 +33,7 @@ export function MapBoundaryStep({
     validationMessage,
     zoneEditor,
     zoneToolsDisabled,
-  } = useBoundaryStep({ map, mode, onClose, onSavingChange })
+  } = useBoundaryStep({ map, zones, mode, onClose, onSavingChange })
 
   return (
     <div className="flex min-h-0 h-full flex-col">
@@ -80,7 +81,7 @@ export function MapBoundaryStep({
           points={zoneEditor.activePoints}
           selectedZoneId={zoneEditor.selectedZoneId}
           selectionMode={zoneEditor.activeTool === 'SELECT'}
-          zones={zoneEditor.zones}
+          zones={zoneEditor.visibleZones}
           onBackgroundClick={() => zoneEditor.setSelectedZoneId(undefined)}
           onChange={zoneEditor.handleActiveChange}
           onInvalid={zoneEditor.handleInvalid}

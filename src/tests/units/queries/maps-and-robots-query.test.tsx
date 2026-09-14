@@ -87,7 +87,7 @@ describe('maps and robots query hooks', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
   })
 
-  it('saves map boundaries and invalidates every map list', async () => {
+  it('saves map boundaries and invalidates map lists and the affected detail', async () => {
     mapApi.saveMapBoundariesApi.mockResolvedValue(undefined)
     const { client, wrapper } = createWrapper()
     const invalidate = vi.spyOn(client, 'invalidateQueries')
@@ -100,9 +100,10 @@ describe('maps and robots query hooks', () => {
 
     expect(mapApi.saveMapBoundariesApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1'] })
   })
 
-  it('creates environment zones and invalidates every map list', async () => {
+  it('creates environment zones and invalidates map lists and the affected detail', async () => {
     mapApi.createEnvironmentZonesApi.mockResolvedValue(undefined)
     const { client, wrapper } = createWrapper()
     const invalidate = vi.spyOn(client, 'invalidateQueries')
@@ -115,6 +116,7 @@ describe('maps and robots query hooks', () => {
 
     expect(mapApi.createEnvironmentZonesApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1'] })
   })
 
   it('fetches paginated robots and key-value options with cancellation signals', async () => {

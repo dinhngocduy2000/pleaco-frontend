@@ -2,7 +2,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test'
 import { GeometryType, MapBoundarySource } from '@/enum/maps'
 import type {
   ICreateEnvironmentZonesRequest,
-  IMapListInfo,
+  IMapDetailInfo,
   ISaveMapBoundaries,
 } from '@/interface/maps'
 import profileData from '../../data/profile.json' with { type: 'json' }
@@ -18,7 +18,7 @@ async function setup(
   const profile = structuredClone(profileData.activeOwnerUser)
   profile.data.group.role = role
   await setupAuthenticatedPage(page, profile)
-  const map: IMapListInfo = {
+  const map: IMapDetailInfo = {
     id: '00000000-0000-4000-8000-000000000001',
     name: 'Adjustment warehouse',
     description: null,
@@ -26,8 +26,9 @@ async function setup(
     tags: [],
     dimension_x: 20,
     dimension_y: 12,
+    created_at: '2026-09-05T00:00:00Z',
     updated_at: '2026-09-05T00:00:00Z',
-    geometry: {
+    boundary: {
       type: GeometryType.POLYGON,
       coordinates: [
         [
@@ -38,6 +39,8 @@ async function setup(
         ],
       ],
     },
+    robots: [],
+    zones: [],
   }
   const requests: ISaveMapBoundaries[] = []
   const zoneRequests: ICreateEnvironmentZonesRequest[] = []
@@ -49,7 +52,7 @@ async function setup(
   await page.route('**/api/v1/maps**', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
-        json: { items: [map], page: 1, page_size: 10, total: 1, message: 'OK', statusCode: 200 },
+        json: { data: map, message: 'OK', statusCode: 200 },
       })
     } else if (new URL(route.request().url()).pathname.endsWith('/boundary')) {
       const request = route.request().postDataJSON() as ISaveMapBoundaries
@@ -60,7 +63,7 @@ async function setup(
         await route.fulfill({ status: 422, json: { detail: 'Please retry boundary save.' } })
         return
       }
-      map.geometry = request.geometry ?? {
+      map.boundary = request.geometry ?? {
         type: GeometryType.POLYGON,
         coordinates: [
           [
@@ -87,18 +90,13 @@ async function setup(
       await route.fulfill({ status: 400 })
     }
   })
-  await page.goto('/operations/maps')
-  const card = page.getByRole('article', { name: map.name })
-  await expect(card).toBeVisible()
-  return { requests, zoneRequests, createRequests, requestOrder, card }
+  await page.goto(`/operations/maps/${map.id}`)
+  await expect(page.getByText('Map Details')).toBeVisible()
+  return { requests, zoneRequests, createRequests, requestOrder }
 }
 
 async function openEditor(page: Page) {
-  await page
-    .getByRole('article', { name: 'Adjustment warehouse' })
-    .getByRole('button', { name: 'Map options' })
-    .click()
-  await page.getByRole('menuitem', { name: 'Adjust layout' }).click()
+  await page.getByRole('button', { name: 'Adjust layout' }).click()
   const dialog = page
     .getByRole('dialog')
     .filter({ has: page.getByRole('heading', { name: 'Adjust layout' }) })
@@ -168,12 +166,8 @@ for (const role of ['admin', 'owner']) {
 
 for (const role of ['member', 'moderator', 'guest', '']) {
   test(`${role || 'unknown role'} cannot adjust boundaries`, async ({ page }) => {
-    const { card, requests } = await setup(page, role)
-    await card.getByRole('button', { name: 'Map options' }).click()
-    const action = page.getByRole('menuitem', { name: 'Adjust layout' })
-    await expect(action).toBeDisabled()
-    await page.keyboard.press('a')
-    await page.keyboard.press('Enter')
+    const { requests } = await setup(page, role)
+    await expect(page.getByRole('button', { name: 'Adjust layout' })).not.toBeVisible()
     await expect(page.getByRole('dialog')).not.toBeVisible()
     expect(requests).toEqual([])
   })

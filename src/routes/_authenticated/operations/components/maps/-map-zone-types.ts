@@ -47,6 +47,8 @@ export const MAP_ZONE_STYLES: Record<MapZoneType, IMapZoneStyle> = {
 
 export type IMapZoneShape = {
   clientId: string
+  id?: string
+  to_delete: boolean
   zoneType: Exclude<MapZoneType, MapZoneType.BOUNDARY>
   geometry: Geometry
 }

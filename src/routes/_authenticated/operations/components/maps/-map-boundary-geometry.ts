@@ -6,6 +6,11 @@ import type {
   IMapListInfo,
 } from '@/interface/maps'
 
+export type IMapBoundaryEditorMap = Pick<
+  IMapListInfo,
+  'id' | 'name' | 'dimension_x' | 'dimension_y' | 'geometry'
+>
+
 /** Tolerance for coordinate equality, collinearity, and degenerate polygon area checks. */
 const EPSILON = 1e-8
 
@@ -950,7 +955,7 @@ export const getFullMapBoundaries = (dimensionX: number, dimensionY: number): IM
  * ```
  */
 export function getInitialBoundary(
-  map: IMapListInfo,
+  map: IMapBoundaryEditorMap,
   mode: 'create' | 'adjust',
 ): InitialBoundaryState {
   const geometry = mode === 'adjust' ? map.geometry : undefined

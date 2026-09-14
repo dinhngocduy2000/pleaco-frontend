@@ -81,6 +81,9 @@ export const useSaveMapBoundariesMutation = ({
     mutationFn: saveMapBoundariesApi,
     onSuccess: async (data, variables) => {
       await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
+      await queryClient.invalidateQueries({
+        queryKey: [MAPS_ENDPOINTS.DETAIL, variables.map_id],
+      })
       onSuccess?.(data, variables)
     },
     onError,
@@ -99,6 +102,9 @@ export const useCreateEnvironmentZonesMutation = ({
     mutationFn: createEnvironmentZonesApi,
     onSuccess: async (data, variables) => {
       await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
+      await queryClient.invalidateQueries({
+        queryKey: [MAPS_ENDPOINTS.DETAIL, variables.map_id],
+      })
       onSuccess?.(data, variables)
     },
     onError,
