@@ -118,7 +118,7 @@ test('renders a tenant-scoped read-only map detail and refreshes after group swi
 
   await page.goto(MAP_DETAIL_URL)
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Warehouse — Floor 1' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 3, name: 'Warehouse — Floor 1' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Map boundary editor' })).toBeVisible()
   await expect(page.getByText('1 Obstacles')).toBeVisible()
   await expect(page.getByText('Atlas 01')).toBeVisible()
@@ -133,7 +133,7 @@ test('renders a tenant-scoped read-only map detail and refreshes after group swi
   await page.getByRole('option', { name: secondaryGroup.label }).click()
   await refreshedDetail
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Secondary Warehouse' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 3, name: 'Secondary Warehouse' })).toBeVisible()
   expect(detailRequests.length).toBeGreaterThanOrEqual(2)
   expect(detailRequests.every((request) => request.search === '')).toBe(true)
 })

@@ -91,7 +91,9 @@ function MapDetailPage() {
           >
             <ArrowLeft aria-hidden="true" />
           </Link>
-          <TypographyH3 className="min-w-0 w-fit truncate font-bold">{map.name}</TypographyH3>
+          <TypographyH3 role="heading" className="min-w-0 w-fit truncate font-bold">
+            {map.name}
+          </TypographyH3>
         </Button>
         {canAdjustBoundary && (
           <Button variant="outline" type="button" onClick={() => setAdjustLayoutOpen(true)}>
