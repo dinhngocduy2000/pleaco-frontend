@@ -34,6 +34,8 @@ export type Geometry = {
 }
 
 export type IEnvironmentZoneCreateItem = {
+  id?: string
+  to_delete: boolean
   type: Exclude<MapZoneType, MapZoneType.BOUNDARY>
   geometry: Geometry
 }

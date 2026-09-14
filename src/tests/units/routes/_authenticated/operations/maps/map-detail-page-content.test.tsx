@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { type ComponentType, type ReactNode, Suspense } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
@@ -30,6 +31,21 @@ vi.mock('@/routes/_authenticated/operations/components/maps/detail/-map-detail-g
     <section className="order-first" data-testid="map-detail-grid">
       {map.zones.length} zones
     </section>
+  ),
+}))
+vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-step', () => ({
+  MapBoundaryStep: ({
+    map,
+    zones,
+  }: {
+    map: { geometry?: unknown; id: string }
+    zones?: { id: string }[]
+  }) => (
+    <div
+      data-editor-map={JSON.stringify(map)}
+      data-testid="map-boundary-step"
+      data-zones={zones?.map((zone) => zone.id).join(',')}
+    />
   ),
 }))
 
@@ -133,7 +149,7 @@ describe('MapDetailPage', () => {
     await renderMapDetailPage()
 
     expect(useMapDetailQueryMock).toHaveBeenCalledWith('map-1', 'group-1')
-    expect(screen.getByRole('heading', { level: 1, name: map.name })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: map.name })).not.toHaveLength(0)
     expect(screen.getByText('Map Details')).toBeInTheDocument()
     expect(screen.getByText('24m × 18m')).toBeInTheDocument()
     expect(screen.getByText('1 Obstacles')).toBeInTheDocument()
@@ -147,6 +163,41 @@ describe('MapDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Edit Metadata' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Manage Robot Assignment' })).toBeInTheDocument()
   })
+
+  it.each(['admin', 'owner'])('allows %s to open the prefilled layout editor', async (role) => {
+    const user = userEvent.setup()
+    useProfileQueryMock.mockReturnValue({
+      data: { data: { group: { role }, group_id: 'group-1' } },
+    })
+
+    await renderMapDetailPage()
+    await user.click(screen.getByRole('button', { name: 'Adjust layout' }))
+
+    expect(screen.getByTestId('map-boundary-step')).toHaveAttribute(
+      'data-editor-map',
+      JSON.stringify({
+        id: map.id,
+        name: map.name,
+        dimension_x: map.dimension_x,
+        dimension_y: map.dimension_y,
+        geometry: map.boundary,
+      }),
+    )
+    expect(screen.getByTestId('map-boundary-step')).toHaveAttribute('data-zones', 'zone-1,zone-2')
+  })
+
+  it.each(['member', 'moderator', 'guest', undefined])(
+    'does not show the adjustment control for %s',
+    async (role) => {
+      useProfileQueryMock.mockReturnValue({
+        data: { data: { group: { role }, group_id: 'group-1' } },
+      })
+
+      await renderMapDetailPage()
+
+      expect(screen.queryByRole('button', { name: 'Adjust layout' })).not.toBeInTheDocument()
+    },
+  )
 
   it('renders a dedicated failure state', async () => {
     useMapDetailQueryMock.mockReturnValue({ data: undefined, isError: true, isLoading: false })

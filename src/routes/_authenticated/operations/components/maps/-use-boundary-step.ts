@@ -4,7 +4,7 @@ import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
 import type {
   Geometry,
   IMapBoundaryCoordinate,
-  IMapListInfo,
+  IMapDetailZoneInfo,
   ISaveMapBoundaries,
 } from '@/interface/maps'
 import type { IAxiosError, IOption } from '@/interface/utils'
@@ -16,6 +16,7 @@ import {
 import {
   getFullMapBoundaries,
   getInitialBoundary,
+  type IMapBoundaryEditorMap,
   type InitialBoundaryState,
   isValidBoundaryPolygon,
   serializeBoundary,
@@ -26,7 +27,8 @@ const t = getTranslations()
 const MAX_ENVIRONMENT_ZONES_PER_REQUEST = 100
 
 export type MapBoundaryStepProps = {
-  map: IMapListInfo
+  map: IMapBoundaryEditorMap
+  zones?: IMapDetailZoneInfo[]
   onClose: () => void
   mode?: 'create' | 'adjust'
   onSavingChange?: (saving: boolean) => void
@@ -78,7 +80,7 @@ const createBoundaryRequest = (
  * @returns A normalized, explicitly closed polygon geometry.
  */
 const createBoundaryGeometry = (
-  map: IMapListInfo,
+  map: IMapBoundaryEditorMap,
   method: MapBoundarySource,
   points: IMapBoundaryCoordinate[],
 ): Geometry => ({
@@ -111,6 +113,7 @@ const boundaryGeometriesEqual = (initialGeometry: Geometry, currentGeometry: Geo
  */
 export function useBoundaryStep({
   map,
+  zones,
   mode = 'create',
   onClose,
   onSavingChange,
@@ -156,6 +159,13 @@ export function useBoundaryStep({
     boundaryEditable: isCustom,
     boundaryValid: boundaryIsValid,
     disabled: isSaving || initial.unsupported,
+    initialZones: (zones ?? []).map((zone) => ({
+      clientId: zone.id,
+      id: zone.id,
+      to_delete: false,
+      zoneType: zone.type,
+      geometry: zone.geometry,
+    })),
     onBoundaryChange: (nextPoints, nextClosed) => {
       setPoints(nextPoints)
       setClosed(nextClosed)
@@ -187,7 +197,7 @@ export function useBoundaryStep({
       toast.error(t.map_layout_open_polygon_error())
       return
     }
-    if (zoneEditor.zones.length > MAX_ENVIRONMENT_ZONES_PER_REQUEST) {
+    if (zoneEditor.visibleZones.length > MAX_ENVIRONMENT_ZONES_PER_REQUEST) {
       toast.error(t.map_layout_zone_limit_error({ count: MAX_ENVIRONMENT_ZONES_PER_REQUEST }))
       return
     }
@@ -202,13 +212,14 @@ export function useBoundaryStep({
       if (mode === 'create' || boundaryWasEdited) {
         await saveMapBoundaries(createBoundaryRequest(map.id, method, points))
       }
-      if (mode === 'adjust' && zoneEditor.zones.length > 0) {
+      if (mode === 'adjust' && (zones !== undefined || zoneEditor.zones.length > 0)) {
         await createEnvironmentZones({
           map_id: map.id,
-          zones: zoneEditor.zones.map(({ zoneType, geometry }) => ({
-            type: zoneType,
-            geometry,
-          })),
+          zones: zoneEditor.zones.map(({ id, to_delete, zoneType, geometry }) =>
+            id === undefined
+              ? { to_delete, type: zoneType, geometry }
+              : { id, to_delete, type: zoneType, geometry },
+          ),
         })
       }
       setIsSaving(false)
