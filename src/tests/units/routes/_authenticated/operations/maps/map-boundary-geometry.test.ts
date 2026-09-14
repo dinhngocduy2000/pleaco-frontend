@@ -21,7 +21,7 @@ import {
   isValidBoundaryPolygon,
   serializeBoundary,
   worldPointToCanvas,
-} from '@/routes/_authenticated/operations/components/maps/-map-boundary-geometry'
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-boundary-geometry'
 
 describe('map boundary geometry', () => {
   it('converts between bottom-left world coordinates and canvas coordinates at any zoom', () => {

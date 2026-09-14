@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { MapZoneType } from '@/enum/maps'
-import { useMapZones } from '@/routes/_authenticated/operations/components/maps/-use-map-zones'
+import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-zones'
 
 const boundary: [number, number][] = [
   [0, 0],

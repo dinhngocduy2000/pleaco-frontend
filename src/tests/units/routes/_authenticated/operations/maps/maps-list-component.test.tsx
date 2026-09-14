@@ -35,9 +35,12 @@ vi.mock('@/components/reusable/pagination/app-pagination', () => ({
     </button>
   ),
 }))
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-card-item-component', () => ({
-  MapCardItemComponent: ({ map }: { map: { name: string } }) => <article>{map.name}</article>,
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/list-maps/-map-card-item-component',
+  () => ({
+    MapCardItemComponent: ({ map }: { map: { name: string } }) => <article>{map.name}</article>,
+  }),
+)
 vi.mock('@/lib/translation', () => ({
   getTranslations: () => ({
     maps_loading: () => 'Loading maps',
@@ -47,7 +50,7 @@ vi.mock('@/lib/translation', () => ({
   }),
 }))
 
-import { MapsListComponent } from '@/routes/_authenticated/operations/components/maps/-map-list-component'
+import { MapsListComponent } from '@/routes/_authenticated/operations/components/maps/list-maps/-map-list-component'
 
 describe('MapsListComponent', () => {
   beforeEach(() => {

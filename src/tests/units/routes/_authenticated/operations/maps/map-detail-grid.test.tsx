@@ -4,12 +4,15 @@ import { GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
 
 const editor = vi.hoisted(() => vi.fn())
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-editor', () => ({
-  MapBoundaryEditor: (props: unknown) => {
-    editor(props)
-    return <div data-testid="map-boundary-editor" />
-  },
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-editor',
+  () => ({
+    MapBoundaryEditor: (props: unknown) => {
+      editor(props)
+      return <div data-testid="map-boundary-editor" />
+    },
+  }),
+)
 
 import { MapDetailGrid } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-grid'
 

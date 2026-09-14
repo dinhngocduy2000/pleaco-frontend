@@ -7,28 +7,31 @@ import type { Geometry, IMapListInfo } from '@/interface/maps'
 const navigate = vi.hoisted(() => vi.fn())
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
 
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-grid-preview', () => ({
-  MapGridPreview: ({
-    dimensionX,
-    dimensionY,
-    geometry,
-  }: {
-    dimensionX: number
-    dimensionY: number
-    geometry?: Geometry
-  }) => (
-    <div
-      data-dimensions={`${dimensionX}x${dimensionY}`}
-      data-geometry={JSON.stringify(geometry)}
-      data-testid="map-grid-preview"
-    />
-  ),
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-grid-preview',
+  () => ({
+    MapGridPreview: ({
+      dimensionX,
+      dimensionY,
+      geometry,
+    }: {
+      dimensionX: number
+      dimensionY: number
+      geometry?: Geometry
+    }) => (
+      <div
+        data-dimensions={`${dimensionX}x${dimensionY}`}
+        data-geometry={JSON.stringify(geometry)}
+        data-testid="map-grid-preview"
+      />
+    ),
+  }),
+)
 
 import {
   formatMapUpdatedAt,
   MapCardItemComponent,
-} from '@/routes/_authenticated/operations/components/maps/-map-card-item-component'
+} from '@/routes/_authenticated/operations/components/maps/list-maps/-map-card-item-component'
 
 const map: IMapListInfo = {
   id: '00000000-0000-4000-8000-000000000001',

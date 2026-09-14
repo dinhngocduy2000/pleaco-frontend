@@ -15,16 +15,19 @@ vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery }))
 vi.mock('@/queries/use-tags-query', () => ({ useTagsQuery }))
 vi.mock('@/queries/use-robots-query', () => ({ useRobotsKeyValueQuery }))
 vi.mock('@/queries/use-maps-query', () => ({ useCreateMapMutation }))
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-boundary-step', () => ({
-  MapBoundaryStep: ({ onClose }: { onClose: () => void }) => (
-    <div>
-      <h2>Set travel boundary</h2>
-      <button type="button" onClick={onClose}>
-        Maybe later
-      </button>
-    </div>
-  ),
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-step',
+  () => ({
+    MapBoundaryStep: ({ onClose }: { onClose: () => void }) => (
+      <div>
+        <h2>Set travel boundary</h2>
+        <button type="button" onClick={onClose}>
+          Maybe later
+        </button>
+      </div>
+    ),
+  }),
+)
 vi.mock('react-konva', () => ({
   Circle: () => null,
   Layer: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -33,7 +36,7 @@ vi.mock('react-konva', () => ({
   Stage: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 
-import { MapCreateModal } from '@/routes/_authenticated/operations/components/maps/-map-create-modal'
+import { MapCreateModal } from '@/routes/_authenticated/operations/components/maps/create-map-modal/-map-create-modal'
 
 const setOpen = vi.fn() as Dispatch<SetStateAction<boolean>>
 const createdMap = {

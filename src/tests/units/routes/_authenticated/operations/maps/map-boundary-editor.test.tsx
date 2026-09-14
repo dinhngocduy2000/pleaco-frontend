@@ -15,13 +15,19 @@ const handlers = vi.hoisted(() => ({
   handleZoomOut: vi.fn(),
 }))
 
-vi.mock('@/routes/_authenticated/operations/components/maps/-use-map-boundary-editor', () => ({
-  useMapBoundaryEditor,
-}))
-vi.mock('@/routes/_authenticated/operations/components/maps/-map-grid-preview', () => ({
-  MAP_CANVAS_PADDING: 20,
-  MapGridLayer: () => <div data-testid="map-grid-layer" />,
-}))
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-boundary-editor',
+  () => ({
+    useMapBoundaryEditor,
+  }),
+)
+vi.mock(
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-grid-preview',
+  () => ({
+    MAP_CANVAS_PADDING: 20,
+    MapGridLayer: () => <div data-testid="map-grid-layer" />,
+  }),
+)
 vi.mock('react-konva', () => ({
   Circle: ({
     draggable,
@@ -107,7 +113,7 @@ vi.mock('react-konva', () => ({
   ),
 }))
 
-import { MapBoundaryEditor } from '@/routes/_authenticated/operations/components/maps/-map-boundary-editor'
+import { MapBoundaryEditor } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-editor'
 
 const defaultProps = {
   dimensionX: 20,
