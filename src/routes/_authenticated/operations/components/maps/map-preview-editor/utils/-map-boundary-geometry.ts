@@ -73,7 +73,7 @@ const hasDuplicateCoordinates = (points: IMapBoundaryCoordinate[]) =>
  * Calculates the signed turn formed by three ordered coordinates.
  *
  * @param pathStart - Coordinate where the path enters the turn.
- * @param turnVertex - Shared vertex where the direction may change.
+ * @param turnPoint - Shared coordinate where the direction may change.
  * @param pathEnd - Coordinate where the path exits the turn.
  * @returns Positive for clockwise, negative for counterclockwise, or zero for collinear points.
  *
@@ -87,11 +87,11 @@ const hasDuplicateCoordinates = (points: IMapBoundaryCoordinate[]) =>
  */
 const orientation = (
   pathStart: IMapBoundaryCoordinate,
-  turnVertex: IMapBoundaryCoordinate,
+  turnPoint: IMapBoundaryCoordinate,
   pathEnd: IMapBoundaryCoordinate,
 ) =>
-  (turnVertex[1] - pathStart[1]) * (pathEnd[0] - turnVertex[0]) -
-  (turnVertex[0] - pathStart[0]) * (pathEnd[1] - turnVertex[1])
+  (turnPoint[1] - pathStart[1]) * (pathEnd[0] - turnPoint[0]) -
+  (turnPoint[0] - pathStart[0]) * (pathEnd[1] - turnPoint[1])
 
 /**
  * Checks inclusive segment bounds with tolerance. The caller must establish collinearity.
