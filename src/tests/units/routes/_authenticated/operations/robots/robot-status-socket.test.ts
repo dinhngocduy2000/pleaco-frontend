@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS, RobotModel } from '@/enum/robot'
-import { applyRobotStatusEvent } from '@/hooks/use-robot-status-websocket'
+import { applyRobotStatusEvent } from '@/hooks/use-robot-status-socket'
 
 describe('applyRobotStatusEvent', () => {
   it('patches only the robot matched by UUID in the robot list cache', () => {
@@ -39,14 +39,11 @@ describe('applyRobotStatusEvent', () => {
     })
 
     applyRobotStatusEvent(queryClient, {
-      type: 'robot.status.changed',
-      data: {
-        robot_id: 'robot-b',
-        ip_address: '192.168.1.31',
-        connection_status: ROBOT_CONNECTION_STATUS.ONLINE,
-        operational_status: ROBOT_OPERATION_STATUS.CHARGING,
-        last_seen_at: '2026-08-24T07:20:00Z',
-      },
+      robot_id: 'robot-b',
+      ip_address: '192.168.1.31',
+      connection_status: ROBOT_CONNECTION_STATUS.ONLINE,
+      operational_status: ROBOT_OPERATION_STATUS.CHARGING,
+      last_seen_at: '2026-08-24T07:20:00Z',
     })
 
     const state = queryClient.getQueryData<{

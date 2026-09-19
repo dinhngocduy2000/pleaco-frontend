@@ -6,14 +6,15 @@ const navigate = vi.hoisted(() => vi.fn())
 const profile = vi.hoisted(() => ({
   data: undefined as { data: { group_id?: string } } | undefined,
   isLoading: false,
+  isSuccess: true,
 }))
 const robots = vi.hoisted(() => ({
   data: undefined as { items: { id: string; name: string }[]; total: number } | undefined,
   isError: false,
   isLoading: false,
 }))
-const websocket = vi.hoisted(() => vi.fn())
 const useRobotsQuery = vi.hoisted(() => vi.fn(() => robots))
+const useRobotStatusSocket = vi.hoisted(() => vi.fn())
 
 vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigate }))
 vi.mock('@/routes/_authenticated/operations/robots', () => ({
@@ -21,7 +22,7 @@ vi.mock('@/routes/_authenticated/operations/robots', () => ({
 }))
 vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: () => profile }))
 vi.mock('@/queries/use-robots-query', () => ({ useRobotsQuery }))
-vi.mock('@/hooks/use-robot-status-websocket', () => ({ useRobotStatusWebSocket: websocket }))
+vi.mock('@/hooks/use-robot-status-socket', () => ({ useRobotStatusSocket }))
 vi.mock('@/components/reusable/pagination/app-pagination', () => ({
   AppPagination: ({ onPageChange }: { onPageChange: (page: number) => void }) => (
     <button onClick={() => onPageChange(3)} type="button">
@@ -49,6 +50,7 @@ describe('RobotsList', () => {
     vi.clearAllMocks()
     profile.data = { data: { group_id: 'group-1' } }
     profile.isLoading = false
+    profile.isSuccess = true
     robots.data = { items: [{ id: 'robot-1', name: 'Milo' }], total: 30 }
     robots.isError = false
     robots.isLoading = false
@@ -62,7 +64,10 @@ describe('RobotsList', () => {
       enabled: true,
       params: { group_id: 'group-1', page: 2, page_size: 10, search: 'milo' },
     })
-    expect(websocket).toHaveBeenCalledWith(true)
+    expect(useRobotStatusSocket).toHaveBeenCalledWith({
+      activeGroupId: 'group-1',
+      enabled: true,
+    })
     expect(screen.getByText('Milo')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Page 3' }))
@@ -75,7 +80,7 @@ describe('RobotsList', () => {
     render(<RobotsList />)
 
     expect(screen.getByText('No active group')).toBeInTheDocument()
-    expect(websocket).toHaveBeenCalledWith(false)
+    expect(useRobotStatusSocket).toHaveBeenCalledWith({ activeGroupId: '', enabled: true })
   })
 
   it('renders a loading state before profile or robot data is ready', () => {
