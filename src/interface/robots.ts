@@ -34,6 +34,14 @@ export type IRobotInfo = {
   tags: ITagInfo[]
 }
 
+export type IRobotStatus = Pick<
+  IRobotInfo,
+  'ip_address' | 'connection_status' | 'operational_status'
+> & {
+  robot_id: string
+  last_seen_at: string
+}
+
 export type IRobotKeyValue = {
   serial_num: string
 } & IOption
