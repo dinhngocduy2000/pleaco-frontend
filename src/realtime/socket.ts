@@ -11,6 +11,11 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(rea
   path: '/api/v1/ws',
   withCredentials: true,
   autoConnect: false,
+  reconnection: true,
+  reconnectionAttempts: Number.POSITIVE_INFINITY,
+  reconnectionDelay: 1_000,
+  reconnectionDelayMax: 30_000,
+  randomizationFactor: 0,
 })
 
 export const connectRealtime = () => {
