@@ -292,5 +292,8 @@
   "robots_empty": "No robots found.",
   "robots_empty_description": "Try adjusting your filters or create a new robot.",
   "map_boundary_adjust_title": "Adjust layout",
-  "map_boundary_adjust_unsupported": "This saved boundary cannot be edited. Only a valid single polygon within the map is supported."
+  "map_boundary_adjust_unsupported": "This saved boundary cannot be edited. Only a valid single polygon within the map is supported.",
+  "map_layout_conflicts_error": "Resolve the highlighted zone conflicts before saving.",
+  "map_layout_warning_overlap": "This zone overlaps or touches another zone.",
+  "map_layout_warning_boundary": "This zone is outside the closed map boundary."
 }

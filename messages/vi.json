@@ -292,5 +292,8 @@
   "robots_empty": "Không tìm thấy robot.",
   "robots_empty_description": "Thử điều chỉnh bộ lọc hoặc tạo robot mới.",
   "map_boundary_adjust_title": "Điều chỉnh bố trí",
-  "map_boundary_adjust_unsupported": "Không thể chỉnh sửa ranh giới đã lưu. Chỉ hỗ trợ một đa giác hợp lệ nằm trong bản đồ."
+  "map_boundary_adjust_unsupported": "Không thể chỉnh sửa ranh giới đã lưu. Chỉ hỗ trợ một đa giác hợp lệ nằm trong bản đồ.",
+  "map_layout_conflicts_error": "Hãy xử lý các xung đột vùng được đánh dấu trước khi lưu.",
+  "map_layout_warning_overlap": "Vùng này chồng lấn hoặc tiếp xúc với một vùng khác.",
+  "map_layout_warning_boundary": "Vùng này nằm ngoài đường biên bản đồ đã khép kín."
 }

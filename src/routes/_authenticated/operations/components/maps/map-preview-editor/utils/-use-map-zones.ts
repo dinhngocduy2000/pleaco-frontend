@@ -6,12 +6,9 @@ import {
   isPathContainedInBoundary,
   serializeBoundary,
 } from './-map-boundary-geometry'
-import {
-  createEmptyZoneDrafts,
-  type IMapZoneDrafts,
-  type IMapZoneShape,
-  type MapLayoutTool,
-} from './-map-zone-types'
+import { getLayoutIssues } from './-map-layout-issues'
+import type { IMapZoneShape, MapLayoutTool } from './-map-zone-types'
+import { useEditHistory } from './-use-edit-history'
 
 export type MapLayoutValidationError = 'BOUNDARY_INVALID' | 'ZONE_INVALID' | 'ZONE_OVERLAP'
 
@@ -20,6 +17,8 @@ type UseMapZonesOptions = {
   boundaryPoints: IMapBoundaryCoordinate[]
   boundaryClosed: boolean
   boundaryEditable: boolean
+  boundaryCanUndo: boolean
+  boundaryCanClear: boolean
   boundaryValid: boolean
   disabled: boolean
   initialZones?: IMapZoneShape[]
@@ -67,6 +66,8 @@ export function useMapZones({
   boundaryClosed,
   boundaryEditable,
   boundaryValid,
+  boundaryCanUndo,
+  boundaryCanClear,
   disabled,
   initialZones = [],
   onBoundaryChange,
@@ -76,8 +77,21 @@ export function useMapZones({
   const nextId = useRef(1)
   const invalidReason = useRef<MapLayoutValidationError | undefined>(undefined)
   const [activeTool, setActiveTool] = useState<MapLayoutTool>(MapZoneType.BOUNDARY)
-  const [zones, setZones] = useState<IMapZoneShape[]>(initialZones)
-  const [drafts, setDrafts] = useState<IMapZoneDrafts>(createEmptyZoneDrafts)
+  const initialType = (type: IMapZoneShape['zoneType']) => ({
+    zones: initialZones.filter((zone) => zone.zoneType === type),
+    draft: { points: [] as IMapBoundaryCoordinate[] },
+  })
+  const histories = {
+    [MapZoneType.OBSTACLE]: useEditHistory(initialType(MapZoneType.OBSTACLE)),
+    [MapZoneType.NO_GO]: useEditHistory(initialType(MapZoneType.NO_GO)),
+    [MapZoneType.CLEANING_ZONE]: useEditHistory(initialType(MapZoneType.CLEANING_ZONE)),
+  }
+  const zones = Object.values(histories).flatMap((history) => history.value.zones)
+  const drafts = {
+    [MapZoneType.OBSTACLE]: histories.OBSTACLE.value.draft,
+    [MapZoneType.NO_GO]: histories.NO_GO.value.draft,
+    [MapZoneType.CLEANING_ZONE]: histories.CLEANING_ZONE.value.draft,
+  }
   const [selectedZoneId, setSelectedZoneId] = useState<string>()
   const [validationError, setValidationError] = useState<MapLayoutValidationError>()
   const visibleZones = zones.filter((zone) => !zone.to_delete)
@@ -101,15 +115,16 @@ export function useMapZones({
         ? Boolean(selectedZone)
         : boundaryValid)
   const activeCanUndo =
-    activeTool === MapZoneType.BOUNDARY
-      ? boundaryEditable && boundaryPoints.length > 0
-      : isAreaZoneType(activeTool) &&
-        (drafts[activeTool].points.length > 0 ||
-          visibleZones.some((zone) => zone.zoneType === activeTool))
+    !disabled &&
+    (activeTool === MapZoneType.BOUNDARY
+      ? boundaryCanUndo
+      : isAreaZoneType(activeTool) && histories[activeTool].canUndo)
   const activeCanClear =
-    activeTool === MapZoneType.BOUNDARY
-      ? boundaryEditable && boundaryPoints.length > 0
-      : isAreaZoneType(activeTool) && drafts[activeTool].points.length > 0
+    !disabled &&
+    (activeTool === MapZoneType.BOUNDARY
+      ? boundaryCanClear
+      : isAreaZoneType(activeTool) && histories[activeTool].canClear)
+  const issues = getLayoutIssues(visibleZones, drafts, boundaryPoints, boundaryClosed)
   const hasOpenPolygon = Object.values(drafts).some((draft) => draft.points.length > 0)
 
   /**
@@ -132,20 +147,24 @@ export function useMapZones({
     points: IMapBoundaryCoordinate[],
     closed: boolean,
   ) => {
+    const history = histories[zoneType]
     if (!closed) {
-      setDrafts((current) => ({ ...current, [zoneType]: { points } }))
+      history.change((current) => ({ ...current, draft: { points } }))
       return
     }
-    setZones((current) => [
-      ...current,
-      {
-        clientId: `map-zone-${nextId.current++}`,
-        to_delete: false,
-        zoneType,
-        geometry: { type: GeometryType.POLYGON, coordinates: serializeBoundary(points) },
-      },
-    ])
-    setDrafts((current) => ({ ...current, [zoneType]: { points: [] } }))
+    const clientId = `map-zone-${nextId.current++}`
+    history.change((current) => ({
+      zones: [
+        ...current.zones,
+        {
+          clientId,
+          to_delete: false,
+          zoneType,
+          geometry: { type: GeometryType.POLYGON, coordinates: serializeBoundary(points) },
+        },
+      ],
+      draft: { points: [] },
+    }))
   }
 
   /**
@@ -155,14 +174,16 @@ export function useMapZones({
    * @returns Nothing; leaves state unchanged when no zone is selected.
    */
   const handleSelectedZoneChange = (points: IMapBoundaryCoordinate[]) => {
-    if (!selectedZoneId) return
-    setZones((current) =>
-      current.map((zone) =>
+    if (!selectedZone) return
+    const history = histories[selectedZone.zoneType]
+    history.change({
+      ...history.value,
+      zones: history.value.zones.map((zone) =>
         zone.clientId === selectedZoneId
           ? { ...zone, geometry: { ...zone.geometry, coordinates: serializeBoundary(points) } }
           : zone,
       ),
-    )
+    })
   }
 
   /**
@@ -173,6 +194,7 @@ export function useMapZones({
    * @returns Nothing; updates the state owned by the active tool.
    */
   const handleActiveChange = (points: IMapBoundaryCoordinate[], closed: boolean) => {
+    if (disabled) return
     clearValidationError()
     if (activeTool === MapZoneType.BOUNDARY) onBoundaryChange(points, closed)
     else if (activeTool === 'SELECT') handleSelectedZoneChange(points)
@@ -222,59 +244,22 @@ export function useMapZones({
     invalidReason.current = undefined
   }
 
-  /**
-   * Removes the latest draft point or reopens the latest completed zone of a type.
-   *
-   * @param zoneType - Non-boundary zone type whose latest change should be undone.
-   * @returns Nothing; leaves state unchanged when the type has no draft or completed zone.
-   */
-  const handleUndoZone = (zoneType: IMapZoneShape['zoneType']) => {
-    if (drafts[zoneType].points.length > 0) {
-      setDrafts((current) => ({
-        ...current,
-        [zoneType]: { points: current[zoneType].points.slice(0, -1) },
-      }))
-      return
-    }
-    const latestIndex = visibleZones.reduce(
-      (latest, zone, index) => (zone.zoneType === zoneType ? index : latest),
-      -1,
-    )
-    if (latestIndex < 0) return
-    const latestZone = visibleZones[latestIndex]
-    setZones((current) =>
-      latestZone.id === undefined
-        ? current.filter((zone) => zone.clientId !== latestZone.clientId)
-        : current.map((zone) =>
-            zone.clientId === latestZone.clientId ? { ...zone, to_delete: true } : zone,
-          ),
-    )
-    setDrafts((current) => ({ ...current, [zoneType]: { points: geometryToPoints(latestZone) } }))
-    if (selectedZoneId === latestZone.clientId) setSelectedZoneId(undefined)
-  }
-
-  /**
-   * Undoes the latest operation for the active drawing tool.
-   *
-   * @returns Nothing; delegates to boundary undo or updates zone state.
-   */
+  /** Restores one accepted edit for the active type, never crossing its baseline. */
   const handleUndo = () => {
+    if (!activeCanUndo) return
     clearValidationError()
+    setSelectedZoneId(undefined)
     if (activeTool === MapZoneType.BOUNDARY) onBoundaryUndo()
-    else if (isAreaZoneType(activeTool)) handleUndoZone(activeTool)
+    else if (isAreaZoneType(activeTool)) histories[activeTool].undo()
   }
 
-  /**
-   * Clears the boundary or draft associated with the active drawing tool.
-   *
-   * @returns Nothing; delegates to boundary clearing or clears an active zone draft.
-   */
+  /** Discards all unsaved edits for the active type. */
   const handleClear = () => {
+    if (!activeCanClear) return
     clearValidationError()
+    setSelectedZoneId(undefined)
     if (activeTool === MapZoneType.BOUNDARY) onBoundaryClear()
-    else if (isAreaZoneType(activeTool)) {
-      setDrafts((current) => ({ ...current, [activeTool]: { points: [] } }))
-    }
+    else if (isAreaZoneType(activeTool)) histories[activeTool].clear()
   }
 
   /**
@@ -295,19 +280,22 @@ export function useMapZones({
    * @returns Nothing; updates completed-zone and selection state.
    */
   const handleDeleteSelectedZone = () => {
-    if (!selectedZoneId) return
-    setZones((current) => {
-      const selectedZone = current.find((zone) => zone.clientId === selectedZoneId)
-      if (!selectedZone?.id) return current.filter((zone) => zone.clientId !== selectedZoneId)
-
-      return current.map((zone) =>
-        zone.clientId === selectedZoneId ? { ...zone, to_delete: true } : zone,
-      )
+    if (disabled || !selectedZone) return
+    const history = histories[selectedZone.zoneType]
+    history.change({
+      ...history.value,
+      zones:
+        selectedZone.id === undefined
+          ? history.value.zones.filter((zone) => zone.clientId !== selectedZoneId)
+          : history.value.zones.map((zone) =>
+              zone.clientId === selectedZoneId ? { ...zone, to_delete: true } : zone,
+            ),
     })
     setSelectedZoneId(undefined)
   }
 
   return {
+    issues,
     activeCanClear,
     activeCanUndo,
     activeClosed,
