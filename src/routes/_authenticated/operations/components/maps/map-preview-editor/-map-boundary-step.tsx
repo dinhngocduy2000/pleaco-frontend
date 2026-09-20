@@ -78,6 +78,7 @@ export function MapBoundaryStep({
           dimensionY={map.dimension_y}
           drafts={zoneEditor.drafts}
           interactive={zoneEditor.activeInteractive}
+          issues={zoneEditor.issues}
           points={zoneEditor.activePoints}
           selectedZoneId={zoneEditor.selectedZoneId}
           selectionMode={zoneEditor.activeTool === 'SELECT'}
@@ -109,7 +110,11 @@ export function MapBoundaryStep({
                   : t.map_layout_zone_instructions()}
             </p>
             <p aria-live="polite" className="text-sm text-destructive">
-              {unsupported ? t.map_boundary_adjust_unsupported() : validationMessage}
+              {unsupported
+                ? t.map_boundary_adjust_unsupported()
+                : zoneEditor.issues.length > 0
+                  ? t.map_layout_conflicts_error()
+                  : validationMessage}
             </p>
             {zoneEditor.activeTool !== 'SELECT' && zoneEditor.activePoints.length > 0 && (
               <>

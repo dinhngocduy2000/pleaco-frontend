@@ -21,6 +21,7 @@ import {
   isValidBoundaryPolygon,
   serializeBoundary,
 } from './-map-boundary-geometry'
+import { useEditHistory } from './-use-edit-history'
 import { type MapLayoutValidationError, useMapZones } from './-use-map-zones'
 
 const t = getTranslations()
@@ -119,10 +120,13 @@ export function useBoundaryStep({
   onSavingChange,
 }: MapBoundaryStepProps) {
   const [initial] = useState<InitialBoundaryState>(() => getInitialBoundary(map, mode))
-  const [method, setMethod] = useState<MapBoundarySource>(initial.method)
-  const [points, setPoints] = useState<IMapBoundaryCoordinate[]>(initial.points)
-  const [closed, setClosed] = useState<boolean>(initial.closed)
-  const [initialBoundaryGeometry] = useState<Geometry>(() =>
+  const boundaryHistory = useEditHistory({
+    method: initial.method,
+    points: initial.points,
+    closed: initial.closed,
+  })
+  const { method, points, closed } = boundaryHistory.value
+  const [initialBoundaryGeometry, setInitialBoundaryGeometry] = useState<Geometry>(() =>
     createBoundaryGeometry(map, initial.method, initial.points),
   )
   const [isSaving, setIsSaving] = useState(false)
@@ -166,33 +170,33 @@ export function useBoundaryStep({
       zoneType: zone.type,
       geometry: zone.geometry,
     })),
+    boundaryCanUndo: boundaryHistory.canUndo,
+    boundaryCanClear: boundaryHistory.canClear,
     onBoundaryChange: (nextPoints, nextClosed) => {
-      setPoints(nextPoints)
-      setClosed(nextClosed)
+      boundaryHistory.change({ method, points: nextPoints, closed: nextClosed })
     },
-    onBoundaryClear: () => {
-      setPoints([])
-      setClosed(false)
-    },
-    onBoundaryUndo: () => {
-      if (closed) setClosed(false)
-      else setPoints((current) => current.slice(0, -1))
-    },
+    onBoundaryClear: boundaryHistory.clear,
+    onBoundaryUndo: boundaryHistory.undo,
   })
   const hasOpenPolygon = (isCustom && points.length > 0 && !closed) || zoneEditor.hasOpenPolygon
 
   const handleMethodChange = (option: IOption | undefined) => {
     if (!option || option.disabled) return
-    setMethod(option.value as MapBoundarySource)
+    const nextMethod = option.value as MapBoundarySource
+    boundaryHistory.change({
+      method: nextMethod,
+      points: nextMethod === MapBoundarySource.CUSTOM ? points : [],
+      closed: nextMethod === MapBoundarySource.CUSTOM ? closed : false,
+    })
     zoneEditor.clearValidationError()
-    if (option.value !== MapBoundarySource.CUSTOM) {
-      setPoints([])
-      setClosed(false)
-    }
   }
 
   const handleSave = async () => {
     if (isSaving || initial.unsupported || (isCustom && points.length === 0)) return
+    if (zoneEditor.issues.length > 0) {
+      toast.error(t.map_layout_conflicts_error())
+      return
+    }
     if (hasOpenPolygon) {
       toast.error(t.map_layout_open_polygon_error())
       return
@@ -211,6 +215,8 @@ export function useBoundaryStep({
       )
       if (mode === 'create' || boundaryWasEdited) {
         await saveMapBoundaries(createBoundaryRequest(map.id, method, points))
+        boundaryHistory.commit()
+        setInitialBoundaryGeometry(currentBoundaryGeometry)
       }
       if (mode === 'adjust' && (zones !== undefined || zoneEditor.zones.length > 0)) {
         await createEnvironmentZones({
@@ -248,10 +254,15 @@ export function useBoundaryStep({
     isCustom,
     isSaving,
     methodOptions,
-    saveDisabled: isSaving || initial.unsupported || (isCustom && points.length === 0),
+    saveDisabled:
+      isSaving ||
+      initial.unsupported ||
+      zoneEditor.issues.length > 0 ||
+      (isCustom && points.length === 0),
     selectedMethod,
     showDrawingActions:
-      (mode === 'create' && isCustom) || (mode === 'adjust' && zoneEditor.activeTool !== 'SELECT'),
+      (mode === 'create' && (isCustom || boundaryHistory.canUndo || boundaryHistory.canClear)) ||
+      (mode === 'adjust' && zoneEditor.activeTool !== 'SELECT'),
     toolbarDisabled: isSaving || initial.unsupported,
     unsupported: initial.unsupported,
     validationMessage: getValidationMessage(zoneEditor.validationError),

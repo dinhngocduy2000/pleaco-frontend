@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { MouseEventHandler, ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapZoneType } from '@/enum/maps'
 
 const useMapBoundaryEditor = vi.hoisted(() => vi.fn())
@@ -136,14 +137,23 @@ const editorState = {
   canZoomIn: true,
   canZoomOut: true,
   extension: undefined,
-  geometry: { stageHeight: 160, stageWidth: 240 },
+  geometry: { stageHeight: 160, stageWidth: 240, mapWidth: 200 },
   ...handlers,
   scale: 1,
 }
 
 describe('MapBoundaryEditor', () => {
+  afterEach(() => vi.unstubAllGlobals())
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    )
     useMapBoundaryEditor.mockReturnValue(editorState)
   })
 
@@ -286,6 +296,7 @@ describe('MapBoundaryEditor', () => {
         zones={[
           {
             clientId: 'zone-1',
+            to_delete: false,
             zoneType: MapZoneType.NO_GO,
             geometry: {
               type: GeometryType.POLYGON,
@@ -317,5 +328,38 @@ describe('MapBoundaryEditor', () => {
         .getAllByTestId('boundary-line')
         .some((line) => line.getAttribute('data-dash') === '[8,6]'),
     ).toBe(true)
+  })
+  it('shows accessible conflict tooltips and positions markers with canvas zoom', async () => {
+    const user = userEvent.setup()
+    const issues = [
+      {
+        key: 'saved',
+        points: [
+          [1, 1],
+          [4, 1],
+          [2, 4],
+        ] as [number, number][],
+        overlap: true,
+        outsideBoundary: true,
+      },
+    ]
+    const { rerender } = render(<MapBoundaryEditor {...defaultProps} issues={issues} />)
+    const marker = screen.getByRole('button', { name: /This zone overlaps/ })
+    expect(marker).toHaveStyle({ left: '64px', top: '88px' })
+    await user.hover(marker)
+    fireEvent.focus(marker)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'This zone is outside the closed map boundary.',
+    )
+    expect(handlers.handleStageClick).not.toHaveBeenCalled()
+    useMapBoundaryEditor.mockReturnValue({
+      ...editorState,
+      scale: 2,
+      geometry: { stageHeight: 280, stageWidth: 440, mapWidth: 400 },
+    })
+    rerender(<MapBoundaryEditor {...defaultProps} issues={issues} />)
+    expect(marker).toHaveStyle({ left: '104px', top: '168px' })
+    rerender(<MapBoundaryEditor {...defaultProps} issues={[]} />)
+    expect(screen.queryByRole('button', { name: /This zone overlaps/ })).not.toBeInTheDocument()
   })
 })
