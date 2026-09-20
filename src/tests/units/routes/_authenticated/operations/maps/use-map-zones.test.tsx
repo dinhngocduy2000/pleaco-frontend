@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MapZoneType } from '@/enum/maps'
+import { GeometryType, MapZoneType } from '@/enum/maps'
+import type { IMapZoneShape } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
 import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-zones'
 
 const boundary: [number, number][] = [
@@ -28,6 +29,8 @@ const renderMapZones = (overrides: Partial<Parameters<typeof useMapZones>[0]> = 
     boundaryClosed: true,
     boundaryEditable: true,
     boundaryValid: true,
+    boundaryCanUndo: true,
+    boundaryCanClear: true,
     disabled: false,
     onBoundaryChange: vi.fn(),
     onBoundaryClear: vi.fn(),
@@ -82,6 +85,7 @@ describe('useMapZones', () => {
   it('reopens the latest polygon on undo and supports selection updates and deletion', () => {
     const { result } = renderMapZones()
     act(() => result.current.handleToolChange(MapZoneType.CLEANING_ZONE))
+    act(() => result.current.handleActiveChange(firstTriangle, false))
     act(() => result.current.handleActiveChange(firstTriangle, true))
 
     act(() => result.current.handleUndo())
@@ -138,5 +142,133 @@ describe('useMapZones', () => {
       result.current.handleInvalid()
     })
     expect(result.current.validationError).toBe('BOUNDARY_INVALID')
+  })
+  it('protects saved zones and restores moves and deletions with their backend IDs', () => {
+    const saved: IMapZoneShape = {
+      clientId: 'saved',
+      id: 'saved',
+      to_delete: false,
+      zoneType: MapZoneType.OBSTACLE,
+      geometry: { type: GeometryType.POLYGON, coordinates: [[...firstTriangle, firstTriangle[0]]] },
+    }
+    const { result, rerender } = renderMapZones({ initialZones: [saved] })
+    act(() => result.current.handleToolChange(MapZoneType.OBSTACLE))
+    expect(result.current.activeCanUndo).toBe(false)
+    expect(result.current.activeCanClear).toBe(false)
+    act(() => {
+      result.current.handleUndo()
+      result.current.handleClear()
+    })
+    expect(result.current.zones).toEqual([saved])
+    act(() => result.current.handleToolChange('SELECT'))
+    act(() => result.current.setSelectedZoneId('saved'))
+    act(() => result.current.handleActiveChange(secondTriangle, true))
+    act(() => result.current.handleDeleteSelectedZone())
+    act(() => result.current.handleToolChange(MapZoneType.OBSTACLE))
+    rerender()
+    act(() => result.current.handleUndo())
+    expect(result.current.visibleZones[0].geometry.coordinates[0]).toEqual([
+      ...secondTriangle,
+      secondTriangle[0],
+    ])
+    act(() => result.current.handleUndo())
+    expect(result.current.zones).toEqual([saved])
+    expect(result.current.activeCanUndo).toBe(false)
+    expect(result.current.activeCanClear).toBe(false)
+  })
+
+  it('clears only the active type, including completed zones, drafts, moves, and deletions', () => {
+    const saved: IMapZoneShape = {
+      clientId: 'saved',
+      id: 'saved',
+      to_delete: false,
+      zoneType: MapZoneType.OBSTACLE,
+      geometry: { type: GeometryType.POLYGON, coordinates: [[...firstTriangle, firstTriangle[0]]] },
+    }
+    const { result } = renderMapZones({ initialZones: [saved] })
+    act(() => result.current.handleToolChange('SELECT'))
+    act(() => result.current.setSelectedZoneId('saved'))
+    act(() => result.current.handleActiveChange(secondTriangle, true))
+    act(() => result.current.handleDeleteSelectedZone())
+    act(() => result.current.handleToolChange(MapZoneType.NO_GO))
+    act(() => result.current.handleActiveChange(secondTriangle, true))
+    act(() => result.current.handleToolChange(MapZoneType.OBSTACLE))
+    act(() => result.current.handleActiveChange(firstTriangle, true))
+    act(() => result.current.handleActiveChange([[9, 9]], false))
+    act(() => result.current.handleClear())
+    expect(result.current.zones.find((zone) => zone.id === 'saved')).toEqual(saved)
+    expect(result.current.zones).toHaveLength(2)
+    expect(result.current.drafts.OBSTACLE.points).toEqual([])
+    expect(result.current.activeCanUndo).toBe(false)
+    expect(result.current.activeCanClear).toBe(false)
+    act(() => result.current.handleToolChange(MapZoneType.NO_GO))
+    expect(result.current.activeCanUndo).toBe(true)
+  })
+
+  it('allows conflicting restores, flags both zones, and removes issues when resolved', () => {
+    const saved: IMapZoneShape = {
+      clientId: 'saved',
+      id: 'saved',
+      to_delete: false,
+      zoneType: MapZoneType.OBSTACLE,
+      geometry: { type: GeometryType.POLYGON, coordinates: [[...firstTriangle, firstTriangle[0]]] },
+    }
+    const { result } = renderMapZones({ initialZones: [saved] })
+    act(() => result.current.handleToolChange('SELECT'))
+    act(() => result.current.setSelectedZoneId('saved'))
+    act(() => result.current.handleDeleteSelectedZone())
+    act(() => result.current.handleToolChange(MapZoneType.CLEANING_ZONE))
+    act(() => result.current.handleActiveChange(firstTriangle, true))
+    expect(result.current.issues).toEqual([])
+    act(() => result.current.handleToolChange(MapZoneType.OBSTACLE))
+    act(() => result.current.handleClear())
+    expect(result.current.issues).toHaveLength(2)
+    expect(result.current.issues.every((issue) => issue.overlap)).toBe(true)
+    act(() => result.current.handleToolChange(MapZoneType.CLEANING_ZONE))
+    act(() => result.current.handleClear())
+    expect(result.current.issues).toEqual([])
+  })
+
+  it('records point edits and closure individually, ignoring unchanged drafts', () => {
+    const { result } = renderMapZones()
+    act(() => result.current.handleToolChange(MapZoneType.NO_GO))
+    for (let count = 1; count <= 3; count++) {
+      act(() => result.current.handleActiveChange(firstTriangle.slice(0, count), false))
+    }
+    act(() => result.current.handleActiveChange(firstTriangle, false))
+    act(() => result.current.handleActiveChange(firstTriangle, true))
+    act(() => result.current.handleUndo())
+    expect(result.current.drafts.NO_GO.points).toEqual(firstTriangle)
+    expect(result.current.visibleZones).toEqual([])
+    for (let count = 2; count >= 0; count--) {
+      act(() => result.current.handleUndo())
+      expect(result.current.drafts.NO_GO.points).toHaveLength(count)
+    }
+    expect(result.current.activeCanUndo).toBe(false)
+  })
+  it('flags drafts and zones outside a restored boundary, excluding deleted zones', () => {
+    const saved: IMapZoneShape = {
+      clientId: 'saved',
+      id: 'saved',
+      to_delete: false,
+      zoneType: MapZoneType.OBSTACLE,
+      geometry: {
+        type: GeometryType.POLYGON,
+        coordinates: [[...secondTriangle, secondTriangle[0]]],
+      },
+    }
+    const { result } = renderMapZones({ initialZones: [saved], boundaryPoints: firstTriangle })
+    expect(result.current.issues).toEqual([
+      expect.objectContaining({ key: 'saved', outsideBoundary: true }),
+    ])
+    act(() => result.current.handleToolChange(MapZoneType.NO_GO))
+    act(() => result.current.handleActiveChange([[9, 9]], false))
+    expect(result.current.issues).toHaveLength(2)
+    act(() => result.current.handleToolChange('SELECT'))
+    act(() => result.current.setSelectedZoneId('saved'))
+    act(() => result.current.handleDeleteSelectedZone())
+    expect(result.current.issues).toEqual([
+      expect.objectContaining({ key: 'draft-NO_GO', outsideBoundary: true }),
+    ])
   })
 })

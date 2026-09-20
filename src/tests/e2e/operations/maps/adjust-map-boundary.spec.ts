@@ -178,8 +178,8 @@ test('cancel discards edits; full-map replacement survives a failed save and ret
 }) => {
   const { requests, createRequests } = await setup(page, 'owner', true)
   let dialog = await openEditor(page)
-  await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
-  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
+  await moveSavedBoundaryVertex(page, dialog)
+  await expect(dialog.getByRole('button', { name: 'Clear', exact: true })).toBeEnabled()
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   dialog = await openEditor(page)
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
@@ -349,4 +349,55 @@ test('preserves an open zone draft and blocks the boundary request until it is c
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog).not.toBeVisible()
   expect(requests).toHaveLength(0)
+})
+
+test('restored zone conflicts show tooltips that follow zoom and scrolling', async ({ page }) => {
+  await setup(page, 'owner')
+  const dialog = await openEditor(page)
+  await expect(dialog.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Clear', exact: true })).toBeDisabled()
+  await drawObstacleZone(page, dialog)
+  const region = dialog.getByRole('region', { name: 'Map boundary editor' })
+  // Konva exposes its drawing surface through canvases, not individual DOM shapes.
+  const canvas = region.locator('canvas').last()
+  await dialog.getByRole('button', { name: 'Select', exact: true }).click()
+  await clickCanvasPoint(page, canvas, 80, 100)
+  await dialog.getByRole('button', { name: 'Delete selected zone' }).click()
+  await dialog.getByRole('button', { name: 'Cleaning zone', exact: true }).click()
+  await clickCanvasPoint(page, canvas, 60, 110)
+  await clickCanvasPoint(page, canvas, 100, 110)
+  await clickCanvasPoint(page, canvas, 80, 80)
+  await clickCanvasPoint(page, canvas, 68, 110)
+  await dialog.getByRole('button', { name: 'Obstacle', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Undo', exact: true }).click()
+  const warnings = dialog.getByRole('button', {
+    name: 'This zone overlaps or touches another zone.',
+  })
+  await expect(warnings).toHaveCount(2)
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
+  // Identical restored polygons have identical anchors; the topmost marker remains focusable.
+  const marker = warnings.last()
+  await marker.focus()
+  await expect(page.getByRole('tooltip')).toHaveText('This zone overlaps or touches another zone.')
+  await dialog.getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await expect(marker).toHaveCSS('left', '144px')
+  await page.setViewportSize({ width: 640, height: 900 })
+  await dialog.getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await expect(marker).toHaveCSS('left', '264px')
+  await region.evaluate((element) => {
+    element.scrollLeft = 0
+  })
+  const beforeScroll = await marker.boundingBox()
+  await region.evaluate((element) => {
+    element.scrollLeft = 40
+  })
+  await expect.poll(async () => (await marker.boundingBox())?.x).toBe((beforeScroll?.x ?? 0) - 40)
+  await marker.hover()
+  await expect(page.getByRole('tooltip')).toBeVisible()
+  await page.screenshot({ path: '/tmp/pleco-history-conflicts.png' })
+  await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
+  await expect(warnings).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
 })

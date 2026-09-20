@@ -1,8 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapBoundarySource, type MapZoneType } from '@/enum/maps'
-import type { IMapBoundaryCoordinate } from '@/interface/maps'
+import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
+import type { IMapBoundaryCoordinate, IMapDetailZoneInfo } from '@/interface/maps'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
 const createEnvironmentZones = vi.hoisted(() => vi.fn())
@@ -105,12 +105,12 @@ vi.mock(
           type="button"
           onClick={() => {
             for (let index = 0; index < 101; index += 1) {
-              const x = 0.01 + index * 0.001
+              const x = 0.1 + index * 0.05
               onChange(
                 [
                   [x, 0.01],
-                  [x + 0.0005, 0.01],
-                  [x, 0.0105],
+                  [x + 0.02, 0.01],
+                  [x, 0.03],
                 ],
                 true,
               )
@@ -381,10 +381,10 @@ describe('MapBoundaryStep', () => {
 
   it('loads saved zones, validates against them, and includes their IDs in saves', async () => {
     const user = userEvent.setup()
-    const savedZones = [
+    const savedZones: IMapDetailZoneInfo[] = [
       {
         id: 'saved-obstacle',
-        type: 'OBSTACLE' as const,
+        type: MapZoneType.OBSTACLE,
         geometry: {
           type: GeometryType.POLYGON,
           coordinates: [
@@ -587,10 +587,14 @@ describe('MapBoundaryStep', () => {
 
     await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
     await user.click(screen.getByRole('button', { name: 'Undo' }))
-    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '3')
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '0')
     expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-closed', 'false')
     await user.click(screen.getByRole('button', { name: 'Clear' }))
-    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '0')
+    expect(screen.getByRole('combobox', { name: 'Boundary method' })).toHaveTextContent(
+      'Use full map area',
+    )
+    await user.click(screen.getByRole('combobox', { name: 'Boundary method' }))
+    await user.click(screen.getByRole('option', { name: 'Draw a custom boundary' }))
 
     await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
     await user.click(screen.getByRole('combobox', { name: 'Boundary method' }))
@@ -705,5 +709,79 @@ describe('MapBoundaryStep', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(toast.error).toHaveBeenCalledWith('Unable to save the layout. Please try again.')
+  })
+  it('protects the loaded boundary and restores method changes and geometry', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={{ ...map, geometry }} mode="adjust" onClose={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled()
+    await user.click(screen.getByRole('combobox', { name: 'Boundary method' }))
+    await user.click(screen.getByRole('option', { name: 'Use full map area' }))
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-points', '3')
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-closed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+  })
+
+  it('advances the saved boundary baseline when the subsequent zone save fails', async () => {
+    const user = userEvent.setup()
+    createEnvironmentZones.mockRejectedValueOnce(new Error('Unavailable'))
+    render(
+      <MapBoundaryStep map={{ ...map, geometry }} zones={[]} mode="adjust" onClose={vi.fn()} />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(saveMapBoundaries).toHaveBeenCalledOnce()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Boundary' }))
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(saveMapBoundaries).toHaveBeenCalledOnce()
+    expect(createEnvironmentZones).toHaveBeenCalledTimes(2)
+  })
+  it('blocks saving conflicts introduced by restoring a saved zone', async () => {
+    const user = userEvent.setup()
+    const savedZones: IMapDetailZoneInfo[] = [
+      {
+        id: 'saved',
+        type: MapZoneType.OBSTACLE,
+        geometry: {
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [4, 4],
+              [5, 4],
+              [4.5, 5],
+              [4, 4],
+            ],
+          ] as IMapBoundaryCoordinate[][],
+        },
+      },
+    ]
+    render(<MapBoundaryStep map={map} zones={savedZones} mode="adjust" onClose={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'Select' }))
+    await user.click(screen.getByRole('button', { name: 'Select first zone' }))
+    await user.click(screen.getByRole('button', { name: 'Delete selected zone' }))
+    await user.click(screen.getByRole('button', { name: 'Cleaning zone' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    expect(
+      screen.getByText('Resolve the highlighted zone conflicts before saving.'),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(createEnvironmentZones).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Cleaning zone' }))
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   })
 })
