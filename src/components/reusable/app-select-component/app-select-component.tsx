@@ -222,17 +222,17 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-(--radix-popover-trigger-width) min-h-0 overflow-auto p-0"
+        className="w-(--radix-popover-trigger-width) overflow-hidden p-0"
         align="start"
       >
         <Command
           shouldFilter={!onSearchChange}
           value={!multiple && !props.multiple ? (props.value?.label ?? '') : ''}
           onValueChange={() => {}}
-          className="min-h-0 overflow-auto"
+          className="h-auto max-h-(--radix-popover-content-available-height)"
         >
           {searchable && (
-            <div className="flex h-9 items-center gap-2 border-b px-3">
+            <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
               <SearchIcon className="size-4 shrink-0 opacity-50" />
               <CommandPrimitive.Input
                 placeholder={searchPlaceholder}
@@ -243,9 +243,14 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
               />
             </div>
           )}
-          <CommandList ref={listRef}>
+          <CommandList
+            ref={listRef}
+            className="min-h-0 overscroll-contain"
+            onWheel={(event) => event.stopPropagation()}
+            onTouchMove={(event) => event.stopPropagation()}
+          >
             <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup className="**:[[cmdk-group-items]]:space-y-1 overflow-auto min-h-0">
+            <CommandGroup className="**:[[cmdk-group-items]]:space-y-1">
               {options.map((option) => {
                 const selected = isSelected(option)
                 return (
