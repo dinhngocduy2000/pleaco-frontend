@@ -77,6 +77,72 @@ describe('useMapBoundaryEditor', () => {
     expect(onBackgroundClick).toHaveBeenCalledOnce()
   })
 
+  it('previews and commits a centered fixed-size square in world coordinates', () => {
+    const onChange = vi.fn()
+    const canChange = vi.fn(() => true)
+    const { result } = renderHook(() =>
+      useMapBoundaryEditor({
+        ...defaultParams,
+        fixedPlacementSize: 10,
+        onChange,
+        canChange,
+      }),
+    )
+    const centerEvent = createKonvaEvent({ x: 70, y: 70 })
+
+    act(() => result.current.handleStageMouseMove(centerEvent as never))
+    expect(result.current.placementPreview).toEqual([
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [0, 10],
+    ])
+
+    act(() => result.current.handleStageClick(centerEvent as never))
+    expect(canChange).toHaveBeenCalledWith(result.current.placementPreview, true)
+    expect(onChange).toHaveBeenCalledWith(result.current.placementPreview, true)
+
+    act(() => result.current.handleZoomIn())
+    act(() => result.current.handleStageMouseMove(createKonvaEvent({ x: 95, y: 95 }) as never))
+    expect(result.current.placementPreview).toEqual([
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [0, 10],
+    ])
+
+    act(() => result.current.handleStageMouseLeave())
+    expect(result.current.placementPreview).toBeUndefined()
+  })
+
+  it('keeps an invalid fixed-placement preview but rejects its click', () => {
+    const onChange = vi.fn()
+    const onInvalid = vi.fn()
+    const { result } = renderHook(() =>
+      useMapBoundaryEditor({
+        ...defaultParams,
+        fixedPlacementSize: 10,
+        onChange,
+        onInvalid,
+        canChange: () => false,
+      }),
+    )
+    const edgeEvent = createKonvaEvent({ x: 40, y: 100 })
+
+    act(() => result.current.handleStageMouseMove(edgeEvent as never))
+    expect(result.current.placementPreview).toEqual([
+      [-3, -3],
+      [7, -3],
+      [7, 7],
+      [-3, 7],
+    ])
+    act(() => result.current.handleStageClick(edgeEvent as never))
+
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onInvalid).toHaveBeenCalledOnce()
+    expect(result.current.placementPreview).toBeDefined()
+  })
+
   it('creates a new point by dragging from the active endpoint and suppresses its click', () => {
     const onChange = vi.fn()
     const { result } = renderHook(() =>

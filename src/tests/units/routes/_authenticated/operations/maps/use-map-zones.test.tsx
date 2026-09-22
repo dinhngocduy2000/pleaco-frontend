@@ -1,7 +1,10 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapZoneType } from '@/enum/maps'
-import type { IMapZoneShape } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
+import {
+  DOCKING_STATION_TOOL,
+  type IMapZoneShape,
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
 import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-zones'
 
 const boundary: [number, number][] = [
@@ -142,6 +145,61 @@ describe('useMapZones', () => {
       result.current.handleInvalid()
     })
     expect(result.current.validationError).toBe('BOUNDARY_INVALID')
+  })
+
+  it('stores multiple immutable docking stations in local history and validates them as zones', () => {
+    const largeBoundary: [number, number][] = [
+      [0, 0],
+      [30, 0],
+      [30, 30],
+      [0, 30],
+    ]
+    const firstStation: [number, number][] = [
+      [1, 1],
+      [11, 1],
+      [11, 11],
+      [1, 11],
+    ]
+    const secondStation: [number, number][] = [
+      [15, 15],
+      [25, 15],
+      [25, 25],
+      [15, 25],
+    ]
+    const { result } = renderMapZones({ boundaryPoints: largeBoundary })
+
+    act(() => result.current.handleToolChange(DOCKING_STATION_TOOL))
+    act(() => result.current.handleActiveChange(firstStation, true))
+    act(() => result.current.handleActiveChange(secondStation, true))
+
+    expect(result.current.dockingStations).toHaveLength(2)
+    expect(result.current.visibleLayoutShapes).toHaveLength(2)
+    expect(result.current.visibleZones).toEqual([])
+    expect(result.current.activeCanUndo).toBe(true)
+
+    act(() => result.current.handleUndo())
+    expect(result.current.dockingStations).toHaveLength(1)
+    act(() => result.current.handleActiveChange(secondStation, true))
+
+    act(() => result.current.handleToolChange(MapZoneType.OBSTACLE))
+    expect(result.current.canChangeActive(firstStation, true)).toBe(false)
+    act(() => result.current.handleToolChange(MapZoneType.BOUNDARY))
+    expect(result.current.canChangeActive(boundary, true)).toBe(false)
+
+    const stationId = result.current.dockingStations[0].clientId
+    act(() => result.current.handleToolChange('SELECT'))
+    act(() => result.current.setSelectedZoneId(stationId))
+    expect(result.current.activePoints).toEqual([])
+    expect(result.current.activeInteractive).toBe(true)
+    act(() => result.current.handleActiveChange(secondTriangle, true))
+    expect(result.current.dockingStations[0].geometry.coordinates[0].slice(0, -1)).toEqual(
+      firstStation,
+    )
+    act(() => result.current.handleDeleteSelectedZone())
+    expect(result.current.dockingStations).toHaveLength(1)
+    act(() => result.current.handleToolChange(DOCKING_STATION_TOOL))
+    act(() => result.current.handleClear())
+    expect(result.current.dockingStations).toEqual([])
   })
   it('protects saved zones and restores moves and deletions with their backend IDs', () => {
     const saved: IMapZoneShape = {
