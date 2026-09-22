@@ -1,6 +1,6 @@
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 import { doesPathOverlapPolygons, isPathContainedInBoundary } from './-map-boundary-geometry'
-import type { IMapZoneDrafts, IMapZoneShape } from './-map-zone-types'
+import type { IMapLayoutShape, IMapZoneDrafts } from './-map-zone-types'
 
 export type MapLayoutIssue = {
   key: string
@@ -11,7 +11,7 @@ export type MapLayoutIssue = {
 
 /** Re-evaluate restored geometry without rejecting a history transition. */
 export function getLayoutIssues(
-  zones: IMapZoneShape[],
+  zones: IMapLayoutShape[],
   drafts: IMapZoneDrafts,
   boundary: IMapBoundaryCoordinate[],
   boundaryClosed: boolean,

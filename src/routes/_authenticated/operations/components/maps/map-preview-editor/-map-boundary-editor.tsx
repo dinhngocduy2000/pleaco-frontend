@@ -7,7 +7,13 @@ import { getTranslations } from '@/lib/translation'
 import { MAP_CANVAS_PADDING, MapGridLayer } from './-map-grid-preview'
 import { flattenCanvasPoints, worldPointToCanvas } from './utils/-map-boundary-geometry'
 import type { MapLayoutIssue } from './utils/-map-layout-issues'
-import { type IMapZoneDrafts, type IMapZoneShape, MAP_ZONE_STYLES } from './utils/-map-zone-types'
+import {
+  DOCKING_STATION_TOOL,
+  type IMapLayoutShape,
+  type IMapZoneDrafts,
+  MAP_ZONE_STYLES,
+  type MapCanvasZoneType,
+} from './utils/-map-zone-types'
 import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './utils/-use-map-boundary-editor'
 
 const VERTEX_RADIUS = 5
@@ -15,14 +21,14 @@ const t = getTranslations()
 
 type MapLayoutEditorProps = MapBoundaryEditorProps & {
   issues?: MapLayoutIssue[]
-  activeZoneType?: MapZoneType
+  activeZoneType?: MapCanvasZoneType
   boundaryClosed?: boolean
   boundaryPoints?: MapBoundaryEditorProps['points']
   drafts?: IMapZoneDrafts
   selectedZoneId?: string
   selectionMode?: boolean
   showBoundary?: boolean
-  zones?: IMapZoneShape[]
+  zones?: IMapLayoutShape[]
   onSelectZone?: (clientId: string) => void
 }
 
@@ -36,6 +42,7 @@ export function MapBoundaryEditor({
   onInvalid,
   canChange,
   onBackgroundClick,
+  fixedPlacementSize,
   issues = [],
   activeZoneType = MapZoneType.BOUNDARY,
   boundaryClosed = closed,
@@ -56,11 +63,13 @@ export function MapBoundaryEditor({
     handleEndpointMouseDown,
     handleStageClick,
     handleStageMouseMove,
+    handleStageMouseLeave,
     handleStageMouseUp,
     handleVertexClick,
     handleVertexDragEnd,
     handleZoomIn,
     handleZoomOut,
+    placementPreview,
     scale,
   } = useMapBoundaryEditor({
     dimensionX,
@@ -72,6 +81,7 @@ export function MapBoundaryEditor({
     onInvalid,
     canChange,
     onBackgroundClick,
+    fixedPlacementSize,
   })
 
   if (!geometry) return null
@@ -99,6 +109,7 @@ export function MapBoundaryEditor({
                 height={geometry.stageHeight}
                 width={geometry.stageWidth}
                 onClick={handleStageClick}
+                onMouseLeave={handleStageMouseLeave}
                 onMouseMove={handleStageMouseMove}
                 onMouseUp={handleStageMouseUp}
               >
@@ -119,7 +130,12 @@ export function MapBoundaryEditor({
                       />
                     )}
                   {zones.map((zone) => {
-                    if (zone.clientId === selectedZoneId) return null
+                    if (
+                      zone.clientId === selectedZoneId &&
+                      zone.zoneType !== DOCKING_STATION_TOOL
+                    ) {
+                      return null
+                    }
                     const style = MAP_ZONE_STYLES[zone.zoneType]
                     const zonePoints = zone.geometry.coordinates[0] ?? []
                     return (
@@ -163,6 +179,18 @@ export function MapBoundaryEditor({
                       fill={closed ? activeStyle.fill : undefined}
                       listening={false}
                       points={flattenCanvasPoints(canvasPoints)}
+                      stroke={activeStyle.stroke}
+                      strokeWidth={activeStyle.strokeWidth}
+                    />
+                  )}
+                  {placementPreview && (
+                    <Line
+                      closed
+                      dash={activeStyle.dash}
+                      fill={activeStyle.fill}
+                      listening={false}
+                      name="map-docking-station-preview"
+                      points={getCanvasPoints(placementPreview)}
                       stroke={activeStyle.stroke}
                       strokeWidth={activeStyle.strokeWidth}
                     />

@@ -7,7 +7,13 @@ import {
   serializeBoundary,
 } from './-map-boundary-geometry'
 import { getLayoutIssues } from './-map-layout-issues'
-import type { IMapZoneShape, MapLayoutTool } from './-map-zone-types'
+import {
+  DOCKING_STATION_TOOL,
+  type IMapDockingStationShape,
+  type IMapLayoutShape,
+  type IMapZoneShape,
+  type MapLayoutTool,
+} from './-map-zone-types'
 import { useEditHistory } from './-use-edit-history'
 
 export type MapLayoutValidationError = 'BOUNDARY_INVALID' | 'ZONE_INVALID' | 'ZONE_OVERLAP'
@@ -42,7 +48,7 @@ const isAreaZoneType = (tool: MapLayoutTool): tool is IMapZoneShape['zoneType'] 
  * @param zone - Zone to convert, or undefined when no zone is selected.
  * @returns World-coordinate vertices without the repeated closing coordinate.
  */
-const geometryToPoints = (zone: IMapZoneShape | undefined): IMapBoundaryCoordinate[] => {
+const geometryToPoints = (zone: IMapLayoutShape | undefined): IMapBoundaryCoordinate[] => {
   const points = zone?.geometry.coordinates[0] ?? []
   return points.slice(0, -1).map(([x, y]) => [x, y])
 }
@@ -86,7 +92,9 @@ export function useMapZones({
     [MapZoneType.NO_GO]: useEditHistory(initialType(MapZoneType.NO_GO)),
     [MapZoneType.CLEANING_ZONE]: useEditHistory(initialType(MapZoneType.CLEANING_ZONE)),
   }
+  const dockingStationHistory = useEditHistory({ zones: [] as IMapDockingStationShape[] })
   const zones = Object.values(histories).flatMap((history) => history.value.zones)
+  const dockingStations = dockingStationHistory.value.zones
   const drafts = {
     [MapZoneType.OBSTACLE]: histories.OBSTACLE.value.draft,
     [MapZoneType.NO_GO]: histories.NO_GO.value.draft,
@@ -95,7 +103,8 @@ export function useMapZones({
   const [selectedZoneId, setSelectedZoneId] = useState<string>()
   const [validationError, setValidationError] = useState<MapLayoutValidationError>()
   const visibleZones = zones.filter((zone) => !zone.to_delete)
-  const selectedZone = visibleZones.find((zone) => zone.clientId === selectedZoneId)
+  const visibleLayoutShapes = [...visibleZones, ...dockingStations]
+  const selectedZone = visibleLayoutShapes.find((zone) => zone.clientId === selectedZoneId)
   const selectedZonePoints = geometryToPoints(selectedZone)
   const activeZoneType =
     activeTool === 'SELECT' ? (selectedZone?.zoneType ?? MapZoneType.BOUNDARY) : activeTool
@@ -103,8 +112,12 @@ export function useMapZones({
     activeTool === MapZoneType.BOUNDARY
       ? boundaryPoints
       : activeTool === 'SELECT'
-        ? selectedZonePoints
-        : drafts[activeTool].points
+        ? selectedZone?.zoneType === DOCKING_STATION_TOOL
+          ? []
+          : selectedZonePoints
+        : activeTool === DOCKING_STATION_TOOL
+          ? []
+          : drafts[activeTool].points
   const activeClosed =
     activeTool === MapZoneType.BOUNDARY ? boundaryClosed : activeTool === 'SELECT'
   const activeInteractive =
@@ -118,13 +131,17 @@ export function useMapZones({
     !disabled &&
     (activeTool === MapZoneType.BOUNDARY
       ? boundaryCanUndo
-      : isAreaZoneType(activeTool) && histories[activeTool].canUndo)
+      : activeTool === DOCKING_STATION_TOOL
+        ? dockingStationHistory.canUndo
+        : isAreaZoneType(activeTool) && histories[activeTool].canUndo)
   const activeCanClear =
     !disabled &&
     (activeTool === MapZoneType.BOUNDARY
       ? boundaryCanClear
-      : isAreaZoneType(activeTool) && histories[activeTool].canClear)
-  const issues = getLayoutIssues(visibleZones, drafts, boundaryPoints, boundaryClosed)
+      : activeTool === DOCKING_STATION_TOOL
+        ? dockingStationHistory.canClear
+        : isAreaZoneType(activeTool) && histories[activeTool].canClear)
+  const issues = getLayoutIssues(visibleLayoutShapes, drafts, boundaryPoints, boundaryClosed)
   const hasOpenPolygon = Object.values(drafts).some((draft) => draft.points.length > 0)
 
   /**
@@ -174,7 +191,7 @@ export function useMapZones({
    * @returns Nothing; leaves state unchanged when no zone is selected.
    */
   const handleSelectedZoneChange = (points: IMapBoundaryCoordinate[]) => {
-    if (!selectedZone) return
+    if (!selectedZone || selectedZone.zoneType === DOCKING_STATION_TOOL) return
     const history = histories[selectedZone.zoneType]
     history.change({
       ...history.value,
@@ -198,7 +215,21 @@ export function useMapZones({
     clearValidationError()
     if (activeTool === MapZoneType.BOUNDARY) onBoundaryChange(points, closed)
     else if (activeTool === 'SELECT') handleSelectedZoneChange(points)
-    else handleZoneChange(activeTool, points, closed)
+    else if (activeTool === DOCKING_STATION_TOOL) {
+      if (!closed) return
+      const clientId = `map-docking-station-${nextId.current++}`
+      dockingStationHistory.change((current) => ({
+        zones: [
+          ...current.zones,
+          {
+            clientId,
+            to_delete: false,
+            zoneType: DOCKING_STATION_TOOL,
+            geometry: { type: GeometryType.POLYGON, coordinates: serializeBoundary(points) },
+          },
+        ],
+      }))
+    } else handleZoneChange(activeTool, points, closed)
   }
 
   /**
@@ -208,7 +239,9 @@ export function useMapZones({
    * @returns Whether every current zone path is contained by the proposed boundary.
    */
   const zonesFitBoundary = (points: IMapBoundaryCoordinate[]) =>
-    visibleZones.every((zone) => isPathContainedInBoundary(geometryToPoints(zone), points, true)) &&
+    visibleLayoutShapes.every((zone) =>
+      isPathContainedInBoundary(geometryToPoints(zone), points, true),
+    ) &&
     Object.values(drafts).every((draft) => isPathContainedInBoundary(draft.points, points, false))
 
   /**
@@ -224,7 +257,7 @@ export function useMapZones({
     if (!isPathContainedInBoundary(points, boundaryPoints, closed)) return false
 
     const excludedZoneId = activeTool === 'SELECT' ? selectedZoneId : undefined
-    const otherZones = visibleZones
+    const otherZones = visibleLayoutShapes
       .filter((zone) => zone.clientId !== excludedZoneId)
       .map(geometryToPoints)
     if (!doesPathOverlapPolygons(points, closed, otherZones)) return true
@@ -250,6 +283,7 @@ export function useMapZones({
     clearValidationError()
     setSelectedZoneId(undefined)
     if (activeTool === MapZoneType.BOUNDARY) onBoundaryUndo()
+    else if (activeTool === DOCKING_STATION_TOOL) dockingStationHistory.undo()
     else if (isAreaZoneType(activeTool)) histories[activeTool].undo()
   }
 
@@ -259,6 +293,7 @@ export function useMapZones({
     clearValidationError()
     setSelectedZoneId(undefined)
     if (activeTool === MapZoneType.BOUNDARY) onBoundaryClear()
+    else if (activeTool === DOCKING_STATION_TOOL) dockingStationHistory.clear()
     else if (isAreaZoneType(activeTool)) histories[activeTool].clear()
   }
 
@@ -281,6 +316,13 @@ export function useMapZones({
    */
   const handleDeleteSelectedZone = () => {
     if (disabled || !selectedZone) return
+    if (selectedZone.zoneType === DOCKING_STATION_TOOL) {
+      dockingStationHistory.change((current) => ({
+        zones: current.zones.filter((zone) => zone.clientId !== selectedZoneId),
+      }))
+      setSelectedZoneId(undefined)
+      return
+    }
     const history = histories[selectedZone.zoneType]
     history.change({
       ...history.value,
@@ -305,6 +347,7 @@ export function useMapZones({
     activeZoneType,
     canChangeActive,
     clearValidationError,
+    dockingStations,
     drafts,
     handleActiveChange,
     handleClear,
@@ -316,6 +359,7 @@ export function useMapZones({
     selectedZoneId,
     setSelectedZoneId,
     validationError,
+    visibleLayoutShapes,
     visibleZones,
     zones,
   }

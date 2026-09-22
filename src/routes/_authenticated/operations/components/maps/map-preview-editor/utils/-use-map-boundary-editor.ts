@@ -1,6 +1,6 @@
 import type Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 import {
   getMapGridPreviewGeometry,
@@ -8,6 +8,7 @@ import {
   MAP_PIXELS_PER_METER,
 } from '../-map-grid-preview'
 import {
+  canvasPointToWorld,
   clampCanvasPoint,
   getBoundaryPointUpdate,
   getMovedBoundaryPoints,
@@ -42,6 +43,8 @@ export type MapBoundaryEditorProps = {
   canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
   /** Handles a click on empty canvas while editing a closed polygon. */
   onBackgroundClick?: () => void
+  /** Places a fixed world-coordinate square instead of appending polygon vertices. */
+  fixedPlacementSize?: number
 }
 
 /** Initial and preview map-local pixel positions for an endpoint extension gesture. */
@@ -77,13 +80,33 @@ export function useMapBoundaryEditor({
   onInvalid,
   canChange,
   onBackgroundClick,
+  fixedPlacementSize,
 }: MapBoundaryEditorProps) {
   const [scale, setScale] = useState(1)
   const [extension, setExtension] = useState<ExtensionState>()
+  const [placementPreview, setPlacementPreview] = useState<IMapBoundaryCoordinate[]>()
   const suppressClick = useRef(false)
   const geometry = getMapGridPreviewGeometry(dimensionX, dimensionY, scale)
   const pixelsPerMeter = MAP_PIXELS_PER_METER * scale
   const canvasPoints = points.map((point) => worldPointToCanvas(point, dimensionY, pixelsPerMeter))
+
+  useEffect(() => {
+    setPlacementPreview((current) =>
+      fixedPlacementSize === undefined || current !== undefined ? undefined : current,
+    )
+  }, [fixedPlacementSize])
+
+  const getPlacementPoints = (canvasPoint: MapCanvasPoint) => {
+    if (!fixedPlacementSize) return undefined
+    const [centerX, centerY] = canvasPointToWorld(canvasPoint, dimensionY, pixelsPerMeter)
+    const halfSize = fixedPlacementSize / 2
+    return [
+      [centerX - halfSize, centerY - halfSize],
+      [centerX + halfSize, centerY - halfSize],
+      [centerX + halfSize, centerY + halfSize],
+      [centerX - halfSize, centerY + halfSize],
+    ] as IMapBoundaryCoordinate[]
+  }
 
   /**
    * Reads the stage pointer, removes canvas padding, and clamps it to the map bounds.
@@ -126,6 +149,16 @@ export function useMapBoundaryEditor({
    */
   const handleStageClick = (event: KonvaEventObject<MouseEvent>) => {
     if (!interactive) return
+    if (fixedPlacementSize) {
+      const stage = event.target.getStage()
+      if (!stage) return
+      const pointer = getCanvasPointer(stage)
+      const placementPoints = pointer ? getPlacementPoints(pointer) : undefined
+      if (placementPoints && (!canChange || canChange(placementPoints, true))) {
+        onChange(placementPoints, true)
+      } else onInvalid()
+      return
+    }
     if (closed) {
       onBackgroundClick?.()
       return
@@ -163,6 +196,13 @@ export function useMapBoundaryEditor({
    * @returns Nothing; may update the extension preview position.
    */
   const handleStageMouseMove = (event: KonvaEventObject<MouseEvent>) => {
+    if (fixedPlacementSize && interactive) {
+      const stage = event.target.getStage()
+      if (!stage) return
+      const pointer = getCanvasPointer(stage)
+      setPlacementPreview(pointer ? getPlacementPoints(pointer) : undefined)
+      return
+    }
     if (!extension) return
     const stage = event.target.getStage()
     if (!stage) return
@@ -187,6 +227,9 @@ export function useMapBoundaryEditor({
     suppressClick.current = true
     commitCanvasPoint(pointer)
   }
+
+  /** Clears a transient fixed-placement preview when the pointer leaves the canvas. */
+  const handleStageMouseLeave = () => setPlacementPreview(undefined)
 
   /**
    * Stops vertex-click bubbling and attempts closure when the first of at least three vertices is clicked.
@@ -262,11 +305,13 @@ export function useMapBoundaryEditor({
     handleEndpointMouseDown,
     handleStageClick,
     handleStageMouseMove,
+    handleStageMouseLeave,
     handleStageMouseUp,
     handleVertexClick,
     handleVertexDragEnd,
     handleZoomIn,
     handleZoomOut,
+    placementPreview,
     scale,
   }
 }

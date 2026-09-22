@@ -8,6 +8,9 @@ export const MAP_DRAWING_ZONE_TYPES = [
   MapZoneType.CLEANING_ZONE,
 ] as const
 
+export const DOCKING_STATION_TOOL = 'DOCKING_STATION' as const
+export const DOCKING_STATION_SIZE_METERS = 4
+
 export const MAP_AREA_ZONE_TYPES = [
   MapZoneType.OBSTACLE,
   MapZoneType.NO_GO,
@@ -19,9 +22,12 @@ export type IMapZoneStyle = {
   fill: string
   strokeWidth: number
   dash?: number[]
+  heading?: string
 }
 
-export const MAP_ZONE_STYLES: Record<MapZoneType, IMapZoneStyle> = {
+export type MapCanvasZoneType = MapZoneType | typeof DOCKING_STATION_TOOL
+
+export const MAP_ZONE_STYLES: Record<MapCanvasZoneType, IMapZoneStyle> = {
   [MapZoneType.BOUNDARY]: {
     stroke: '#7C3AED',
     fill: 'transparent',
@@ -43,6 +49,12 @@ export const MAP_ZONE_STYLES: Record<MapZoneType, IMapZoneStyle> = {
     fill: 'rgba(59, 130, 246, 0.12)',
     strokeWidth: 2,
   },
+  [DOCKING_STATION_TOOL]: {
+    stroke: '#22C55E',
+    fill: 'rgba(34, 197, 94, 0.16)',
+    heading: '#16A34A',
+    strokeWidth: 2,
+  },
 }
 
 export type IMapZoneShape = {
@@ -52,6 +64,15 @@ export type IMapZoneShape = {
   zoneType: Exclude<MapZoneType, MapZoneType.BOUNDARY>
   geometry: Geometry
 }
+
+export type IMapDockingStationShape = {
+  clientId: string
+  to_delete: false
+  zoneType: typeof DOCKING_STATION_TOOL
+  geometry: Geometry
+}
+
+export type IMapLayoutShape = IMapZoneShape | IMapDockingStationShape
 
 export type IMapZoneDraft = {
   points: IMapBoundaryCoordinate[]
@@ -65,4 +86,4 @@ export const createEmptyZoneDrafts = (): IMapZoneDrafts => ({
   [MapZoneType.CLEANING_ZONE]: { points: [] },
 })
 
-export type MapLayoutTool = MapZoneType | 'SELECT'
+export type MapLayoutTool = MapCanvasZoneType | 'SELECT'

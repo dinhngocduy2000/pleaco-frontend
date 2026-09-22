@@ -5,6 +5,7 @@ import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
 import { MapBoundaryEditor } from './-map-boundary-editor'
 import { MapLayoutToolbar } from './-map-layout-toolbar'
+import { DOCKING_STATION_SIZE_METERS, DOCKING_STATION_TOOL } from './utils/-map-zone-types'
 import { type MapBoundaryStepProps, useBoundaryStep } from './utils/-use-boundary-step'
 
 const t = getTranslations()
@@ -77,12 +78,15 @@ export function MapBoundaryStep({
           dimensionX={map.dimension_x}
           dimensionY={map.dimension_y}
           drafts={zoneEditor.drafts}
+          fixedPlacementSize={
+            zoneEditor.activeTool === DOCKING_STATION_TOOL ? DOCKING_STATION_SIZE_METERS : undefined
+          }
           interactive={zoneEditor.activeInteractive}
           issues={zoneEditor.issues}
           points={zoneEditor.activePoints}
           selectedZoneId={zoneEditor.selectedZoneId}
           selectionMode={zoneEditor.activeTool === 'SELECT'}
-          zones={zoneEditor.visibleZones}
+          zones={zoneEditor.visibleLayoutShapes}
           onBackgroundClick={() => zoneEditor.setSelectedZoneId(undefined)}
           onChange={zoneEditor.handleActiveChange}
           onInvalid={zoneEditor.handleInvalid}
@@ -107,7 +111,9 @@ export function MapBoundaryStep({
                   : t.map_boundary_full_instructions()
                 : zoneEditor.activeTool === 'SELECT'
                   ? t.map_layout_select_instructions()
-                  : t.map_layout_zone_instructions()}
+                  : zoneEditor.activeTool === DOCKING_STATION_TOOL
+                    ? t.map_layout_docking_station_instructions()
+                    : t.map_layout_zone_instructions()}
             </p>
             <p aria-live="polite" className="text-sm text-destructive">
               {unsupported
@@ -116,20 +122,22 @@ export function MapBoundaryStep({
                   ? t.map_layout_conflicts_error()
                   : validationMessage}
             </p>
-            {zoneEditor.activeTool !== 'SELECT' && zoneEditor.activePoints.length > 0 && (
-              <>
-                <p aria-live="polite" className="text-xs text-muted-foreground">
-                  {zoneEditor.activeTool === MapZoneType.BOUNDARY
-                    ? t.map_boundary_point_count({ count: zoneEditor.activePoints.length })
-                    : t.map_layout_point_count({ count: zoneEditor.activePoints.length })}
-                </p>
-                <span className="sr-only">
-                  {zoneEditor.activeClosed
-                    ? t.map_layout_polygon_closed()
-                    : t.map_layout_polygon_open()}
-                </span>
-              </>
-            )}
+            {zoneEditor.activeTool !== 'SELECT' &&
+              zoneEditor.activeTool !== DOCKING_STATION_TOOL &&
+              zoneEditor.activePoints.length > 0 && (
+                <>
+                  <p aria-live="polite" className="text-xs text-muted-foreground">
+                    {zoneEditor.activeTool === MapZoneType.BOUNDARY
+                      ? t.map_boundary_point_count({ count: zoneEditor.activePoints.length })
+                      : t.map_layout_point_count({ count: zoneEditor.activePoints.length })}
+                  </p>
+                  <span className="sr-only">
+                    {zoneEditor.activeClosed
+                      ? t.map_layout_polygon_closed()
+                      : t.map_layout_polygon_open()}
+                  </span>
+                </>
+              )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {showDrawingActions && (
