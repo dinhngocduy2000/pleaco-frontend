@@ -1,8 +1,9 @@
-import { MousePointer2, Trash2 } from 'lucide-react'
+import { BatteryCharging, MousePointer2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
 import {
+  DOCKING_STATION_TOOL,
   MAP_DRAWING_ZONE_TYPES,
   MAP_ZONE_STYLES,
   type MapLayoutTool,
@@ -76,6 +77,25 @@ export function MapLayoutToolbar({
           {getZoneLabel(zoneType)}
         </Button>
       ))}
+      <Button
+        aria-pressed={activeTool === DOCKING_STATION_TOOL}
+        disabled={disabled || zoneToolsDisabled}
+        size="sm"
+        type="button"
+        variant={activeTool === DOCKING_STATION_TOOL ? 'secondary' : 'outline'}
+        onClick={() => onToolChange(DOCKING_STATION_TOOL)}
+      >
+        <BatteryCharging style={{ color: MAP_ZONE_STYLES.DOCKING_STATION.stroke }} />
+        <span
+          style={
+            activeTool === DOCKING_STATION_TOOL
+              ? { color: MAP_ZONE_STYLES.DOCKING_STATION.heading }
+              : undefined
+          }
+        >
+          {t.map_layout_tool_docking_station()}
+        </span>
+      </Button>
       <Button
         aria-pressed={activeTool === 'SELECT'}
         disabled={disabled || zoneToolsDisabled}

@@ -113,7 +113,7 @@ function MapDetailPage() {
         disableClickOverlay={isSavingLayout}
         dialogProps={{
           className:
-            'max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl p-0 sm:max-w-6xl md:w-[min(92vw,92rem)] lg:h-[85vh] lg:w-[50vw] lg:max-w-none',
+            'max-h-[calc(100vh-2rem)] overflow-hidden rounded-3xl p-0 sm:max-w-6xl md:w-[min(92vw,92rem)] lg:h-[95vh] lg:w-[50vw] lg:max-w-none',
         }}
         dialogTrigger={null}
         footer={false}

@@ -22,6 +22,7 @@ vi.mock(
       canChange,
       closed,
       drafts,
+      fixedPlacementSize,
       interactive,
       onChange,
       onInvalid,
@@ -29,10 +30,11 @@ vi.mock(
       points,
       zones,
     }: {
-      activeZoneType: MapZoneType
+      activeZoneType: string
       canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
       closed: boolean
       drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
+      fixedPlacementSize?: number
       interactive: boolean
       onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
       onInvalid: () => void
@@ -44,6 +46,7 @@ vi.mock(
         data-testid="boundary-editor"
         data-active-zone={activeZoneType}
         data-closed={closed}
+        data-fixed-placement-size={fixedPlacementSize}
         data-points={points.length}
         data-zone-drafts={Object.values(drafts).filter((draft) => draft.points.length > 0).length}
         data-zones={zones.length}
@@ -52,7 +55,7 @@ vi.mock(
         <button
           type="button"
           onClick={() => {
-            const pointsByZoneType: Record<MapZoneType, IMapBoundaryCoordinate[]> = {
+            const pointsByZoneType: Record<string, IMapBoundaryCoordinate[]> = {
               BOUNDARY: [
                 [1.234, 1.236],
                 [8.888, 1],
@@ -73,6 +76,12 @@ vi.mock(
                 [5, 4],
                 [4.5, 5],
               ],
+              DOCKING_STATION: [
+                [5, 1],
+                [15, 1],
+                [15, 11],
+                [5, 11],
+              ],
             }
             const nextPoints = pointsByZoneType[activeZoneType]
             if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
@@ -80,6 +89,21 @@ vi.mock(
           }}
         >
           Draw valid boundary
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const stationPoints: IMapBoundaryCoordinate[] = [
+              [5, 1],
+              [15, 1],
+              [15, 11],
+              [5, 11],
+            ]
+            if (!canChange || canChange(stationPoints, true)) onChange(stationPoints, true)
+            else onInvalid()
+          }}
+        >
+          Place fixed square
         </button>
         <button
           type="button"
@@ -331,7 +355,7 @@ describe('MapBoundaryStep', () => {
 
     expect(screen.getByRole('toolbar', { name: 'Map layout tools' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Boundary' })).toHaveAttribute('aria-pressed', 'true')
-    for (const name of ['Obstacle', 'No-go', 'Cleaning zone', 'Select']) {
+    for (const name of ['Obstacle', 'No-go', 'Cleaning zone', 'Docking station', 'Select']) {
       expect(screen.getByRole('button', { name })).toBeEnabled()
     }
 
@@ -344,6 +368,42 @@ describe('MapBoundaryStep', () => {
     unmount()
     render(<MapBoundaryStep map={map} onClose={vi.fn()} />)
     expect(screen.queryByRole('toolbar', { name: 'Map layout tools' })).not.toBeInTheDocument()
+  })
+
+  it('places local docking stations but excludes them from the zone request', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Docking station' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '10')
+    expect(screen.getByText(/fixed 10 × 10 m docking station/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
+
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(createEnvironmentZones).toHaveBeenCalledWith({
+      map_id: map.id,
+      zones: [
+        {
+          to_delete: false,
+          type: 'OBSTACLE',
+          geometry: {
+            type: GeometryType.POLYGON,
+            coordinates: [
+              [
+                [3, 2],
+                [4, 2],
+                [3.5, 3],
+                [3, 2],
+              ],
+            ],
+          },
+        },
+      ],
+    })
   })
 
   it('preserves drafts per zone type and blocks saving while one is open', async () => {

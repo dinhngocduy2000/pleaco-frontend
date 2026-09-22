@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { MapZoneType } from '@/enum/maps'
 import { MapLayoutToolbar } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-layout-toolbar'
-import { MAP_ZONE_STYLES } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
+import {
+  DOCKING_STATION_TOOL,
+  MAP_ZONE_STYLES,
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
 
 describe('MapLayoutToolbar', () => {
   it('defines the required boundary and zone color schemas', () => {
@@ -23,6 +26,12 @@ describe('MapLayoutToolbar', () => {
       CLEANING_ZONE: {
         stroke: '#3B82F6',
         fill: 'rgba(59, 130, 246, 0.12)',
+        strokeWidth: 2,
+      },
+      DOCKING_STATION: {
+        stroke: '#22C55E',
+        fill: 'rgba(34, 197, 94, 0.16)',
+        heading: '#16A34A',
         strokeWidth: 2,
       },
     })
@@ -45,14 +54,34 @@ describe('MapLayoutToolbar', () => {
 
     expect(screen.getByRole('toolbar', { name: 'Map layout tools' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Boundary' })).toHaveAttribute('aria-pressed', 'true')
-    for (const name of ['Obstacle', 'No-go', 'Cleaning zone', 'Select']) {
+    for (const name of ['Obstacle', 'No-go', 'Cleaning zone', 'Docking station', 'Select']) {
       expect(screen.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false')
     }
 
     await user.click(screen.getByRole('button', { name: 'No-go' }))
+    await user.click(screen.getByRole('button', { name: 'Docking station' }))
     await user.click(screen.getByRole('button', { name: 'Delete selected zone' }))
     expect(onToolChange).toHaveBeenCalledWith(MapZoneType.NO_GO)
+    expect(onToolChange).toHaveBeenCalledWith(DOCKING_STATION_TOOL)
     expect(onDelete).toHaveBeenCalledOnce()
+  })
+
+  it('uses the docking icon and active heading colors', () => {
+    render(
+      <MapLayoutToolbar
+        activeTool={DOCKING_STATION_TOOL}
+        deleteDisabled
+        disabled={false}
+        zoneToolsDisabled={false}
+        onDelete={vi.fn()}
+        onToolChange={vi.fn()}
+      />,
+    )
+
+    const dockingButton = screen.getByRole('button', { name: 'Docking station' })
+    expect(dockingButton).toHaveAttribute('aria-pressed', 'true')
+    expect(dockingButton.querySelector('svg')).toHaveStyle({ color: '#22C55E' })
+    expect(screen.getByText('Docking station')).toHaveStyle({ color: '#16A34A' })
   })
 
   it('keeps Boundary available when zone tools are unavailable', () => {
@@ -69,6 +98,7 @@ describe('MapLayoutToolbar', () => {
 
     expect(screen.getByRole('button', { name: 'Boundary' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Obstacle' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Docking station' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Select' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Delete selected zone' })).toBeDisabled()
   })

@@ -3,12 +3,14 @@ import userEvent from '@testing-library/user-event'
 import type { MouseEventHandler, ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GeometryType, MapZoneType } from '@/enum/maps'
+import { DOCKING_STATION_TOOL } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
 
 const useMapBoundaryEditor = vi.hoisted(() => vi.fn())
 const handlers = vi.hoisted(() => ({
   handleEndpointMouseDown: vi.fn(),
   handleStageClick: vi.fn(),
   handleStageMouseMove: vi.fn(),
+  handleStageMouseLeave: vi.fn(),
   handleStageMouseUp: vi.fn(),
   handleVertexClick: vi.fn(),
   handleVertexDragEnd: vi.fn(),
@@ -94,11 +96,13 @@ vi.mock('react-konva', () => ({
     children,
     onClick,
     onMouseMove,
+    onMouseLeave,
     onMouseUp,
   }: {
     children: ReactNode
     onClick?: MouseEventHandler<HTMLElement>
     onMouseMove?: MouseEventHandler<HTMLElement>
+    onMouseLeave?: MouseEventHandler<HTMLElement>
     onMouseUp?: MouseEventHandler<HTMLElement>
   }) => (
     <section
@@ -107,6 +111,7 @@ vi.mock('react-konva', () => ({
       onClick={onClick}
       onKeyDown={() => undefined}
       onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
       onMouseUp={onMouseUp}
     >
       {children}
@@ -139,6 +144,7 @@ const editorState = {
   extension: undefined,
   geometry: { stageHeight: 160, stageWidth: 240, mapWidth: 200 },
   ...handlers,
+  placementPreview: undefined,
   scale: 1,
 }
 
@@ -233,6 +239,7 @@ describe('MapBoundaryEditor', () => {
     const stage = screen.getByTestId('boundary-stage')
     fireEvent.click(stage)
     fireEvent.mouseMove(stage)
+    fireEvent.mouseLeave(stage)
     fireEvent.mouseUp(stage)
 
     const vertices = screen.getAllByTestId('boundary-vertex')
@@ -246,12 +253,64 @@ describe('MapBoundaryEditor', () => {
 
     expect(handlers.handleStageClick).toHaveBeenCalledOnce()
     expect(handlers.handleStageMouseMove).toHaveBeenCalledOnce()
+    expect(handlers.handleStageMouseLeave).toHaveBeenCalledOnce()
     expect(handlers.handleStageMouseUp).toHaveBeenCalledOnce()
     expect(handlers.handleVertexClick).toHaveBeenCalledWith(0, 'vertex-click')
     expect(handlers.handleVertexDragEnd).toHaveBeenCalledWith(0, 'vertex-drag-end')
     expect(handlers.handleEndpointMouseDown).toHaveBeenCalledWith('endpoint-mouse-down')
     expect(handlers.handleZoomIn).toHaveBeenCalledOnce()
     expect(handlers.handleZoomOut).toHaveBeenCalledOnce()
+  })
+  it('renders a fixed docking preview and keeps a selected station free of vertex handles', () => {
+    useMapBoundaryEditor.mockReturnValue({
+      ...editorState,
+      canvasPoints: [],
+      placementPreview: [
+        [5, 1],
+        [15, 1],
+        [15, 11],
+        [5, 11],
+      ],
+    })
+
+    render(
+      <MapBoundaryEditor
+        {...defaultProps}
+        activeZoneType={DOCKING_STATION_TOOL}
+        fixedPlacementSize={10}
+        points={[]}
+        selectedZoneId="dock-1"
+        selectionMode
+        zones={[
+          {
+            clientId: 'dock-1',
+            to_delete: false,
+            zoneType: DOCKING_STATION_TOOL,
+            geometry: {
+              type: GeometryType.POLYGON,
+              coordinates: [
+                [
+                  [5, 1],
+                  [15, 1],
+                  [15, 11],
+                  [5, 11],
+                  [5, 1],
+                ],
+              ],
+            },
+          },
+        ]}
+      />,
+    )
+
+    const station = screen.getByRole('button', { name: 'map-zone-DOCKING_STATION' })
+    expect(station).toHaveAttribute('data-stroke', '#22C55E')
+    expect(station).toHaveAttribute('data-fill', 'rgba(34, 197, 94, 0.16)')
+    expect(screen.getByRole('button', { name: 'map-docking-station-preview' })).toHaveAttribute(
+      'data-points',
+      '[50,110,150,110,150,10,50,10]',
+    )
+    expect(screen.queryByTestId('boundary-vertex')).not.toBeInTheDocument()
   })
 
   it('shows the current scale and disables zoom controls at their limits', () => {
