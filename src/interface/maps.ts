@@ -23,8 +23,7 @@ export type IMapBoundaryPolygon = IMapBoundaryCoordinate[]
 
 export type IMapBoundaries = IMapBoundaryPolygon[]
 
-export type ISaveMapBoundaries = {
-  map_id: string
+export type IMapLayoutBoundarySave = {
   source: MapBoundarySource
   geometry?: Geometry
 }
@@ -41,11 +40,6 @@ export type IEnvironmentZoneCreateItem = {
   geometry: Geometry
 }
 
-export type ICreateEnvironmentZonesRequest = {
-  map_id: string
-  zones: IEnvironmentZoneCreateItem[]
-}
-
 export type IDockingStationSaveItem = {
   id?: string
   geometry: Geometry
@@ -53,9 +47,11 @@ export type IDockingStationSaveItem = {
   robot_id?: string | null
 }
 
-export type ISaveDockingStationsRequest = {
+export type ISaveMapLayoutRequest = {
   map_id: string
-  data: IDockingStationSaveItem[]
+  boundary?: IMapLayoutBoundarySave | null
+  environment_zones?: IEnvironmentZoneCreateItem[] | null
+  docking_stations?: IDockingStationSaveItem[] | null
 }
 
 export type IDockingStationInfo = {

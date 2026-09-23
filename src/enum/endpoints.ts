@@ -45,7 +45,5 @@ export enum MAPS_ENDPOINTS {
   // biome-ignore lint/suspicious/noDuplicateEnumValues: GET and POST share the same resource path.
   CREATE = '/maps',
   DETAIL = '/maps',
-  SAVE_BOUNDARY = '/maps/boundary',
-  CREATE_ZONES = '/maps/zones',
-  SAVE_DOCKING_STATIONS = '/maps/stations',
+  SAVE_LAYOUT = '/maps/layouts',
 }

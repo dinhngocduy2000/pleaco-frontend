@@ -6,15 +6,12 @@ import type {
   IDockingStationInfo,
   IMapBoundaryCoordinate,
   IMapDetailZoneInfo,
-  ISaveMapBoundaries,
+  IMapLayoutBoundarySave,
+  ISaveMapLayoutRequest,
 } from '@/interface/maps'
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
-import {
-  useCreateEnvironmentZonesMutation,
-  useSaveDockingStationsMutation,
-  useSaveMapBoundariesMutation,
-} from '@/queries/use-maps-query'
+import { useSaveMapLayoutMutation } from '@/queries/use-maps-query'
 import {
   getFullMapBoundaries,
   getInitialBoundary,
@@ -56,26 +53,23 @@ const getValidationMessage = (error: MapLayoutValidationError | undefined) => {
 /**
  * Builds the boundary payload for the selected boundary method.
  *
- * @param mapId - Identifier of the map being updated.
  * @param method - Selected boundary source.
  * @param points - Custom boundary points without the repeated closing point.
  * @returns A dimensions or custom boundary save request.
  */
 const createBoundaryRequest = (
-  mapId: string,
   method: MapBoundarySource,
   points: IMapBoundaryCoordinate[],
-): ISaveMapBoundaries =>
+): IMapLayoutBoundarySave =>
   method === MapBoundarySource.CUSTOM
     ? {
-        map_id: mapId,
         source: MapBoundarySource.CUSTOM,
         geometry: {
           type: GeometryType.POLYGON,
           coordinates: serializeBoundary(points),
         },
       }
-    : { map_id: mapId, source: MapBoundarySource.DIMENSIONS }
+    : { source: MapBoundarySource.DIMENSIONS }
 
 /**
  * Creates the effective GeoJSON polygon for the current boundary editor state.
@@ -108,7 +102,7 @@ const boundaryGeometriesEqual = (initialGeometry: Geometry, currentGeometry: Geo
   JSON.stringify(initialGeometry) === JSON.stringify(currentGeometry)
 
 /**
- * Coordinates boundary editing, zone editing, validation, and sequential layout saving.
+ * Coordinates boundary editing, zone editing, validation, and atomic layout saving.
  *
  * @param options - Map data, editor mode, and modal lifecycle callbacks.
  * @param options.map - Map whose boundary and zones are being edited.
@@ -135,10 +129,7 @@ export function useBoundaryStep({
   const [initialBoundaryGeometry, setInitialBoundaryGeometry] = useState<Geometry>(() =>
     createBoundaryGeometry(map, initial.method, initial.points),
   )
-  const [isSaving, setIsSaving] = useState(false)
-  const { mutateAsync: saveMapBoundaries } = useSaveMapBoundariesMutation()
-  const { mutateAsync: createEnvironmentZones } = useCreateEnvironmentZonesMutation()
-  const { mutateAsync: saveDockingStations } = useSaveDockingStationsMutation()
+  const { isPending: isSaving, mutateAsync: saveMapLayout } = useSaveMapLayoutMutation()
   const methodOptions = useMemo<IOption[]>(
     () => [
       { label: t.map_boundary_method_full(), value: MapBoundarySource.DIMENSIONS },
@@ -194,6 +185,16 @@ export function useBoundaryStep({
     onBoundaryClear: boundaryHistory.clear,
     onBoundaryUndo: boundaryHistory.undo,
   })
+  const currentBoundaryGeometry = createBoundaryGeometry(map, method, points)
+  const boundaryWasEdited = !boundaryGeometriesEqual(
+    initialBoundaryGeometry,
+    currentBoundaryGeometry,
+  )
+  const hasBoundaryChanges = mode === 'create' || boundaryWasEdited
+  const hasUnsavedChanges =
+    hasBoundaryChanges ||
+    zoneEditor.hasEnvironmentZoneChanges ||
+    zoneEditor.hasDockingStationChanges
   const hasOpenPolygon = (isCustom && points.length > 0 && !closed) || zoneEditor.hasOpenPolygon
 
   const handleMethodChange = (option: IOption | undefined) => {
@@ -208,7 +209,8 @@ export function useBoundaryStep({
   }
 
   const handleSave = async () => {
-    if (isSaving || initial.unsupported || (isCustom && points.length === 0)) return
+    if (isSaving || initial.unsupported || !hasUnsavedChanges || (isCustom && points.length === 0))
+      return
     if (zoneEditor.issues.length > 0) {
       toast.error(t.map_layout_conflicts_error())
       return
@@ -217,7 +219,10 @@ export function useBoundaryStep({
       toast.error(t.map_layout_open_polygon_error())
       return
     }
-    if (zoneEditor.visibleZones.length > MAX_ENVIRONMENT_ZONES_PER_REQUEST) {
+    if (
+      zoneEditor.hasEnvironmentZoneChanges &&
+      zoneEditor.zones.length > MAX_ENVIRONMENT_ZONES_PER_REQUEST
+    ) {
       toast.error(t.map_layout_zone_limit_error({ count: MAX_ENVIRONMENT_ZONES_PER_REQUEST }))
       return
     }
@@ -226,45 +231,36 @@ export function useBoundaryStep({
       return
     }
 
-    setIsSaving(true)
     try {
-      const currentBoundaryGeometry = createBoundaryGeometry(map, method, points)
-      const boundaryWasEdited = !boundaryGeometriesEqual(
-        initialBoundaryGeometry,
-        currentBoundaryGeometry,
-      )
-      if (mode === 'create' || boundaryWasEdited) {
-        await saveMapBoundaries(createBoundaryRequest(map.id, method, points))
-        boundaryHistory.commit()
-        setInitialBoundaryGeometry(currentBoundaryGeometry)
-      }
-      if (mode === 'adjust' && (zones !== undefined || zoneEditor.zones.length > 0)) {
-        await createEnvironmentZones({
-          map_id: map.id,
-          zones: zoneEditor.zones.map(({ id, to_delete, zoneType, geometry }) =>
+      const request: ISaveMapLayoutRequest = {
+        map_id: map.id,
+        ...(hasBoundaryChanges && { boundary: createBoundaryRequest(method, points) }),
+        ...(zoneEditor.hasEnvironmentZoneChanges && {
+          environment_zones: zoneEditor.zones.map(({ id, to_delete, zoneType, geometry }) =>
             id === undefined
               ? { to_delete, type: zoneType, geometry }
               : { id, to_delete, type: zoneType, geometry },
           ),
-        })
-      }
-      if (mode === 'adjust' && zoneEditor.hasDockingStationChanges) {
-        await saveDockingStations({
-          map_id: map.id,
-          data: zoneEditor.dockingStations.map(({ id, geometry, heading, robot_id }) =>
+        }),
+        ...(zoneEditor.hasDockingStationChanges && {
+          docking_stations: zoneEditor.dockingStations.map(({ id, geometry, heading, robot_id }) =>
             id === undefined
               ? { geometry, heading, robot_id }
               : { id, geometry, heading, robot_id },
           ),
-        })
-        zoneEditor.commitDockingStations()
+        }),
       }
-      setIsSaving(false)
-      toast.success(mode === 'adjust' ? t.map_layout_save_success() : t.map_boundary_save_success())
+      await saveMapLayout(request)
+      if (hasBoundaryChanges) {
+        boundaryHistory.commit()
+        setInitialBoundaryGeometry(currentBoundaryGeometry)
+      }
+      if (zoneEditor.hasEnvironmentZoneChanges) zoneEditor.commitEnvironmentZones()
+      if (zoneEditor.hasDockingStationChanges) zoneEditor.commitDockingStations()
+      toast.success(t.map_layout_save_success())
       onClose()
     } catch (saveError) {
       const detail = (saveError as IAxiosError)?.response?.data?.detail
-      setIsSaving(false)
       toast.error(
         typeof detail === 'string' && detail
           ? detail
@@ -289,6 +285,7 @@ export function useBoundaryStep({
       isSaving ||
       initial.unsupported ||
       zoneEditor.issues.length > 0 ||
+      !hasUnsavedChanges ||
       (isCustom && points.length === 0),
     selectedMethod,
     showDrawingActions:
