@@ -10,6 +10,7 @@ const createEnvironmentZonesApi = vi.hoisted(() => vi.fn())
 const getMapDetailApi = vi.hoisted(() => vi.fn())
 const getMapsApi = vi.hoisted(() => vi.fn())
 const saveMapBoundariesApi = vi.hoisted(() => vi.fn())
+const saveDockingStationsApi = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api/maps', () => ({
   createEnvironmentZonesApi,
@@ -17,6 +18,7 @@ vi.mock('@/api/maps', () => ({
   getMapDetailApi,
   getMapsApi,
   saveMapBoundariesApi,
+  saveDockingStationsApi,
 }))
 
 import {
@@ -25,6 +27,7 @@ import {
   getMapsQueryKey,
   useCreateEnvironmentZonesMutation,
   useCreateMapMutation,
+  useSaveDockingStationsMutation,
   useSaveMapBoundariesMutation,
 } from '@/queries/use-maps-query'
 
@@ -35,6 +38,7 @@ describe('useCreateMapMutation', () => {
     getMapDetailApi.mockReset()
     getMapsApi.mockReset()
     saveMapBoundariesApi.mockReset()
+    saveDockingStationsApi.mockReset()
   })
 
   it('creates a map and invalidates all map lists', async () => {
@@ -137,6 +141,27 @@ describe('useCreateMapMutation', () => {
 
     expect(createEnvironmentZonesApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+  })
+
+  it('saves docking stations and invalidates the list and affected detail', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const payload = { map_id: 'map-123', data: [] }
+    saveDockingStationsApi.mockResolvedValue({ data: [], message: 'Saved', statusCode: 200 })
+    const { result } = renderHook(() => useSaveDockingStationsMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    expect(saveDockingStationsApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-123'],
+    })
   })
 
   it('includes every paginated list parameter in the list query key', () => {

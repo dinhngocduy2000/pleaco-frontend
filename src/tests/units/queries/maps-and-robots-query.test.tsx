@@ -10,6 +10,7 @@ const mapApi = vi.hoisted(() => ({
   getMapDetailApi: vi.fn(),
   getMapsApi: vi.fn(),
   saveMapBoundariesApi: vi.fn(),
+  saveDockingStationsApi: vi.fn(),
 }))
 const robotApi = vi.hoisted(() => ({
   createRobotApi: vi.fn(),
@@ -25,6 +26,7 @@ import {
   useCreateMapMutation,
   useMapDetailQuery,
   useMapsQuery,
+  useSaveDockingStationsMutation,
   useSaveMapBoundariesMutation,
 } from '@/queries/use-maps-query'
 import {
@@ -115,6 +117,22 @@ describe('maps and robots query hooks', () => {
     })
 
     expect(mapApi.createEnvironmentZonesApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1'] })
+  })
+
+  it('saves docking stations and invalidates map lists and the affected detail', async () => {
+    mapApi.saveDockingStationsApi.mockResolvedValue({ data: [] })
+    const { client, wrapper } = createWrapper()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const payload = { map_id: 'map-1', data: [] }
+    const { result } = renderHook(() => useSaveDockingStationsMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload as never)
+    })
+
+    expect(mapApi.saveDockingStationsApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1'] })
   })

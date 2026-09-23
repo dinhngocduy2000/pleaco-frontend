@@ -4,6 +4,7 @@ import {
   createMapApi,
   getMapDetailApi,
   getMapsApi,
+  saveDockingStationsApi,
   saveMapBoundariesApi,
 } from '@/api/maps'
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
@@ -11,9 +12,11 @@ import type { IResponseData, IResponseDataWithPage } from '@/interface/api-respo
 import type {
   ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
+  IDockingStationInfo,
   IMapDetailInfo,
   IMapListInfo,
   IMapListRequest,
+  ISaveDockingStationsRequest,
   ISaveMapBoundaries,
 } from '@/interface/maps'
 import type { IMutation, ReactQueryHookParams } from '@/interface/utils'
@@ -105,6 +108,29 @@ export const useCreateEnvironmentZonesMutation = ({
       await queryClient.invalidateQueries({
         queryKey: [MAPS_ENDPOINTS.DETAIL, variables.map_id],
       })
+      onSuccess?.(data, variables)
+    },
+    onError,
+    onMutate,
+  })
+}
+
+export const useSaveDockingStationsMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<IResponseData<IDockingStationInfo[]>, ISaveDockingStationsRequest> = {}) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: saveDockingStationsApi,
+    onSuccess: async (data, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getMapsQueryKey() }),
+        queryClient.invalidateQueries({
+          queryKey: [MAPS_ENDPOINTS.DETAIL, variables.map_id],
+        }),
+      ])
       onSuccess?.(data, variables)
     },
     onError,

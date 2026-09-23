@@ -126,6 +126,7 @@ function MapDetailPage() {
           map={boundaryEditorMap}
           mode="adjust"
           zones={map.zones}
+          dockingStations={map.docking_stations}
           onClose={() => setAdjustLayoutOpen(false)}
           onSavingChange={setIsSavingLayout}
         />

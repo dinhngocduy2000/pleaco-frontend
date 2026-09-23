@@ -43,6 +43,7 @@ import {
   createMapApi,
   getMapDetailApi,
   getMapsApi,
+  saveDockingStationsApi,
   saveMapBoundariesApi,
 } from '@/api/maps'
 import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
@@ -78,9 +79,21 @@ describe('API functions', () => {
 
   it('forwards map, robot, tag, and group requests to their endpoint contracts', async () => {
     const signal = new AbortController().signal
+    const dockingStationRequest = {
+      map_id: 'map-1',
+      data: [
+        {
+          id: 'station-1',
+          geometry: { type: 'Polygon', coordinates: [] },
+          heading: 'WEST',
+          robot_id: 'robot-1',
+        },
+      ],
+    }
     await createMapApi({} as never)
     await saveMapBoundariesApi({} as never)
     await createEnvironmentZonesApi({} as never)
+    await saveDockingStationsApi(dockingStationRequest as never)
     await getMapsApi({ page: 1, page_size: 10 } as never, signal)
     await getMapDetailApi('map-1', signal)
     await createRobotApi({} as never)
@@ -105,6 +118,10 @@ describe('API functions', () => {
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE, {})
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.SAVE_BOUNDARY, {})
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE_ZONES, {})
+    expect(authenticatedClient.post).toHaveBeenCalledWith(
+      MAPS_ENDPOINTS.SAVE_DOCKING_STATIONS,
+      dockingStationRequest,
+    )
     expect(authenticatedClient.get).toHaveBeenCalledWith(
       MAPS_ENDPOINTS.LIST,
       expect.objectContaining({ signal }),

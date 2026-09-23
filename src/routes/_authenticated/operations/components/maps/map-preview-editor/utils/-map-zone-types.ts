@@ -1,3 +1,4 @@
+import type { DockingStationHeading } from '@/enum/maps'
 import { MapZoneType } from '@/enum/maps'
 import type { Geometry, IMapBoundaryCoordinate } from '@/interface/maps'
 
@@ -67,9 +68,12 @@ export type IMapZoneShape = {
 
 export type IMapDockingStationShape = {
   clientId: string
+  id?: string
   to_delete: false
   zoneType: typeof DOCKING_STATION_TOOL
   geometry: Geometry
+  heading: DockingStationHeading
+  robot_id: string | null
 }
 
 export type IMapLayoutShape = IMapZoneShape | IMapDockingStationShape

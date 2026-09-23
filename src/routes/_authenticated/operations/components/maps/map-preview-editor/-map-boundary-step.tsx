@@ -13,6 +13,7 @@ const t = getTranslations()
 export function MapBoundaryStep({
   map,
   zones,
+  dockingStations,
   onClose,
   mode = 'create',
   onSavingChange,
@@ -34,7 +35,7 @@ export function MapBoundaryStep({
     validationMessage,
     zoneEditor,
     zoneToolsDisabled,
-  } = useBoundaryStep({ map, zones, mode, onClose, onSavingChange })
+  } = useBoundaryStep({ map, zones, dockingStations, mode, onClose, onSavingChange })
 
   return (
     <div className="flex min-h-0 h-full flex-col">

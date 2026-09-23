@@ -1,18 +1,25 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
-import type { IMapBoundaryCoordinate, IMapDetailZoneInfo } from '@/interface/maps'
+import { DockingStationHeading, GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
+import type {
+  IDockingStationInfo,
+  IMapBoundaryCoordinate,
+  IMapDetailZoneInfo,
+} from '@/interface/maps'
 
 const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
 const createEnvironmentZones = vi.hoisted(() => vi.fn())
 const saveMapBoundaries = vi.hoisted(() => vi.fn())
+const saveDockingStations = vi.hoisted(() => vi.fn())
 const useCreateEnvironmentZonesMutation = vi.hoisted(() => vi.fn())
 const useSaveMapBoundariesMutation = vi.hoisted(() => vi.fn())
+const useSaveDockingStationsMutation = vi.hoisted(() => vi.fn())
 vi.mock('sonner', () => ({ toast }))
 vi.mock('@/queries/use-maps-query', () => ({
   useCreateEnvironmentZonesMutation,
   useSaveMapBoundariesMutation,
+  useSaveDockingStationsMutation,
 }))
 vi.mock(
   '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-editor',
@@ -122,6 +129,22 @@ vi.mock(
         <button type="button" onClick={onInvalid}>
           Draw invalid boundary
         </button>
+        <button
+          type="button"
+          onClick={() =>
+            onChange(
+              [
+                [0, 0],
+                [20, 0],
+                [20, 12],
+                [0, 12],
+              ],
+              true,
+            )
+          }
+        >
+          Draw large boundary
+        </button>
         <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
           Select first zone
         </button>
@@ -142,6 +165,26 @@ vi.mock(
           }}
         >
           Draw 101 zones
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            for (let index = 0; index < 101; index += 1) {
+              const x = 0.1 + (index % 11) * 0.1
+              const y = 0.1 + Math.floor(index / 11) * 0.1
+              onChange(
+                [
+                  [x, y],
+                  [x + 0.05, y],
+                  [x + 0.05, y + 0.05],
+                  [x, y + 0.05],
+                ],
+                true,
+              )
+            }
+          }}
+        >
+          Place 101 stations
         </button>
         <button
           type="button"
@@ -197,10 +240,13 @@ describe('MapBoundaryStep', () => {
     createEnvironmentZones.mockResolvedValue(undefined)
     saveMapBoundaries.mockReset()
     saveMapBoundaries.mockResolvedValue(undefined)
+    saveDockingStations.mockReset()
+    saveDockingStations.mockResolvedValue({ data: [] })
     useCreateEnvironmentZonesMutation.mockReturnValue({
       mutateAsync: createEnvironmentZones,
     })
     useSaveMapBoundariesMutation.mockReturnValue({ mutateAsync: saveMapBoundaries })
+    useSaveDockingStationsMutation.mockReturnValue({ mutateAsync: saveDockingStations })
   })
 
   const geometry = {
@@ -370,12 +416,12 @@ describe('MapBoundaryStep', () => {
     expect(screen.queryByRole('toolbar', { name: 'Map layout tools' })).not.toBeInTheDocument()
   })
 
-  it('places local docking stations but excludes them from the zone request', async () => {
+  it('saves new docking stations separately from environment zones', async () => {
     const user = userEvent.setup()
     render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Docking station' }))
-    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '10')
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '4')
     expect(screen.getByText(/fixed 10 × 10 m docking station/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
 
@@ -404,6 +450,168 @@ describe('MapBoundaryStep', () => {
         },
       ],
     })
+    expect(saveDockingStations).toHaveBeenCalledWith({
+      map_id: map.id,
+      data: [
+        {
+          geometry: {
+            type: GeometryType.POLYGON,
+            coordinates: [
+              [
+                [5, 1],
+                [15, 1],
+                [15, 11],
+                [5, 11],
+                [5, 1],
+              ],
+            ],
+          },
+          heading: DockingStationHeading.SOUTH,
+          robot_id: null,
+        },
+      ],
+    })
+  })
+
+  it('does not save unchanged persisted docking stations', async () => {
+    const user = userEvent.setup()
+    const dockingStations: IDockingStationInfo[] = [
+      {
+        id: 'station-1',
+        geometry: {
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [5, 1],
+              [15, 1],
+              [15, 11],
+              [5, 11],
+              [5, 1],
+            ],
+          ],
+        },
+        heading: DockingStationHeading.WEST,
+        robot_id: 'robot-1',
+      },
+    ]
+    render(
+      <MapBoundaryStep
+        map={map}
+        mode="adjust"
+        dockingStations={dockingStations}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '1')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveDockingStations).not.toHaveBeenCalled()
+  })
+
+  it('deletes all persisted docking stations by sending an empty station list', async () => {
+    const user = userEvent.setup()
+    const dockingStations: IDockingStationInfo[] = [
+      {
+        id: 'station-1',
+        geometry: {
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [5, 1],
+              [15, 1],
+              [15, 11],
+              [5, 11],
+              [5, 1],
+            ],
+          ],
+        },
+        heading: DockingStationHeading.EAST,
+        robot_id: 'robot-1',
+      },
+    ]
+    render(
+      <MapBoundaryStep
+        map={map}
+        mode="adjust"
+        dockingStations={dockingStations}
+        onClose={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Select' }))
+    await user.click(screen.getByRole('button', { name: 'Select first zone' }))
+    await user.click(screen.getByRole('button', { name: 'Delete selected zone' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveDockingStations).toHaveBeenCalledWith({ map_id: map.id, data: [] })
+  })
+
+  it('retains persisted station IDs and metadata alongside new stations', async () => {
+    const user = userEvent.setup()
+    const dockingStations: IDockingStationInfo[] = [
+      {
+        id: 'station-1',
+        geometry: {
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [1, 1],
+              [3, 1],
+              [3, 3],
+              [1, 3],
+              [1, 1],
+            ],
+          ],
+        },
+        heading: DockingStationHeading.NORTH,
+        robot_id: 'robot-1',
+      },
+    ]
+    render(
+      <MapBoundaryStep
+        map={map}
+        mode="adjust"
+        dockingStations={dockingStations}
+        onClose={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Docking station' }))
+    await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveDockingStations).toHaveBeenCalledWith({
+      map_id: map.id,
+      data: [
+        expect.objectContaining({
+          id: 'station-1',
+          heading: DockingStationHeading.NORTH,
+          robot_id: 'robot-1',
+        }),
+        expect.objectContaining({
+          heading: DockingStationHeading.SOUTH,
+          robot_id: null,
+        }),
+      ],
+    })
+  })
+
+  it('keeps unsaved station state and the editor open after a station save failure', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    saveDockingStations.mockRejectedValueOnce(new Error('Unavailable'))
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={onClose} />)
+
+    await user.click(screen.getByRole('button', { name: 'Docking station' }))
+    await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('Unable to save the layout. Please try again.')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(saveDockingStations).toHaveBeenCalledTimes(2)
+    expect(onClose).toHaveBeenCalledOnce()
   })
 
   it('preserves drafts per zone type and blocks saving while one is open', async () => {
@@ -564,6 +772,30 @@ describe('MapBoundaryStep', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
+  it('saves a changed boundary, zones, and docking stations sequentially', async () => {
+    const user = userEvent.setup()
+    render(
+      <MapBoundaryStep map={{ ...map, geometry }} zones={[]} mode="adjust" onClose={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Draw large boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Obstacle' }))
+    await user.click(screen.getByRole('button', { name: 'Draw valid boundary' }))
+    await user.click(screen.getByRole('button', { name: 'Docking station' }))
+    await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(saveMapBoundaries).toHaveBeenCalledOnce()
+    expect(createEnvironmentZones).toHaveBeenCalledOnce()
+    expect(saveDockingStations).toHaveBeenCalledOnce()
+    expect(saveMapBoundaries.mock.invocationCallOrder[0]).toBeLessThan(
+      createEnvironmentZones.mock.invocationCallOrder[0],
+    )
+    expect(createEnvironmentZones.mock.invocationCallOrder[0]).toBeLessThan(
+      saveDockingStations.mock.invocationCallOrder[0],
+    )
+  })
+
   it('blocks more than 100 zones before making a save request', async () => {
     const user = userEvent.setup()
     render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
@@ -576,6 +808,20 @@ describe('MapBoundaryStep', () => {
     expect(toast.error).toHaveBeenCalledWith('A layout can contain at most 100 zones.')
     expect(saveMapBoundaries).not.toHaveBeenCalled()
     expect(createEnvironmentZones).not.toHaveBeenCalled()
+  })
+
+  it('blocks more than 100 docking stations before making a save request', async () => {
+    const user = userEvent.setup()
+    render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Docking station' }))
+    await user.click(screen.getByRole('button', { name: 'Place 101 stations' }))
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-zones', '101')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(toast.error).toHaveBeenCalledWith('A layout can contain at most 100 zones.')
+    expect(saveMapBoundaries).not.toHaveBeenCalled()
+    expect(saveDockingStations).not.toHaveBeenCalled()
   })
 
   it('rejects a point or polygon that overlaps an existing zone', async () => {

@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
 import type {
   Geometry,
+  IDockingStationInfo,
   IMapBoundaryCoordinate,
   IMapDetailZoneInfo,
   ISaveMapBoundaries,
@@ -11,6 +12,7 @@ import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
 import {
   useCreateEnvironmentZonesMutation,
+  useSaveDockingStationsMutation,
   useSaveMapBoundariesMutation,
 } from '@/queries/use-maps-query'
 import {
@@ -21,15 +23,18 @@ import {
   isValidBoundaryPolygon,
   serializeBoundary,
 } from './-map-boundary-geometry'
+import { DOCKING_STATION_TOOL } from './-map-zone-types'
 import { useEditHistory } from './-use-edit-history'
 import { type MapLayoutValidationError, useMapZones } from './-use-map-zones'
 
 const t = getTranslations()
 const MAX_ENVIRONMENT_ZONES_PER_REQUEST = 100
+const MAX_DOCKING_STATIONS_PER_REQUEST = 100
 
 export type MapBoundaryStepProps = {
   map: IMapBoundaryEditorMap
   zones?: IMapDetailZoneInfo[]
+  dockingStations?: IDockingStationInfo[]
   onClose: () => void
   mode?: 'create' | 'adjust'
   onSavingChange?: (saving: boolean) => void
@@ -115,6 +120,7 @@ const boundaryGeometriesEqual = (initialGeometry: Geometry, currentGeometry: Geo
 export function useBoundaryStep({
   map,
   zones,
+  dockingStations,
   mode = 'create',
   onClose,
   onSavingChange,
@@ -132,6 +138,7 @@ export function useBoundaryStep({
   const [isSaving, setIsSaving] = useState(false)
   const { mutateAsync: saveMapBoundaries } = useSaveMapBoundariesMutation()
   const { mutateAsync: createEnvironmentZones } = useCreateEnvironmentZonesMutation()
+  const { mutateAsync: saveDockingStations } = useSaveDockingStationsMutation()
   const methodOptions = useMemo<IOption[]>(
     () => [
       { label: t.map_boundary_method_full(), value: MapBoundarySource.DIMENSIONS },
@@ -170,6 +177,15 @@ export function useBoundaryStep({
       zoneType: zone.type,
       geometry: zone.geometry,
     })),
+    initialDockingStations: (dockingStations ?? []).map((station) => ({
+      clientId: station.id,
+      id: station.id,
+      to_delete: false,
+      zoneType: DOCKING_STATION_TOOL,
+      geometry: station.geometry,
+      heading: station.heading,
+      robot_id: station.robot_id,
+    })),
     boundaryCanUndo: boundaryHistory.canUndo,
     boundaryCanClear: boundaryHistory.canClear,
     onBoundaryChange: (nextPoints, nextClosed) => {
@@ -205,6 +221,10 @@ export function useBoundaryStep({
       toast.error(t.map_layout_zone_limit_error({ count: MAX_ENVIRONMENT_ZONES_PER_REQUEST }))
       return
     }
+    if (zoneEditor.dockingStations.length > MAX_DOCKING_STATIONS_PER_REQUEST) {
+      toast.error(t.map_layout_zone_limit_error({ count: MAX_DOCKING_STATIONS_PER_REQUEST }))
+      return
+    }
 
     setIsSaving(true)
     try {
@@ -227,6 +247,17 @@ export function useBoundaryStep({
               : { id, to_delete, type: zoneType, geometry },
           ),
         })
+      }
+      if (mode === 'adjust' && zoneEditor.hasDockingStationChanges) {
+        await saveDockingStations({
+          map_id: map.id,
+          data: zoneEditor.dockingStations.map(({ id, geometry, heading, robot_id }) =>
+            id === undefined
+              ? { geometry, heading, robot_id }
+              : { id, geometry, heading, robot_id },
+          ),
+        })
+        zoneEditor.commitDockingStations()
       }
       setIsSaving(false)
       toast.success(mode === 'adjust' ? t.map_layout_save_success() : t.map_boundary_save_success())

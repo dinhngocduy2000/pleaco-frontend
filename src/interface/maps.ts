@@ -1,5 +1,6 @@
 import type z from 'zod'
 import type {
+  DockingStationHeading,
   GeometryType,
   MapBoundarySource,
   MapOrderDirectionType,
@@ -43,6 +44,25 @@ export type IEnvironmentZoneCreateItem = {
 export type ICreateEnvironmentZonesRequest = {
   map_id: string
   zones: IEnvironmentZoneCreateItem[]
+}
+
+export type IDockingStationSaveItem = {
+  id?: string
+  geometry: Geometry
+  heading?: DockingStationHeading | null
+  robot_id?: string | null
+}
+
+export type ISaveDockingStationsRequest = {
+  map_id: string
+  data: IDockingStationSaveItem[]
+}
+
+export type IDockingStationInfo = {
+  id: string
+  robot_id: string | null
+  geometry: Geometry
+  heading: DockingStationHeading
 }
 
 export type ICreateMapRequest = {
@@ -109,4 +129,5 @@ export type IMapDetailInfo = {
   robots: IMapDetailRobotInfo[]
   boundary: Geometry | null
   zones: IMapDetailZoneInfo[]
+  docking_stations: IDockingStationInfo[]
 }

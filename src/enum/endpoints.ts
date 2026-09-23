@@ -47,4 +47,5 @@ export enum MAPS_ENDPOINTS {
   DETAIL = '/maps',
   SAVE_BOUNDARY = '/maps/boundary',
   CREATE_ZONES = '/maps/zones',
+  SAVE_DOCKING_STATIONS = '/maps/stations',
 }
