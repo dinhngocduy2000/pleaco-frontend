@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { GeometryType, MapZoneType } from '@/enum/maps'
+import { DockingStationHeading, GeometryType, MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 import {
   doesPathOverlapPolygons,
@@ -28,6 +28,7 @@ type UseMapZonesOptions = {
   boundaryValid: boolean
   disabled: boolean
   initialZones?: IMapZoneShape[]
+  initialDockingStations?: IMapDockingStationShape[]
   onBoundaryChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
   onBoundaryClear: () => void
   onBoundaryUndo: () => void
@@ -76,6 +77,7 @@ export function useMapZones({
   boundaryCanClear,
   disabled,
   initialZones = [],
+  initialDockingStations = [],
   onBoundaryChange,
   onBoundaryClear,
   onBoundaryUndo,
@@ -92,7 +94,7 @@ export function useMapZones({
     [MapZoneType.NO_GO]: useEditHistory(initialType(MapZoneType.NO_GO)),
     [MapZoneType.CLEANING_ZONE]: useEditHistory(initialType(MapZoneType.CLEANING_ZONE)),
   }
-  const dockingStationHistory = useEditHistory({ zones: [] as IMapDockingStationShape[] })
+  const dockingStationHistory = useEditHistory({ zones: initialDockingStations })
   const zones = Object.values(histories).flatMap((history) => history.value.zones)
   const dockingStations = dockingStationHistory.value.zones
   const drafts = {
@@ -226,6 +228,8 @@ export function useMapZones({
             to_delete: false,
             zoneType: DOCKING_STATION_TOOL,
             geometry: { type: GeometryType.POLYGON, coordinates: serializeBoundary(points) },
+            heading: DockingStationHeading.SOUTH,
+            robot_id: null,
           },
         ],
       }))
@@ -348,6 +352,7 @@ export function useMapZones({
     canChangeActive,
     clearValidationError,
     dockingStations,
+    commitDockingStations: dockingStationHistory.commit,
     drafts,
     handleActiveChange,
     handleClear,
@@ -356,6 +361,7 @@ export function useMapZones({
     handleToolChange,
     handleUndo,
     hasOpenPolygon,
+    hasDockingStationChanges: dockingStationHistory.canClear,
     selectedZoneId,
     setSelectedZoneId,
     validationError,

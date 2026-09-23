@@ -30,3 +30,10 @@ export enum MapZoneType {
   NO_GO = 'NO_GO',
   CLEANING_ZONE = 'CLEANING_ZONE',
 }
+
+export enum DockingStationHeading {
+  NORTH = 'NORTH',
+  SOUTH = 'SOUTH',
+  EAST = 'EAST',
+  WEST = 'WEST',
+}

@@ -3,9 +3,11 @@ import type { IResponseData, IResponseDataWithPage } from '@/interface/api-respo
 import type {
   ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
+  IDockingStationInfo,
   IMapDetailInfo,
   IMapListInfo,
   IMapListRequest,
+  ISaveDockingStationsRequest,
   ISaveMapBoundaries,
 } from '@/interface/maps'
 import { paramsSerializer } from '@/lib/utils'
@@ -25,6 +27,12 @@ export const createEnvironmentZonesApi = async (
   data: ICreateEnvironmentZonesRequest,
 ): Promise<void> => {
   await axiosConfig.post(MAPS_ENDPOINTS.CREATE_ZONES, data)
+}
+
+export const saveDockingStationsApi = async (
+  data: ISaveDockingStationsRequest,
+): Promise<IResponseData<IDockingStationInfo[]>> => {
+  return await axiosConfig.post(MAPS_ENDPOINTS.SAVE_DOCKING_STATIONS, data)
 }
 
 export const getMapsApi = async (
