@@ -41,6 +41,7 @@ async function setup(
     },
     robots: [],
     zones: [],
+    docking_stations: [],
   }
   const requests: ISaveMapBoundaries[] = []
   const zoneRequests: ICreateEnvironmentZonesRequest[] = []

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { type ComponentType, type ReactNode, Suspense } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
+import { DockingStationHeading, GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS, RobotModel } from '@/enum/robot'
 import type { IMapDetailInfo } from '@/interface/maps'
 
@@ -39,14 +39,17 @@ vi.mock(
     MapBoundaryStep: ({
       map,
       zones,
+      dockingStations,
     }: {
       map: { geometry?: unknown; id: string }
       zones?: { id: string }[]
+      dockingStations?: { id: string }[]
     }) => (
       <div
         data-editor-map={JSON.stringify(map)}
         data-testid="map-boundary-step"
         data-zones={zones?.map((zone) => zone.id).join(',')}
+        data-docking-stations={dockingStations?.map((station) => station.id).join(',')}
       />
     ),
   }),
@@ -125,6 +128,25 @@ const map: IMapDetailInfo = {
       },
     },
   ],
+  docking_stations: [
+    {
+      id: 'station-1',
+      robot_id: 'robot-1',
+      heading: DockingStationHeading.SOUTH,
+      geometry: {
+        type: GeometryType.POLYGON,
+        coordinates: [
+          [
+            [12, 2],
+            [16, 2],
+            [16, 6],
+            [12, 6],
+            [12, 2],
+          ],
+        ],
+      },
+    },
+  ],
   robots: [
     {
       id: 'robot-1',
@@ -187,6 +209,10 @@ describe('MapDetailPage', () => {
       }),
     )
     expect(screen.getByTestId('map-boundary-step')).toHaveAttribute('data-zones', 'zone-1,zone-2')
+    expect(screen.getByTestId('map-boundary-step')).toHaveAttribute(
+      'data-docking-stations',
+      'station-1',
+    )
   })
 
   it.each(['member', 'moderator', 'guest', undefined])(

@@ -1,8 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapZoneType } from '@/enum/maps'
+import { DockingStationHeading, GeometryType, MapZoneType } from '@/enum/maps'
 import {
   DOCKING_STATION_TOOL,
+  type IMapDockingStationShape,
   type IMapZoneShape,
 } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
 import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-zones'
@@ -173,6 +174,11 @@ describe('useMapZones', () => {
     act(() => result.current.handleActiveChange(secondStation, true))
 
     expect(result.current.dockingStations).toHaveLength(2)
+    expect(result.current.dockingStations[0]).toMatchObject({
+      heading: DockingStationHeading.SOUTH,
+      robot_id: null,
+    })
+    expect(result.current.hasDockingStationChanges).toBe(true)
     expect(result.current.visibleLayoutShapes).toHaveLength(2)
     expect(result.current.visibleZones).toEqual([])
     expect(result.current.activeCanUndo).toBe(true)
@@ -200,6 +206,47 @@ describe('useMapZones', () => {
     act(() => result.current.handleToolChange(DOCKING_STATION_TOOL))
     act(() => result.current.handleClear())
     expect(result.current.dockingStations).toEqual([])
+  })
+
+  it('loads, restores, and commits persisted docking station metadata', () => {
+    const saved: IMapDockingStationShape = {
+      clientId: 'station-1',
+      id: 'station-1',
+      to_delete: false,
+      zoneType: DOCKING_STATION_TOOL,
+      geometry: {
+        type: GeometryType.POLYGON,
+        coordinates: [
+          [
+            [1, 1],
+            [3, 1],
+            [3, 3],
+            [1, 3],
+            [1, 1],
+          ],
+        ],
+      },
+      heading: DockingStationHeading.WEST,
+      robot_id: 'robot-1',
+    }
+    const { result } = renderMapZones({ initialDockingStations: [saved] })
+
+    expect(result.current.dockingStations).toEqual([saved])
+    expect(result.current.hasDockingStationChanges).toBe(false)
+    act(() => result.current.handleToolChange('SELECT'))
+    act(() => result.current.setSelectedZoneId(saved.clientId))
+    act(() => result.current.handleDeleteSelectedZone())
+    expect(result.current.dockingStations).toEqual([])
+    expect(result.current.hasDockingStationChanges).toBe(true)
+
+    act(() => result.current.handleToolChange(DOCKING_STATION_TOOL))
+    act(() => result.current.handleUndo())
+    expect(result.current.dockingStations).toEqual([saved])
+    act(() => result.current.handleActiveChange(secondTriangle, true))
+    act(() => result.current.commitDockingStations())
+    expect(result.current.hasDockingStationChanges).toBe(false)
+    act(() => result.current.handleClear())
+    expect(result.current.dockingStations).toHaveLength(2)
   })
   it('protects saved zones and restores moves and deletions with their backend IDs', () => {
     const saved: IMapZoneShape = {

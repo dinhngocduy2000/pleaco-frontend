@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
+import { DockingStationHeading, GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
 
 const editor = vi.hoisted(() => vi.fn())
@@ -55,6 +55,25 @@ const map = {
       },
     },
   ],
+  docking_stations: [
+    {
+      id: 'station-1',
+      robot_id: 'robot-1',
+      heading: DockingStationHeading.NORTH,
+      geometry: {
+        type: GeometryType.POLYGON,
+        coordinates: [
+          [
+            [5, 5],
+            [9, 5],
+            [9, 9],
+            [5, 9],
+            [5, 5],
+          ],
+        ],
+      },
+    },
+  ],
 } satisfies IMapDetailInfo
 
 describe('MapDetailGrid', () => {
@@ -72,7 +91,16 @@ describe('MapDetailGrid', () => {
           [10, 1],
           [1, 8],
         ],
-        zones: [expect.objectContaining({ clientId: 'zone-1', zoneType: MapZoneType.OBSTACLE })],
+        zones: [
+          expect.objectContaining({ clientId: 'zone-1', zoneType: MapZoneType.OBSTACLE }),
+          expect.objectContaining({
+            clientId: 'station-1',
+            id: 'station-1',
+            zoneType: 'DOCKING_STATION',
+            heading: DockingStationHeading.NORTH,
+            robot_id: 'robot-1',
+          }),
+        ],
       }),
     )
   })
