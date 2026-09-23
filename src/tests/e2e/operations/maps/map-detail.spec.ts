@@ -50,6 +50,7 @@ const detailByGroup = {
           },
         },
       ],
+      docking_stations: [],
       robots: [
         {
           id: 'robot-1',
@@ -77,6 +78,7 @@ const detailByGroup = {
       tags: [],
       boundary: null,
       zones: [],
+      docking_stations: [],
       robots: [],
     },
     message: 'Success',

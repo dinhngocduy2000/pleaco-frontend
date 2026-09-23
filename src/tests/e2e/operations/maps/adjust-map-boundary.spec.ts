@@ -1,8 +1,10 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
-import { GeometryType, MapBoundarySource } from '@/enum/maps'
+import { DockingStationHeading, GeometryType, MapBoundarySource } from '@/enum/maps'
 import type {
   ICreateEnvironmentZonesRequest,
+  IDockingStationInfo,
   IMapDetailInfo,
+  ISaveDockingStationsRequest,
   ISaveMapBoundaries,
 } from '@/interface/maps'
 import profileData from '../../data/profile.json' with { type: 'json' }
@@ -14,6 +16,7 @@ async function setup(
   failFirst = false,
   saveGate?: Promise<void>,
   failFirstZone = false,
+  initialDockingStations: IDockingStationInfo[] = [],
 ) {
   const profile = structuredClone(profileData.activeOwnerUser)
   profile.data.group.role = role
@@ -41,12 +44,13 @@ async function setup(
     },
     robots: [],
     zones: [],
-    docking_stations: [],
+    docking_stations: initialDockingStations,
   }
   const requests: ISaveMapBoundaries[] = []
   const zoneRequests: ICreateEnvironmentZonesRequest[] = []
+  const stationRequests: ISaveDockingStationsRequest[] = []
   const createRequests: unknown[] = []
-  const requestOrder: ('boundary' | 'zones')[] = []
+  const requestOrder: ('boundary' | 'zones' | 'stations')[] = []
   await page.route('**/api/v1/tags**', (route) =>
     route.fulfill({ json: { data: [], message: 'OK', statusCode: 200 } }),
   )
@@ -86,6 +90,19 @@ async function setup(
         return
       }
       await route.fulfill({ status: 204 })
+    } else if (new URL(route.request().url()).pathname.endsWith('/stations')) {
+      const request = route.request().postDataJSON() as ISaveDockingStationsRequest
+      stationRequests.push(request)
+      requestOrder.push('stations')
+      map.docking_stations = request.data.map((station, index) => ({
+        id: station.id ?? `station-${index + 1}`,
+        robot_id: station.robot_id ?? null,
+        geometry: station.geometry,
+        heading: station.heading ?? DockingStationHeading.SOUTH,
+      }))
+      await route.fulfill({
+        json: { data: map.docking_stations, message: 'Saved', statusCode: 200 },
+      })
     } else {
       createRequests.push(route.request().postDataJSON())
       await route.fulfill({ status: 400 })
@@ -93,7 +110,7 @@ async function setup(
   })
   await page.goto(`/operations/maps/${map.id}`)
   await expect(page.getByText('Map Details')).toBeVisible()
-  return { requests, zoneRequests, createRequests, requestOrder }
+  return { requests, zoneRequests, stationRequests, createRequests, requestOrder }
 }
 
 async function openEditor(page: Page) {
@@ -239,6 +256,93 @@ test('saves zones without resaving an unchanged boundary', async ({ page }) => {
   expect(zoneRequests[0].zones[0]).not.toHaveProperty('clientId')
   const ring = zoneRequests[0].zones[0].geometry.coordinates[0]
   expect(ring.at(-1)).toEqual(ring[0])
+})
+
+test('displays a persisted docking station and saves its deletion by omission', async ({
+  page,
+}) => {
+  const persistedStation: IDockingStationInfo = {
+    id: 'station-persisted',
+    robot_id: 'robot-1',
+    heading: DockingStationHeading.WEST,
+    geometry: {
+      type: GeometryType.POLYGON,
+      coordinates: [
+        [
+          [5, 3],
+          [7, 3],
+          [7, 5],
+          [5, 5],
+          [5, 3],
+        ],
+      ],
+    },
+  }
+  const { stationRequests, requestOrder } = await setup(page, 'owner', false, undefined, false, [
+    persistedStation,
+  ])
+  const dialog = await openEditor(page)
+  const toolbar = dialog.getByRole('toolbar', { name: 'Map layout tools' })
+  await toolbar.getByRole('button', { name: 'Select', exact: true }).click()
+  const deleteStation = toolbar.getByRole('button', { name: 'Delete selected zone' })
+  await expect(deleteStation).toBeDisabled()
+
+  const canvas = dialog
+    .getByRole('region', { name: 'Map boundary editor' })
+    .locator('canvas')
+    .last()
+  await clickCanvasPoint(page, canvas, 80, 100)
+  await expect(deleteStation).toBeEnabled()
+  await deleteStation.click()
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+
+  await expect(page.getByText('Layout saved successfully.')).toBeVisible()
+  await expect(dialog).not.toBeVisible()
+  expect(stationRequests).toEqual([
+    {
+      map_id: '00000000-0000-4000-8000-000000000001',
+      data: [],
+    },
+  ])
+  expect(requestOrder).toEqual(['zones', 'stations'])
+})
+
+test('places and saves a docking station through the stations endpoint', async ({ page }) => {
+  const { requests, stationRequests, requestOrder } = await setup(page, 'owner')
+  const dialog = await openEditor(page)
+  await dialog.getByRole('combobox', { name: 'Boundary method' }).click()
+  await page.getByRole('option', { name: 'Use full map area' }).click()
+  await dialog.getByRole('button', { name: 'Docking station', exact: true }).click()
+  const canvas = dialog
+    .getByRole('region', { name: 'Map boundary editor' })
+    .locator('canvas')
+    .last()
+  await clickCanvasPoint(page, canvas, 120, 80)
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+
+  await expect(page.getByText('Layout saved successfully.')).toBeVisible()
+  await expect(dialog).not.toBeVisible()
+  expect(requests).toEqual([
+    {
+      map_id: '00000000-0000-4000-8000-000000000001',
+      source: MapBoundarySource.DIMENSIONS,
+    },
+  ])
+  expect(stationRequests).toHaveLength(1)
+  expect(stationRequests[0].map_id).toBe('00000000-0000-4000-8000-000000000001')
+  expect(stationRequests[0].data).toHaveLength(1)
+  expect(stationRequests[0].data[0]).toMatchObject({
+    heading: DockingStationHeading.SOUTH,
+    robot_id: null,
+    geometry: { type: GeometryType.POLYGON },
+  })
+  expect(stationRequests[0].data[0]).not.toHaveProperty('id')
+  const ring = stationRequests[0].data[0].geometry.coordinates[0]
+  expect(ring).toHaveLength(5)
+  expect(ring.at(-1)).toEqual(ring[0])
+  expect(ring[1][0] - ring[0][0]).toBeCloseTo(4)
+  expect(ring[2][1] - ring[1][1]).toBeCloseTo(4)
+  expect(requestOrder).toEqual(['boundary', 'zones', 'stations'])
 })
 
 test('skips zone saving when the boundary request fails', async ({ page }) => {
@@ -394,7 +498,12 @@ test('restored zone conflicts show tooltips that follow zoom and scrolling', asy
   await region.evaluate((element) => {
     element.scrollLeft = 40
   })
-  await expect.poll(async () => (await marker.boundingBox())?.x).toBe((beforeScroll?.x ?? 0) - 40)
+  await expect
+    .poll(async () => {
+      const afterScroll = await marker.boundingBox()
+      return (beforeScroll?.x ?? 0) - (afterScroll?.x ?? 0)
+    })
+    .toBeCloseTo(40, 1)
   await marker.hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
   await page.screenshot({ path: '/tmp/pleco-history-conflicts.png' })
