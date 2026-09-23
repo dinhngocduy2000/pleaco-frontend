@@ -1,23 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  createEnvironmentZonesApi,
-  createMapApi,
-  getMapDetailApi,
-  getMapsApi,
-  saveDockingStationsApi,
-  saveMapBoundariesApi,
-} from '@/api/maps'
+import { createMapApi, getMapDetailApi, getMapsApi, saveMapLayoutApi } from '@/api/maps'
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
-  ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
-  IDockingStationInfo,
   IMapDetailInfo,
   IMapListInfo,
   IMapListRequest,
-  ISaveDockingStationsRequest,
-  ISaveMapBoundaries,
+  ISaveMapLayoutRequest,
 } from '@/interface/maps'
 import type { IMutation, ReactQueryHookParams } from '@/interface/utils'
 
@@ -73,57 +63,15 @@ export const useCreateMapMutation = ({
   })
 }
 
-export const useSaveMapBoundariesMutation = ({
+export const useSaveMapLayoutMutation = ({
   onSuccess,
   onError,
   onMutate,
-}: IMutation<void, ISaveMapBoundaries> = {}) => {
+}: IMutation<void, ISaveMapLayoutRequest> = {}) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: saveMapBoundariesApi,
-    onSuccess: async (data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
-      await queryClient.invalidateQueries({
-        queryKey: [MAPS_ENDPOINTS.DETAIL, variables.map_id],
-      })
-      onSuccess?.(data, variables)
-    },
-    onError,
-    onMutate,
-  })
-}
-
-export const useCreateEnvironmentZonesMutation = ({
-  onSuccess,
-  onError,
-  onMutate,
-}: IMutation<void, ICreateEnvironmentZonesRequest> = {}) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: createEnvironmentZonesApi,
-    onSuccess: async (data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
-      await queryClient.invalidateQueries({
-        queryKey: [MAPS_ENDPOINTS.DETAIL, variables.map_id],
-      })
-      onSuccess?.(data, variables)
-    },
-    onError,
-    onMutate,
-  })
-}
-
-export const useSaveDockingStationsMutation = ({
-  onSuccess,
-  onError,
-  onMutate,
-}: IMutation<IResponseData<IDockingStationInfo[]>, ISaveDockingStationsRequest> = {}) => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: saveDockingStationsApi,
+    mutationFn: saveMapLayoutApi,
     onSuccess: async (data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getMapsQueryKey() }),

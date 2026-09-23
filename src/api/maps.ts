@@ -1,14 +1,11 @@
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
-  ICreateEnvironmentZonesRequest,
   ICreateMapRequest,
-  IDockingStationInfo,
   IMapDetailInfo,
   IMapListInfo,
   IMapListRequest,
-  ISaveDockingStationsRequest,
-  ISaveMapBoundaries,
+  ISaveMapLayoutRequest,
 } from '@/interface/maps'
 import { paramsSerializer } from '@/lib/utils'
 import axiosConfig from '.'
@@ -19,20 +16,8 @@ export const createMapApi = async (
   return await axiosConfig.post(MAPS_ENDPOINTS.CREATE, data)
 }
 
-export const saveMapBoundariesApi = async (data: ISaveMapBoundaries): Promise<void> => {
-  await axiosConfig.post(MAPS_ENDPOINTS.SAVE_BOUNDARY, data)
-}
-
-export const createEnvironmentZonesApi = async (
-  data: ICreateEnvironmentZonesRequest,
-): Promise<void> => {
-  await axiosConfig.post(MAPS_ENDPOINTS.CREATE_ZONES, data)
-}
-
-export const saveDockingStationsApi = async (
-  data: ISaveDockingStationsRequest,
-): Promise<IResponseData<IDockingStationInfo[]>> => {
-  return await axiosConfig.post(MAPS_ENDPOINTS.SAVE_DOCKING_STATIONS, data)
+export const saveMapLayoutApi = async (data: ISaveMapLayoutRequest): Promise<void> => {
+  await axiosConfig.post(MAPS_ENDPOINTS.SAVE_LAYOUT, data)
 }
 
 export const getMapsApi = async (

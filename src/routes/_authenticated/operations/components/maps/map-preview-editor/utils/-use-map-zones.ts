@@ -95,6 +95,7 @@ export function useMapZones({
     [MapZoneType.CLEANING_ZONE]: useEditHistory(initialType(MapZoneType.CLEANING_ZONE)),
   }
   const dockingStationHistory = useEditHistory({ zones: initialDockingStations })
+  const environmentZoneHistories = Object.values(histories)
   const zones = Object.values(histories).flatMap((history) => history.value.zones)
   const dockingStations = dockingStationHistory.value.zones
   const drafts = {
@@ -351,6 +352,9 @@ export function useMapZones({
     activeZoneType,
     canChangeActive,
     clearValidationError,
+    commitEnvironmentZones: () => {
+      for (const history of environmentZoneHistories) history.commit()
+    },
     dockingStations,
     commitDockingStations: dockingStationHistory.commit,
     drafts,
@@ -362,6 +366,7 @@ export function useMapZones({
     handleUndo,
     hasOpenPolygon,
     hasDockingStationChanges: dockingStationHistory.canClear,
+    hasEnvironmentZoneChanges: environmentZoneHistories.some((history) => history.canClear),
     selectedZoneId,
     setSelectedZoneId,
     validationError,
