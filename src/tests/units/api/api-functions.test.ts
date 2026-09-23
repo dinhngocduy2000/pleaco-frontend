@@ -38,14 +38,7 @@ import {
   inviteGroupMembersApi,
   updateGroupMemberAPI,
 } from '@/api/groups'
-import {
-  createEnvironmentZonesApi,
-  createMapApi,
-  getMapDetailApi,
-  getMapsApi,
-  saveDockingStationsApi,
-  saveMapBoundariesApi,
-} from '@/api/maps'
+import { createMapApi, getMapDetailApi, getMapsApi, saveMapLayoutApi } from '@/api/maps'
 import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
 import { getTagsApi } from '@/api/tags'
 
@@ -79,9 +72,9 @@ describe('API functions', () => {
 
   it('forwards map, robot, tag, and group requests to their endpoint contracts', async () => {
     const signal = new AbortController().signal
-    const dockingStationRequest = {
+    const layoutRequest = {
       map_id: 'map-1',
-      data: [
+      docking_stations: [
         {
           id: 'station-1',
           geometry: { type: 'Polygon', coordinates: [] },
@@ -91,9 +84,7 @@ describe('API functions', () => {
       ],
     }
     await createMapApi({} as never)
-    await saveMapBoundariesApi({} as never)
-    await createEnvironmentZonesApi({} as never)
-    await saveDockingStationsApi(dockingStationRequest as never)
+    await saveMapLayoutApi(layoutRequest as never)
     await getMapsApi({ page: 1, page_size: 10 } as never, signal)
     await getMapDetailApi('map-1', signal)
     await createRobotApi({} as never)
@@ -116,12 +107,7 @@ describe('API functions', () => {
     } as never)
 
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE, {})
-    expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.SAVE_BOUNDARY, {})
-    expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE_ZONES, {})
-    expect(authenticatedClient.post).toHaveBeenCalledWith(
-      MAPS_ENDPOINTS.SAVE_DOCKING_STATIONS,
-      dockingStationRequest,
-    )
+    expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.SAVE_LAYOUT, layoutRequest)
     expect(authenticatedClient.get).toHaveBeenCalledWith(
       MAPS_ENDPOINTS.LIST,
       expect.objectContaining({ signal }),

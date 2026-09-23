@@ -6,39 +6,31 @@ import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import { MapOrderDirection, MapStatus } from '@/enum/maps'
 
 const createMapApi = vi.hoisted(() => vi.fn())
-const createEnvironmentZonesApi = vi.hoisted(() => vi.fn())
 const getMapDetailApi = vi.hoisted(() => vi.fn())
 const getMapsApi = vi.hoisted(() => vi.fn())
-const saveMapBoundariesApi = vi.hoisted(() => vi.fn())
-const saveDockingStationsApi = vi.hoisted(() => vi.fn())
+const saveMapLayoutApi = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api/maps', () => ({
-  createEnvironmentZonesApi,
   createMapApi,
   getMapDetailApi,
   getMapsApi,
-  saveMapBoundariesApi,
-  saveDockingStationsApi,
+  saveMapLayoutApi,
 }))
 
 import {
   getMapDetailQueryKey,
   getMapListQueryKey,
   getMapsQueryKey,
-  useCreateEnvironmentZonesMutation,
   useCreateMapMutation,
-  useSaveDockingStationsMutation,
-  useSaveMapBoundariesMutation,
+  useSaveMapLayoutMutation,
 } from '@/queries/use-maps-query'
 
 describe('useCreateMapMutation', () => {
   beforeEach(() => {
     createMapApi.mockReset()
-    createEnvironmentZonesApi.mockReset()
     getMapDetailApi.mockReset()
     getMapsApi.mockReset()
-    saveMapBoundariesApi.mockReset()
-    saveDockingStationsApi.mockReset()
+    saveMapLayoutApi.mockReset()
   })
 
   it('creates a map and invalidates all map lists', async () => {
@@ -71,7 +63,7 @@ describe('useCreateMapMutation', () => {
     expect(getMapsQueryKey()).toEqual([MAPS_ENDPOINTS.LIST])
   })
 
-  it('saves a boundary and waits for map-list invalidation', async () => {
+  it('saves a layout and waits for list and detail invalidation', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     let finishInvalidation: VoidFunction = () => undefined
     const invalidation = new Promise<void>((resolve) => {
@@ -83,9 +75,9 @@ describe('useCreateMapMutation', () => {
     const wrapper = ({ children }: PropsWithChildren) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )
-    const payload = { map_id: 'map-123', source: 'DIMENSIONS' }
-    saveMapBoundariesApi.mockResolvedValue(undefined)
-    const { result } = renderHook(() => useSaveMapBoundariesMutation(), { wrapper })
+    const payload = { map_id: 'map-123', boundary: { source: 'DIMENSIONS' as const } }
+    saveMapLayoutApi.mockResolvedValue(undefined)
+    const { result } = renderHook(() => useSaveMapLayoutMutation(), { wrapper })
 
     let mutationSettled = false
     let mutation: Promise<void>
@@ -96,8 +88,11 @@ describe('useCreateMapMutation', () => {
       await Promise.resolve()
     })
 
-    expect(saveMapBoundariesApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(saveMapLayoutApi).toHaveBeenCalledWith(payload, expect.anything())
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-123'],
+    })
     expect(mutationSettled).toBe(false)
 
     await act(async () => {
@@ -105,63 +100,6 @@ describe('useCreateMapMutation', () => {
       await mutation
     })
     expect(mutationSettled).toBe(true)
-  })
-
-  it('creates environment zones and invalidates all map lists', async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
-    const wrapper = ({ children }: PropsWithChildren) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    )
-    const payload = {
-      map_id: 'map-123',
-      zones: [
-        {
-          type: 'OBSTACLE',
-          geometry: {
-            type: 'Polygon',
-            coordinates: [
-              [
-                [1, 1],
-                [2, 1],
-                [1, 2],
-                [1, 1],
-              ],
-            ],
-          },
-        },
-      ],
-    }
-    createEnvironmentZonesApi.mockResolvedValue(undefined)
-    const { result } = renderHook(() => useCreateEnvironmentZonesMutation(), { wrapper })
-
-    await act(async () => {
-      await result.current.mutateAsync(payload as never)
-    })
-
-    expect(createEnvironmentZonesApi).toHaveBeenCalledWith(payload, expect.anything())
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
-  })
-
-  it('saves docking stations and invalidates the list and affected detail', async () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
-    const wrapper = ({ children }: PropsWithChildren) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    )
-    const payload = { map_id: 'map-123', data: [] }
-    saveDockingStationsApi.mockResolvedValue({ data: [], message: 'Saved', statusCode: 200 })
-    const { result } = renderHook(() => useSaveDockingStationsMutation(), { wrapper })
-
-    await act(async () => {
-      await result.current.mutateAsync(payload)
-    })
-
-    expect(saveDockingStationsApi).toHaveBeenCalledWith(payload, expect.anything())
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [MAPS_ENDPOINTS.LIST] })
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-123'],
-    })
   })
 
   it('includes every paginated list parameter in the list query key', () => {

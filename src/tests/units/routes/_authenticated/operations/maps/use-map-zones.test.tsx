@@ -86,6 +86,22 @@ describe('useMapZones', () => {
     })
   })
 
+  it('tracks and commits environment-zone changes across every zone type', () => {
+    const { result } = renderMapZones()
+
+    expect(result.current.hasEnvironmentZoneChanges).toBe(false)
+    act(() => result.current.handleToolChange(MapZoneType.OBSTACLE))
+    act(() => result.current.handleActiveChange(firstTriangle, true))
+    expect(result.current.hasEnvironmentZoneChanges).toBe(true)
+
+    act(() => result.current.commitEnvironmentZones())
+    expect(result.current.hasEnvironmentZoneChanges).toBe(false)
+
+    act(() => result.current.handleToolChange(MapZoneType.NO_GO))
+    act(() => result.current.handleActiveChange(secondTriangle, true))
+    expect(result.current.hasEnvironmentZoneChanges).toBe(true)
+  })
+
   it('reopens the latest polygon on undo and supports selection updates and deletion', () => {
     const { result } = renderMapZones()
     act(() => result.current.handleToolChange(MapZoneType.CLEANING_ZONE))

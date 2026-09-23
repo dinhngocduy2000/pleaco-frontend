@@ -1,12 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 import { DockingStationHeading, GeometryType, MapBoundarySource } from '@/enum/maps'
-import type {
-  ICreateEnvironmentZonesRequest,
-  IDockingStationInfo,
-  IMapDetailInfo,
-  ISaveDockingStationsRequest,
-  ISaveMapBoundaries,
-} from '@/interface/maps'
+import type { IDockingStationInfo, IMapDetailInfo, ISaveMapLayoutRequest } from '@/interface/maps'
 import profileData from '../../data/profile.json' with { type: 'json' }
 import { setupAuthenticatedPage } from '../../utils/setup-authenticated'
 
@@ -46,11 +40,8 @@ async function setup(
     zones: [],
     docking_stations: initialDockingStations,
   }
-  const requests: ISaveMapBoundaries[] = []
-  const zoneRequests: ICreateEnvironmentZonesRequest[] = []
-  const stationRequests: ISaveDockingStationsRequest[] = []
+  const requests: ISaveMapLayoutRequest[] = []
   const createRequests: unknown[] = []
-  const requestOrder: ('boundary' | 'zones' | 'stations')[] = []
   await page.route('**/api/v1/tags**', (route) =>
     route.fulfill({ json: { data: [], message: 'OK', statusCode: 200 } }),
   )
@@ -59,50 +50,50 @@ async function setup(
       await route.fulfill({
         json: { data: map, message: 'OK', statusCode: 200 },
       })
-    } else if (new URL(route.request().url()).pathname.endsWith('/boundary')) {
-      const request = route.request().postDataJSON() as ISaveMapBoundaries
+    } else if (new URL(route.request().url()).pathname.endsWith('/layout')) {
+      const request = route.request().postDataJSON() as ISaveMapLayoutRequest
       requests.push(request)
-      requestOrder.push('boundary')
       await saveGate
       if (failFirst && requests.length === 1) {
         await route.fulfill({ status: 422, json: { detail: 'Please retry boundary save.' } })
         return
       }
-      map.boundary = request.geometry ?? {
-        type: GeometryType.POLYGON,
-        coordinates: [
-          [
-            [0, 0],
-            [20, 0],
-            [20, 12],
-            [0, 12],
-            [0, 0],
-          ],
-        ],
-      }
-      await route.fulfill({ status: 204 })
-    } else if (new URL(route.request().url()).pathname.endsWith('/zones')) {
-      const request = route.request().postDataJSON() as ICreateEnvironmentZonesRequest
-      zoneRequests.push(request)
-      requestOrder.push('zones')
-      if (failFirstZone && zoneRequests.length === 1) {
+      if (failFirstZone && requests.length === 1) {
         await route.fulfill({ status: 400, json: { detail: 'Please retry zone save.' } })
         return
       }
+      if (request.boundary) {
+        map.boundary = request.boundary.geometry ?? {
+          type: GeometryType.POLYGON,
+          coordinates: [
+            [
+              [0, 0],
+              [20, 0],
+              [20, 12],
+              [0, 12],
+              [0, 0],
+            ],
+          ],
+        }
+      }
+      if (request.environment_zones) {
+        map.zones = request.environment_zones
+          .filter((zone) => !zone.to_delete)
+          .map((zone, index) => ({
+            id: zone.id ?? `zone-${index + 1}`,
+            type: zone.type,
+            geometry: zone.geometry,
+          }))
+      }
+      if (request.docking_stations) {
+        map.docking_stations = request.docking_stations.map((station, index) => ({
+          id: station.id ?? `station-${index + 1}`,
+          robot_id: station.robot_id ?? null,
+          geometry: station.geometry,
+          heading: station.heading ?? DockingStationHeading.SOUTH,
+        }))
+      }
       await route.fulfill({ status: 204 })
-    } else if (new URL(route.request().url()).pathname.endsWith('/stations')) {
-      const request = route.request().postDataJSON() as ISaveDockingStationsRequest
-      stationRequests.push(request)
-      requestOrder.push('stations')
-      map.docking_stations = request.data.map((station, index) => ({
-        id: station.id ?? `station-${index + 1}`,
-        robot_id: station.robot_id ?? null,
-        geometry: station.geometry,
-        heading: station.heading ?? DockingStationHeading.SOUTH,
-      }))
-      await route.fulfill({
-        json: { data: map.docking_stations, message: 'Saved', statusCode: 200 },
-      })
     } else {
       createRequests.push(route.request().postDataJSON())
       await route.fulfill({ status: 400 })
@@ -110,7 +101,7 @@ async function setup(
   })
   await page.goto(`/operations/maps/${map.id}`)
   await expect(page.getByText('Map Details')).toBeVisible()
-  return { requests, zoneRequests, stationRequests, createRequests, requestOrder }
+  return { requests, createRequests }
 }
 
 async function openEditor(page: Page) {
@@ -171,12 +162,11 @@ for (const role of ['admin', 'owner']) {
     await expect(dialog).not.toBeVisible()
     expect(requests).toHaveLength(1)
     expect(requests[0].map_id).toBe('00000000-0000-4000-8000-000000000001')
-    expect(requests[0].source).toBe(MapBoundarySource.CUSTOM)
-    expect(requests[0].geometry?.coordinates[0][0][0]).toBeCloseTo(3, 1)
-    expect(requests[0].geometry?.coordinates[0]).toHaveLength(4)
+    expect(requests[0].boundary?.source).toBe(MapBoundarySource.CUSTOM)
+    expect(requests[0].boundary?.geometry?.coordinates[0][0][0]).toBeCloseTo(3, 1)
+    expect(requests[0].boundary?.geometry?.coordinates[0]).toHaveLength(4)
     dialog = await openEditor(page)
-    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(dialog).not.toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
     expect(requests).toHaveLength(1)
     expect(createRequests).toEqual([])
   })
@@ -200,7 +190,7 @@ test('cancel discards edits; full-map replacement survives a failed save and ret
   await expect(dialog.getByRole('button', { name: 'Clear', exact: true })).toBeEnabled()
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   dialog = await openEditor(page)
-  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   expect(requests).toEqual([])
   await dialog.getByRole('combobox', { name: 'Boundary method' }).click()
   await page.getByRole('option', { name: 'Use full map area' }).click()
@@ -210,7 +200,10 @@ test('cancel discards edits; full-map replacement survives a failed save and ret
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(dialog).not.toBeVisible()
   expect(requests).toEqual(
-    Array(2).fill({ map_id: '00000000-0000-4000-8000-000000000001', source: 'DIMENSIONS' }),
+    Array(2).fill({
+      map_id: '00000000-0000-4000-8000-000000000001',
+      boundary: { source: 'DIMENSIONS' },
+    }),
   )
   expect(createRequests).toEqual([])
 })
@@ -239,7 +232,7 @@ test('saving blocks dismissal and duplicate requests', async ({ page }) => {
 })
 
 test('saves zones without resaving an unchanged boundary', async ({ page }) => {
-  const { requests, zoneRequests, requestOrder } = await setup(page, 'owner')
+  const { requests } = await setup(page, 'owner')
   const dialog = await openEditor(page)
   await drawObstacleZone(page, dialog)
 
@@ -247,14 +240,14 @@ test('saves zones without resaving an unchanged boundary', async ({ page }) => {
 
   await expect(page.getByText('Layout saved successfully.')).toBeVisible()
   await expect(dialog).not.toBeVisible()
-  expect(requests).toHaveLength(0)
-  expect(zoneRequests).toHaveLength(1)
-  expect(requestOrder).toEqual(['zones'])
-  expect(zoneRequests[0].map_id).toBe('00000000-0000-4000-8000-000000000001')
-  expect(zoneRequests[0].zones).toHaveLength(1)
-  expect(zoneRequests[0].zones[0].type).toBe('OBSTACLE')
-  expect(zoneRequests[0].zones[0]).not.toHaveProperty('clientId')
-  const ring = zoneRequests[0].zones[0].geometry.coordinates[0]
+  expect(requests).toHaveLength(1)
+  expect(requests[0].map_id).toBe('00000000-0000-4000-8000-000000000001')
+  expect(requests[0]).not.toHaveProperty('boundary')
+  expect(requests[0]).not.toHaveProperty('docking_stations')
+  expect(requests[0].environment_zones).toHaveLength(1)
+  expect(requests[0].environment_zones?.[0].type).toBe('OBSTACLE')
+  expect(requests[0].environment_zones?.[0]).not.toHaveProperty('clientId')
+  const ring = requests[0].environment_zones?.[0].geometry.coordinates[0] ?? []
   expect(ring.at(-1)).toEqual(ring[0])
 })
 
@@ -278,9 +271,7 @@ test('displays a persisted docking station and saves its deletion by omission', 
       ],
     },
   }
-  const { stationRequests, requestOrder } = await setup(page, 'owner', false, undefined, false, [
-    persistedStation,
-  ])
+  const { requests } = await setup(page, 'owner', false, undefined, false, [persistedStation])
   const dialog = await openEditor(page)
   const toolbar = dialog.getByRole('toolbar', { name: 'Map layout tools' })
   await toolbar.getByRole('button', { name: 'Select', exact: true }).click()
@@ -298,17 +289,18 @@ test('displays a persisted docking station and saves its deletion by omission', 
 
   await expect(page.getByText('Layout saved successfully.')).toBeVisible()
   await expect(dialog).not.toBeVisible()
-  expect(stationRequests).toEqual([
+  expect(requests).toEqual([
     {
       map_id: '00000000-0000-4000-8000-000000000001',
-      data: [],
+      docking_stations: [],
     },
   ])
-  expect(requestOrder).toEqual(['zones', 'stations'])
 })
 
-test('places and saves a docking station through the stations endpoint', async ({ page }) => {
-  const { requests, stationRequests, requestOrder } = await setup(page, 'owner')
+test('saves a changed boundary and docking station through the layout endpoint', async ({
+  page,
+}) => {
+  const { requests } = await setup(page, 'owner')
   const dialog = await openEditor(page)
   await dialog.getByRole('combobox', { name: 'Boundary method' }).click()
   await page.getByRole('option', { name: 'Use full map area' }).click()
@@ -325,28 +317,26 @@ test('places and saves a docking station through the stations endpoint', async (
   expect(requests).toEqual([
     {
       map_id: '00000000-0000-4000-8000-000000000001',
-      source: MapBoundarySource.DIMENSIONS,
+      boundary: { source: MapBoundarySource.DIMENSIONS },
+      docking_stations: [expect.any(Object)],
     },
   ])
-  expect(stationRequests).toHaveLength(1)
-  expect(stationRequests[0].map_id).toBe('00000000-0000-4000-8000-000000000001')
-  expect(stationRequests[0].data).toHaveLength(1)
-  expect(stationRequests[0].data[0]).toMatchObject({
+  expect(requests[0].docking_stations).toHaveLength(1)
+  expect(requests[0].docking_stations?.[0]).toMatchObject({
     heading: DockingStationHeading.SOUTH,
     robot_id: null,
     geometry: { type: GeometryType.POLYGON },
   })
-  expect(stationRequests[0].data[0]).not.toHaveProperty('id')
-  const ring = stationRequests[0].data[0].geometry.coordinates[0]
+  expect(requests[0].docking_stations?.[0]).not.toHaveProperty('id')
+  const ring = requests[0].docking_stations?.[0].geometry.coordinates[0] ?? []
   expect(ring).toHaveLength(5)
   expect(ring.at(-1)).toEqual(ring[0])
   expect(ring[1][0] - ring[0][0]).toBeCloseTo(4)
   expect(ring[2][1] - ring[1][1]).toBeCloseTo(4)
-  expect(requestOrder).toEqual(['boundary', 'zones', 'stations'])
 })
 
-test('skips zone saving when the boundary request fails', async ({ page }) => {
-  const { requests, zoneRequests, requestOrder } = await setup(page, 'owner', true)
+test('submits all changed sections atomically when the layout request fails', async ({ page }) => {
+  const { requests } = await setup(page, 'owner', true)
   const dialog = await openEditor(page)
   await moveSavedBoundaryVertex(page, dialog)
   await drawObstacleZone(page, dialog)
@@ -356,18 +346,12 @@ test('skips zone saving when the boundary request fails', async ({ page }) => {
   await expect(page.getByText('Please retry boundary save.')).toBeVisible()
   await expect(dialog).toBeVisible()
   expect(requests).toHaveLength(1)
-  expect(zoneRequests).toEqual([])
-  expect(requestOrder).toEqual(['boundary'])
+  expect(requests[0].boundary).toBeDefined()
+  expect(requests[0].environment_zones).toHaveLength(1)
 })
 
 test('keeps the layout open when zone saving fails', async ({ page }) => {
-  const { requests, zoneRequests, requestOrder } = await setup(
-    page,
-    'owner',
-    false,
-    undefined,
-    true,
-  )
+  const { requests } = await setup(page, 'owner', false, undefined, true)
   const dialog = await openEditor(page)
   await drawObstacleZone(page, dialog)
 
@@ -375,16 +359,14 @@ test('keeps the layout open when zone saving fails', async ({ page }) => {
 
   await expect(page.getByText('Please retry zone save.')).toBeVisible()
   await expect(dialog).toBeVisible()
-  expect(requests).toHaveLength(0)
-  expect(zoneRequests).toHaveLength(1)
-  expect(requestOrder).toEqual(['zones'])
+  expect(requests).toHaveLength(1)
+  expect(requests[0].environment_zones).toHaveLength(1)
 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('Layout saved successfully.')).toBeVisible()
   await expect(dialog).not.toBeVisible()
-  expect(requests).toHaveLength(0)
-  expect(zoneRequests).toHaveLength(2)
-  expect(requestOrder).toEqual(['zones', 'zones'])
+  expect(requests).toHaveLength(2)
+  expect(requests[1]).toEqual(requests[0])
 })
 
 test('draws, selects, and deletes a session-only zone with layout tools', async ({ page }) => {
@@ -425,8 +407,7 @@ test('draws, selects, and deletes a session-only zone with layout tools', async 
 
   await toolbar.getByRole('button', { name: 'Boundary' }).click()
   await expect(dialog.getByRole('combobox', { name: 'Boundary method' })).toBeEnabled()
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(dialog).not.toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   expect(requests).toHaveLength(0)
 })
 
@@ -451,8 +432,7 @@ test('preserves an open zone draft and blocks the boundary request until it is c
   expect(requests).toEqual([])
 
   await dialog.getByRole('button', { name: 'Clear', exact: true }).click()
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(dialog).not.toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   expect(requests).toHaveLength(0)
 })
 
