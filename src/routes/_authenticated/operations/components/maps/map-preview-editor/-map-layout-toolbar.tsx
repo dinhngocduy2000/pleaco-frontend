@@ -2,12 +2,12 @@ import { BatteryCharging, MousePointer2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
+import { MAP_ZONE_STYLES } from './model/-layout-styles'
 import {
   DOCKING_STATION_TOOL,
   MAP_DRAWING_ZONE_TYPES,
-  MAP_ZONE_STYLES,
   type MapLayoutTool,
-} from './utils/-map-zone-types'
+} from './model/-layout-types'
 
 const t = getTranslations()
 

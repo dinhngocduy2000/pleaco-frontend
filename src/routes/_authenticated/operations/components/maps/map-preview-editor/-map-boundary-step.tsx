@@ -5,8 +5,8 @@ import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
 import { MapBoundaryEditor } from './-map-boundary-editor'
 import { MapLayoutToolbar } from './-map-layout-toolbar'
-import { DOCKING_STATION_SIZE_METERS, DOCKING_STATION_TOOL } from './utils/-map-zone-types'
-import { type MapBoundaryStepProps, useBoundaryStep } from './utils/-use-boundary-step'
+import { type MapBoundaryStepProps, useBoundaryStep } from './hooks/-use-boundary-step'
+import { DOCKING_STATION_SIZE_METERS, DOCKING_STATION_TOOL } from './model/-layout-types'
 
 const t = getTranslations()
 
@@ -71,27 +71,33 @@ export function MapBoundaryStep({
           />
         )}
         <MapBoundaryEditor
-          activeZoneType={zoneEditor.activeZoneType}
-          boundaryClosed={boundaryClosed}
-          boundaryPoints={boundaryPoints}
-          canChange={mode === 'adjust' ? zoneEditor.canChangeActive : undefined}
-          closed={zoneEditor.activeClosed}
-          dimensionX={map.dimension_x}
-          dimensionY={map.dimension_y}
-          drafts={zoneEditor.drafts}
-          fixedPlacementSize={
-            zoneEditor.activeTool === DOCKING_STATION_TOOL ? DOCKING_STATION_SIZE_METERS : undefined
-          }
-          interactive={zoneEditor.activeInteractive}
-          issues={zoneEditor.issues}
-          points={zoneEditor.activePoints}
-          selectedZoneId={zoneEditor.selectedZoneId}
-          selectionMode={zoneEditor.activeTool === 'SELECT'}
-          zones={zoneEditor.visibleLayoutShapes}
-          onBackgroundClick={() => zoneEditor.setSelectedZoneId(undefined)}
-          onChange={zoneEditor.handleActiveChange}
-          onInvalid={zoneEditor.handleInvalid}
-          onSelectZone={zoneEditor.setSelectedZoneId}
+          dimensions={{ x: map.dimension_x, y: map.dimension_y }}
+          active={{
+            points: zoneEditor.activePoints,
+            closed: zoneEditor.activeClosed,
+            zoneType: zoneEditor.activeZoneType,
+          }}
+          layout={{
+            boundary: { points: boundaryPoints, closed: boundaryClosed },
+            zones: zoneEditor.visibleLayoutShapes,
+            drafts: zoneEditor.drafts,
+            issues: zoneEditor.issues,
+            selectedZoneId: zoneEditor.selectedZoneId,
+            selectionMode: zoneEditor.activeTool === 'SELECT',
+          }}
+          interaction={{
+            mode: 'edit',
+            interactive: zoneEditor.activeInteractive,
+            canChange: mode === 'adjust' ? zoneEditor.canChangeActive : undefined,
+            fixedPlacementSize:
+              zoneEditor.activeTool === DOCKING_STATION_TOOL
+                ? DOCKING_STATION_SIZE_METERS
+                : undefined,
+            onBackgroundClick: () => zoneEditor.setSelectedZoneId(undefined),
+            onChange: zoneEditor.handleActiveChange,
+            onInvalid: zoneEditor.handleInvalid,
+            onSelectZone: zoneEditor.setSelectedZoneId,
+          }}
         />
       </div>
       <div className="border-t bg-background px-6 py-5">

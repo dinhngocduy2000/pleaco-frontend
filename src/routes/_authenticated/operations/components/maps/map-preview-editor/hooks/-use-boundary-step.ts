@@ -1,26 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { GeometryType, MapBoundarySource, MapZoneType } from '@/enum/maps'
-import type {
-  Geometry,
-  IDockingStationInfo,
-  IMapBoundaryCoordinate,
-  IMapDetailZoneInfo,
-  IMapLayoutBoundarySave,
-  ISaveMapLayoutRequest,
-} from '@/interface/maps'
+import { MapBoundarySource, MapZoneType } from '@/enum/maps'
+import type { Geometry, IDockingStationInfo, IMapDetailZoneInfo } from '@/interface/maps'
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
 import { useSaveMapLayoutMutation } from '@/queries/use-maps-query'
+import { isValidBoundaryPolygon } from '../geometry/-polygons'
 import {
   getFullMapBoundaries,
   getInitialBoundary,
   type IMapBoundaryEditorMap,
   type InitialBoundaryState,
-  isValidBoundaryPolygon,
-  serializeBoundary,
-} from './-map-boundary-geometry'
-import { DOCKING_STATION_TOOL } from './-map-zone-types'
+} from '../model/-boundary-format'
+import {
+  boundaryGeometriesEqual,
+  createBoundaryGeometry,
+  createMapLayoutPayload,
+} from '../model/-layout-payload'
+import { DOCKING_STATION_TOOL } from '../model/-layout-types'
 import { useEditHistory } from './-use-edit-history'
 import { type MapLayoutValidationError, useMapZones } from './-use-map-zones'
 
@@ -49,57 +46,6 @@ const getValidationMessage = (error: MapLayoutValidationError | undefined) => {
   if (error === 'ZONE_INVALID') return t.map_layout_invalid_zone()
   return undefined
 }
-
-/**
- * Builds the boundary payload for the selected boundary method.
- *
- * @param method - Selected boundary source.
- * @param points - Custom boundary points without the repeated closing point.
- * @returns A dimensions or custom boundary save request.
- */
-const createBoundaryRequest = (
-  method: MapBoundarySource,
-  points: IMapBoundaryCoordinate[],
-): IMapLayoutBoundarySave =>
-  method === MapBoundarySource.CUSTOM
-    ? {
-        source: MapBoundarySource.CUSTOM,
-        geometry: {
-          type: GeometryType.POLYGON,
-          coordinates: serializeBoundary(points),
-        },
-      }
-    : { source: MapBoundarySource.DIMENSIONS }
-
-/**
- * Creates the effective GeoJSON polygon for the current boundary editor state.
- *
- * @param map - Map dimensions used by the full-map boundary method.
- * @param method - Selected boundary method.
- * @param points - Custom boundary points without the repeated closing point.
- * @returns A normalized, explicitly closed polygon geometry.
- */
-const createBoundaryGeometry = (
-  map: IMapBoundaryEditorMap,
-  method: MapBoundarySource,
-  points: IMapBoundaryCoordinate[],
-): Geometry => ({
-  type: GeometryType.POLYGON,
-  coordinates:
-    method === MapBoundarySource.CUSTOM
-      ? serializeBoundary(points)
-      : getFullMapBoundaries(map.dimension_x, map.dimension_y),
-})
-
-/**
- * Compares two normalized boundary GeoJSON objects, including point order.
- *
- * @param initialGeometry - Boundary geometry when the editor opened.
- * @param currentGeometry - Boundary geometry when Save was selected.
- * @returns Whether both GeoJSON polygon representations are identical.
- */
-const boundaryGeometriesEqual = (initialGeometry: Geometry, currentGeometry: Geometry) =>
-  JSON.stringify(initialGeometry) === JSON.stringify(currentGeometry)
 
 /**
  * Coordinates boundary editing, zone editing, validation, and atomic layout saving.
@@ -232,24 +178,16 @@ export function useBoundaryStep({
     }
 
     try {
-      const request: ISaveMapLayoutRequest = {
-        map_id: map.id,
-        ...(hasBoundaryChanges && { boundary: createBoundaryRequest(method, points) }),
-        ...(zoneEditor.hasEnvironmentZoneChanges && {
-          environment_zones: zoneEditor.zones.map(({ id, to_delete, zoneType, geometry }) =>
-            id === undefined
-              ? { to_delete, type: zoneType, geometry }
-              : { id, to_delete, type: zoneType, geometry },
-          ),
-        }),
-        ...(zoneEditor.hasDockingStationChanges && {
-          docking_stations: zoneEditor.dockingStations.map(({ id, geometry, heading, robot_id }) =>
-            id === undefined
-              ? { geometry, heading, robot_id }
-              : { id, geometry, heading, robot_id },
-          ),
-        }),
-      }
+      const request = createMapLayoutPayload({
+        mapId: map.id,
+        method,
+        points,
+        hasBoundaryChanges,
+        hasEnvironmentZoneChanges: zoneEditor.hasEnvironmentZoneChanges,
+        zones: zoneEditor.zones,
+        hasDockingStationChanges: zoneEditor.hasDockingStationChanges,
+        dockingStations: zoneEditor.dockingStations,
+      })
       await saveMapLayout(request)
       if (hasBoundaryChanges) {
         boundaryHistory.commit()
