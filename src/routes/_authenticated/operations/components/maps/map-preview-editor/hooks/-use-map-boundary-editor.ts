@@ -10,12 +10,11 @@ import {
 import {
   canvasPointToWorld,
   clampCanvasPoint,
-  getBoundaryPointUpdate,
-  getMovedBoundaryPoints,
   hasMinimumCanvasMovement,
   type MapCanvasPoint,
   worldPointToCanvas,
-} from './-map-boundary-geometry'
+} from '../geometry/-coordinates'
+import { getBoundaryPointUpdate, getMovedBoundaryPoints } from '../model/-editor-proposals'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 3

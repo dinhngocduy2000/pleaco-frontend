@@ -2,26 +2,34 @@ import { describe, expect, it } from 'vitest'
 import { GeometryType, MapBoundarySource } from '@/enum/maps'
 import type { Geometry, IMapListInfo } from '@/interface/maps'
 import {
-  canCommitBoundaryPoints,
   canvasPointToWorld,
   clampBoundaryCoordinate,
   clampCanvasPoint,
-  doesPathOverlapPolygons,
   flattenCanvasPoints,
-  getBoundaryPointUpdate,
-  getFullMapBoundaries,
-  getInitialBoundary,
-  getMovedBoundaryPoints,
-  getPolygonArea,
   hasMinimumCanvasMovement,
-  hasSelfIntersection,
   isCanvasPointWithinTolerance,
-  isPathContainedInBoundary,
+  worldPointToCanvas,
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/geometry/-coordinates'
+import {
+  canCommitBoundaryPoints,
+  getPolygonArea,
+  hasSelfIntersection,
   isPointInBoundary,
   isValidBoundaryPolygon,
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/geometry/-polygons'
+import {
+  doesPathOverlapPolygons,
+  isPathContainedInBoundary,
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/geometry/-spatial-relations'
+import {
+  getFullMapBoundaries,
+  getInitialBoundary,
   serializeBoundary,
-  worldPointToCanvas,
-} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-boundary-geometry'
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/model/-boundary-format'
+import {
+  getBoundaryPointUpdate,
+  getMovedBoundaryPoints,
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/model/-editor-proposals'
 
 describe('map boundary geometry', () => {
   it('converts between bottom-left world coordinates and canvas coordinates at any zoom', () => {

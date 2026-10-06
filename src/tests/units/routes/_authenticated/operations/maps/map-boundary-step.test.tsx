@@ -20,183 +20,184 @@ vi.mock(
   '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-editor',
   () => ({
     MapBoundaryEditor: ({
-      activeZoneType,
-      canChange,
-      closed,
-      drafts,
-      fixedPlacementSize,
-      interactive,
-      onChange,
-      onInvalid,
-      onSelectZone,
-      points,
-      zones,
+      active,
+      layout,
+      interaction,
     }: {
-      activeZoneType: string
-      canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
-      closed: boolean
-      drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
-      fixedPlacementSize?: number
-      interactive: boolean
-      onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
-      onInvalid: () => void
-      onSelectZone: (clientId: string) => void
-      points: IMapBoundaryCoordinate[]
-      zones: { clientId: string }[]
-    }) => (
-      <div
-        data-testid="boundary-editor"
-        data-active-zone={activeZoneType}
-        data-closed={closed}
-        data-fixed-placement-size={fixedPlacementSize}
-        data-points={points.length}
-        data-zone-drafts={Object.values(drafts).filter((draft) => draft.points.length > 0).length}
-        data-zones={zones.length}
-      >
-        <span>{interactive ? 'Interactive editor' : 'Read-only editor'}</span>
-        <button
-          type="button"
-          onClick={() => {
-            const pointsByZoneType: Record<string, IMapBoundaryCoordinate[]> = {
-              BOUNDARY: [
-                [1.234, 1.236],
-                [8.888, 1],
-                [4, 7.777],
-              ],
-              OBSTACLE: [
-                [3, 2],
-                [4, 2],
-                [3.5, 3],
-              ],
-              NO_GO: [
-                [5, 2],
-                [6, 2],
-                [5.5, 3],
-              ],
-              CLEANING_ZONE: [
-                [4, 4],
-                [5, 4],
-                [4.5, 5],
-              ],
-              DOCKING_STATION: [
+      active: { zoneType: string; closed: boolean; points: IMapBoundaryCoordinate[] }
+      layout: {
+        drafts: Record<string, { points: IMapBoundaryCoordinate[] }>
+        zones: { clientId: string }[]
+      }
+      interaction: {
+        canChange?: (points: IMapBoundaryCoordinate[], closed: boolean) => boolean
+        fixedPlacementSize?: number
+        interactive: boolean
+        onChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
+        onInvalid: () => void
+        onSelectZone: (clientId: string) => void
+      }
+    }) => {
+      const { zoneType: activeZoneType, closed, points } = active
+      const { drafts, zones } = layout
+      const { canChange, fixedPlacementSize, interactive, onChange, onInvalid, onSelectZone } =
+        interaction
+      return (
+        <div
+          data-testid="boundary-editor"
+          data-active-zone={activeZoneType}
+          data-closed={closed}
+          data-fixed-placement-size={fixedPlacementSize}
+          data-points={points.length}
+          data-zone-drafts={Object.values(drafts).filter((draft) => draft.points.length > 0).length}
+          data-zones={zones.length}
+        >
+          <span>{interactive ? 'Interactive editor' : 'Read-only editor'}</span>
+          <button
+            type="button"
+            onClick={() => {
+              const pointsByZoneType: Record<string, IMapBoundaryCoordinate[]> = {
+                BOUNDARY: [
+                  [1.234, 1.236],
+                  [8.888, 1],
+                  [4, 7.777],
+                ],
+                OBSTACLE: [
+                  [3, 2],
+                  [4, 2],
+                  [3.5, 3],
+                ],
+                NO_GO: [
+                  [5, 2],
+                  [6, 2],
+                  [5.5, 3],
+                ],
+                CLEANING_ZONE: [
+                  [4, 4],
+                  [5, 4],
+                  [4.5, 5],
+                ],
+                DOCKING_STATION: [
+                  [5, 1],
+                  [15, 1],
+                  [15, 11],
+                  [5, 11],
+                ],
+              }
+              const nextPoints = pointsByZoneType[activeZoneType]
+              if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
+              else onInvalid()
+            }}
+          >
+            Draw valid boundary
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const stationPoints: IMapBoundaryCoordinate[] = [
                 [5, 1],
                 [15, 1],
                 [15, 11],
                 [5, 11],
-              ],
-            }
-            const nextPoints = pointsByZoneType[activeZoneType]
-            if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
-            else onInvalid()
-          }}
-        >
-          Draw valid boundary
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const stationPoints: IMapBoundaryCoordinate[] = [
-              [5, 1],
-              [15, 1],
-              [15, 11],
-              [5, 11],
-            ]
-            if (!canChange || canChange(stationPoints, true)) onChange(stationPoints, true)
-            else onInvalid()
-          }}
-        >
-          Place fixed square
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            onChange(
-              [
-                [1, 1],
-                [8, 1],
-              ],
-              false,
-            )
-          }
-        >
-          Draw open polygon
-        </button>
-        <button type="button" onClick={onInvalid}>
-          Draw invalid boundary
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            onChange(
-              [
-                [0, 0],
-                [20, 0],
-                [20, 12],
-                [0, 12],
-              ],
-              true,
-            )
-          }
-        >
-          Draw large boundary
-        </button>
-        <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
-          Select first zone
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            for (let index = 0; index < 101; index += 1) {
-              const x = 0.1 + index * 0.05
+              ]
+              if (!canChange || canChange(stationPoints, true)) onChange(stationPoints, true)
+              else onInvalid()
+            }}
+          >
+            Place fixed square
+          </button>
+          <button
+            type="button"
+            onClick={() =>
               onChange(
                 [
-                  [x, 0.01],
-                  [x + 0.02, 0.01],
-                  [x, 0.03],
+                  [1, 1],
+                  [8, 1],
+                ],
+                false,
+              )
+            }
+          >
+            Draw open polygon
+          </button>
+          <button type="button" onClick={onInvalid}>
+            Draw invalid boundary
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onChange(
+                [
+                  [0, 0],
+                  [20, 0],
+                  [20, 12],
+                  [0, 12],
                 ],
                 true,
               )
             }
-          }}
-        >
-          Draw 101 zones
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            for (let index = 0; index < 101; index += 1) {
-              const x = 0.1 + (index % 11) * 0.1
-              const y = 0.1 + Math.floor(index / 11) * 0.1
-              onChange(
-                [
-                  [x, y],
-                  [x + 0.05, y],
-                  [x + 0.05, y + 0.05],
-                  [x, y + 0.05],
-                ],
-                true,
-              )
-            }
-          }}
-        >
-          Place 101 stations
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const overlappingPoints: IMapBoundaryCoordinate[] = [
-              [3, 2],
-              [4, 2],
-              [3.5, 3],
-            ]
-            if (!canChange || canChange(overlappingPoints, true)) onChange(overlappingPoints, true)
-            else onInvalid()
-          }}
-        >
-          Draw overlapping zone
-        </button>
-      </div>
-    ),
+          >
+            Draw large boundary
+          </button>
+          <button type="button" onClick={() => zones[0] && onSelectZone(zones[0].clientId)}>
+            Select first zone
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              for (let index = 0; index < 101; index += 1) {
+                const x = 0.1 + index * 0.05
+                onChange(
+                  [
+                    [x, 0.01],
+                    [x + 0.02, 0.01],
+                    [x, 0.03],
+                  ],
+                  true,
+                )
+              }
+            }}
+          >
+            Draw 101 zones
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              for (let index = 0; index < 101; index += 1) {
+                const x = 0.1 + (index % 11) * 0.1
+                const y = 0.1 + Math.floor(index / 11) * 0.1
+                onChange(
+                  [
+                    [x, y],
+                    [x + 0.05, y],
+                    [x + 0.05, y + 0.05],
+                    [x, y + 0.05],
+                  ],
+                  true,
+                )
+              }
+            }}
+          >
+            Place 101 stations
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const overlappingPoints: IMapBoundaryCoordinate[] = [
+                [3, 2],
+                [4, 2],
+                [3.5, 3],
+              ]
+              if (!canChange || canChange(overlappingPoints, true))
+                onChange(overlappingPoints, true)
+              else onInvalid()
+            }}
+          >
+            Draw overlapping zone
+          </button>
+        </div>
+      )
+    },
   }),
 )
 
@@ -843,7 +844,7 @@ describe('MapBoundaryStep', () => {
       map_id: 'map-123',
       boundary: { source: MapBoundarySource.DIMENSIONS },
     })
-    expect(toast.success).toHaveBeenCalledWith('Boundary saved successfully.')
+    expect(toast.success).toHaveBeenCalledWith('Layout saved successfully.')
     expect(onClose).toHaveBeenCalledOnce()
   })
 

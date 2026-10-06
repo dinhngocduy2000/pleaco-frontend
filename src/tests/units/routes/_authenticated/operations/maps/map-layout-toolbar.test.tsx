@@ -3,10 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { MapZoneType } from '@/enum/maps'
 import { MapLayoutToolbar } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-layout-toolbar'
-import {
-  DOCKING_STATION_TOOL,
-  MAP_ZONE_STYLES,
-} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
+import { MAP_ZONE_STYLES } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-styles'
+import { DOCKING_STATION_TOOL } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-types'
 
 describe('MapLayoutToolbar', () => {
   it('defines the required boundary and zone color schemas', () => {

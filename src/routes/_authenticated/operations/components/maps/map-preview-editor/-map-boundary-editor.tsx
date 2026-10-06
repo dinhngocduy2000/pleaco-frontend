@@ -3,57 +3,71 @@ import { Circle, Layer, Line, Stage } from 'react-konva'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { MapZoneType } from '@/enum/maps'
+import type { IMapBoundaryCoordinate } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
 import { MAP_CANVAS_PADDING, MapGridLayer } from './-map-grid-preview'
-import { flattenCanvasPoints, worldPointToCanvas } from './utils/-map-boundary-geometry'
-import type { MapLayoutIssue } from './utils/-map-layout-issues'
+import { flattenCanvasPoints, worldPointToCanvas } from './geometry/-coordinates'
+import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './hooks/-use-map-boundary-editor'
+import type { MapLayoutIssue } from './model/-layout-issues'
+import { MAP_ZONE_STYLES } from './model/-layout-styles'
 import {
   DOCKING_STATION_TOOL,
   type IMapLayoutShape,
   type IMapZoneDrafts,
-  MAP_ZONE_STYLES,
   type MapCanvasZoneType,
-} from './utils/-map-zone-types'
-import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './utils/-use-map-boundary-editor'
+} from './model/-layout-types'
 
 const VERTEX_RADIUS = 5
 const t = getTranslations()
 
-type MapLayoutEditorProps = MapBoundaryEditorProps & {
-  issues?: MapLayoutIssue[]
-  activeZoneType?: MapCanvasZoneType
-  boundaryClosed?: boolean
-  boundaryPoints?: MapBoundaryEditorProps['points']
-  drafts?: IMapZoneDrafts
-  selectedZoneId?: string
-  selectionMode?: boolean
-  showBoundary?: boolean
-  zones?: IMapLayoutShape[]
-  onSelectZone?: (clientId: string) => void
+type MapLayoutEditorProps = {
+  dimensions: { x: number; y: number }
+  active: { points: IMapBoundaryCoordinate[]; closed: boolean; zoneType: MapCanvasZoneType }
+  layout: {
+    boundary: { points: IMapBoundaryCoordinate[]; closed: boolean }
+    zones: IMapLayoutShape[]
+    drafts?: IMapZoneDrafts
+    issues?: MapLayoutIssue[]
+    selectedZoneId?: string
+    selectionMode?: boolean
+    showBoundary?: boolean
+  }
+  interaction:
+    | { mode: 'view' }
+    | ({ mode: 'edit' } & Pick<
+        MapBoundaryEditorProps,
+        | 'interactive'
+        | 'onChange'
+        | 'onInvalid'
+        | 'canChange'
+        | 'onBackgroundClick'
+        | 'fixedPlacementSize'
+      > & { onSelectZone?: (clientId: string) => void })
 }
 
+const ignoreChange: MapBoundaryEditorProps['onChange'] = () => undefined
+const ignoreInvalid: MapBoundaryEditorProps['onInvalid'] = () => undefined
+
 export function MapBoundaryEditor({
-  dimensionX,
-  dimensionY,
-  points,
-  closed,
-  interactive,
-  onChange,
-  onInvalid,
-  canChange,
-  onBackgroundClick,
-  fixedPlacementSize,
-  issues = [],
-  activeZoneType = MapZoneType.BOUNDARY,
-  boundaryClosed = closed,
-  boundaryPoints = points,
-  drafts,
-  selectedZoneId,
-  selectionMode = false,
-  showBoundary = false,
-  zones = [],
-  onSelectZone,
+  dimensions,
+  active,
+  layout,
+  interaction,
 }: MapLayoutEditorProps) {
+  const { x: dimensionX, y: dimensionY } = dimensions
+  const { points, closed, zoneType: activeZoneType } = active
+  const {
+    boundary: { points: boundaryPoints, closed: boundaryClosed },
+    zones,
+    drafts,
+    issues = [],
+    selectedZoneId,
+    selectionMode = false,
+    showBoundary = false,
+  } = layout
+  const editable = interaction.mode === 'edit'
+  const interactive = editable && interaction.interactive
+  const onSelectZone = editable ? interaction.onSelectZone : undefined
   const {
     canvasPoints,
     canZoomIn,
@@ -77,18 +91,18 @@ export function MapBoundaryEditor({
     points,
     closed,
     interactive,
-    onChange,
-    onInvalid,
-    canChange,
-    onBackgroundClick,
-    fixedPlacementSize,
+    onChange: editable ? interaction.onChange : ignoreChange,
+    onInvalid: editable ? interaction.onInvalid : ignoreInvalid,
+    canChange: editable ? interaction.canChange : undefined,
+    onBackgroundClick: editable ? interaction.onBackgroundClick : undefined,
+    fixedPlacementSize: editable ? interaction.fixedPlacementSize : undefined,
   })
 
   if (!geometry) return null
 
   const activeStyle = MAP_ZONE_STYLES[activeZoneType]
   const pixelsPerMeter = geometry.mapWidth / dimensionX
-  const getCanvasPoints = (worldPoints: MapBoundaryEditorProps['points']) =>
+  const getCanvasPoints = (worldPoints: IMapBoundaryCoordinate[]) =>
     flattenCanvasPoints(
       worldPoints.map((point) => worldPointToCanvas(point, dimensionY, pixelsPerMeter)),
     )

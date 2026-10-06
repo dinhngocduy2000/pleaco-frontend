@@ -1,6 +1,6 @@
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
-import { doesPathOverlapPolygons, isPathContainedInBoundary } from './-map-boundary-geometry'
-import type { IMapLayoutShape, IMapZoneDrafts } from './-map-zone-types'
+import { doesPathOverlapPolygons, isPathContainedInBoundary } from '../geometry/-spatial-relations'
+import type { IMapLayoutShape, IMapZoneDrafts } from './-layout-types'
 
 export type MapLayoutIssue = {
   key: string

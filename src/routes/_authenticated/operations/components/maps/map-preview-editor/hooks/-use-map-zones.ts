@@ -1,19 +1,16 @@
 import { useRef, useState } from 'react'
 import { DockingStationHeading, GeometryType, MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
-import {
-  doesPathOverlapPolygons,
-  isPathContainedInBoundary,
-  serializeBoundary,
-} from './-map-boundary-geometry'
-import { getLayoutIssues } from './-map-layout-issues'
+import { doesPathOverlapPolygons, isPathContainedInBoundary } from '../geometry/-spatial-relations'
+import { serializeBoundary } from '../model/-boundary-format'
+import { getLayoutIssues } from '../model/-layout-issues'
 import {
   DOCKING_STATION_TOOL,
   type IMapDockingStationShape,
   type IMapLayoutShape,
   type IMapZoneShape,
   type MapLayoutTool,
-} from './-map-zone-types'
+} from '../model/-layout-types'
 import { useEditHistory } from './-use-edit-history'
 
 export type MapLayoutValidationError = 'BOUNDARY_INVALID' | 'ZONE_INVALID' | 'ZONE_OVERLAP'

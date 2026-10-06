@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { DockingStationHeading, GeometryType, MapZoneType } from '@/enum/maps'
+import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/hooks/-use-map-zones'
 import {
   DOCKING_STATION_TOOL,
   type IMapDockingStationShape,
   type IMapZoneShape,
-} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
-import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-zones'
+} from '@/routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-types'
 
 const boundary: [number, number][] = [
   [0, 0],
