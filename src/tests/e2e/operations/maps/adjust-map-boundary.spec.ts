@@ -50,7 +50,7 @@ async function setup(
       await route.fulfill({
         json: { data: map, message: 'OK', statusCode: 200 },
       })
-    } else if (new URL(route.request().url()).pathname.endsWith('/layout')) {
+    } else if (new URL(route.request().url()).pathname.endsWith('/layouts')) {
       const request = route.request().postDataJSON() as ISaveMapLayoutRequest
       requests.push(request)
       await saveGate

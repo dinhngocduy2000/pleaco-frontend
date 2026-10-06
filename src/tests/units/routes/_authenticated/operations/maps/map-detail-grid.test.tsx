@@ -83,24 +83,28 @@ describe('MapDetailGrid', () => {
     expect(screen.getByTestId('map-boundary-editor')).toBeInTheDocument()
     expect(editor).toHaveBeenCalledWith(
       expect.objectContaining({
-        interactive: false,
-        showBoundary: true,
-        boundaryClosed: true,
-        boundaryPoints: [
-          [1, 1],
-          [10, 1],
-          [1, 8],
-        ],
-        zones: [
-          expect.objectContaining({ clientId: 'zone-1', zoneType: MapZoneType.OBSTACLE }),
-          expect.objectContaining({
-            clientId: 'station-1',
-            id: 'station-1',
-            zoneType: 'DOCKING_STATION',
-            heading: DockingStationHeading.NORTH,
-            robot_id: 'robot-1',
-          }),
-        ],
+        interaction: { mode: 'view' },
+        layout: expect.objectContaining({
+          showBoundary: true,
+          boundary: {
+            closed: true,
+            points: [
+              [1, 1],
+              [10, 1],
+              [1, 8],
+            ],
+          },
+          zones: [
+            expect.objectContaining({ clientId: 'zone-1', zoneType: MapZoneType.OBSTACLE }),
+            expect.objectContaining({
+              clientId: 'station-1',
+              id: 'station-1',
+              zoneType: 'DOCKING_STATION',
+              heading: DockingStationHeading.NORTH,
+              robot_id: 'robot-1',
+            }),
+          ],
+        }),
       }),
     )
   })

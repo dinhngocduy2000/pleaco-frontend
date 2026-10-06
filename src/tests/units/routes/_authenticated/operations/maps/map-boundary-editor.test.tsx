@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { MouseEventHandler, ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { GeometryType, MapZoneType } from '@/enum/maps'
-import { DOCKING_STATION_TOOL } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-map-zone-types'
+import { DockingStationHeading, GeometryType, MapZoneType } from '@/enum/maps'
+import { DOCKING_STATION_TOOL } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-types'
 
 const useMapBoundaryEditor = vi.hoisted(() => vi.fn())
 const handlers = vi.hoisted(() => ({
@@ -19,7 +19,7 @@ const handlers = vi.hoisted(() => ({
 }))
 
 vi.mock(
-  '@/routes/_authenticated/operations/components/maps/map-preview-editor/utils/-use-map-boundary-editor',
+  '@/routes/_authenticated/operations/components/maps/map-preview-editor/hooks/-use-map-boundary-editor',
   () => ({
     useMapBoundaryEditor,
   }),
@@ -122,16 +122,22 @@ vi.mock('react-konva', () => ({
 import { MapBoundaryEditor } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-boundary-editor'
 
 const defaultProps = {
-  dimensionX: 20,
-  dimensionY: 12,
-  points: [
-    [1, 1],
-    [8, 1],
-  ] as [number, number][],
-  closed: false,
-  interactive: true,
-  onChange: vi.fn(),
-  onInvalid: vi.fn(),
+  dimensions: { x: 20, y: 12 },
+  active: {
+    points: [
+      [1, 1],
+      [8, 1],
+    ] as [number, number][],
+    closed: false,
+    zoneType: MapZoneType.BOUNDARY,
+  },
+  layout: { boundary: { points: [] as [number, number][], closed: false }, zones: [] },
+  interaction: {
+    mode: 'edit' as const,
+    interactive: true,
+    onChange: vi.fn(),
+    onInvalid: vi.fn(),
+  },
 }
 
 const editorState = {
@@ -163,6 +169,70 @@ describe('MapBoundaryEditor', () => {
     useMapBoundaryEditor.mockReturnValue(editorState)
   })
 
+  it('accepts grouped edit inputs and forwards the active path to the canvas hook', () => {
+    const onChange = vi.fn()
+    const onInvalid = vi.fn()
+    render(
+      <MapBoundaryEditor
+        dimensions={{ x: 20, y: 12 }}
+        active={{
+          points: [
+            [1, 1],
+            [8, 1],
+          ],
+          closed: false,
+          zoneType: MapZoneType.BOUNDARY,
+        }}
+        layout={{ boundary: { points: [], closed: false }, zones: [] }}
+        interaction={{ mode: 'edit', interactive: true, onChange, onInvalid }}
+      />,
+    )
+
+    expect(useMapBoundaryEditor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dimensionX: 20,
+        dimensionY: 12,
+        points: [
+          [1, 1],
+          [8, 1],
+        ],
+        closed: false,
+        interactive: true,
+        onChange,
+        onInvalid,
+      }),
+    )
+  })
+
+  it('accepts grouped read-only inputs without edit callbacks', () => {
+    useMapBoundaryEditor.mockReturnValue({ ...editorState, canvasPoints: [] })
+    render(
+      <MapBoundaryEditor
+        dimensions={{ x: 20, y: 12 }}
+        active={{ points: [], closed: false, zoneType: MapZoneType.BOUNDARY }}
+        layout={{
+          boundary: {
+            points: [
+              [0, 0],
+              [20, 0],
+              [20, 12],
+              [0, 12],
+            ],
+            closed: true,
+          },
+          zones: [],
+          showBoundary: true,
+        }}
+        interaction={{ mode: 'view' }}
+      />,
+    )
+
+    expect(screen.getByTestId('boundary-line')).toHaveAttribute('data-closed', 'true')
+    expect(useMapBoundaryEditor).toHaveBeenCalledWith(
+      expect.objectContaining({ interactive: false }),
+    )
+  })
+
   it('renders nothing when map geometry is unavailable', () => {
     useMapBoundaryEditor.mockReturnValue({ ...editorState, geometry: undefined })
 
@@ -187,7 +257,9 @@ describe('MapBoundaryEditor', () => {
   })
 
   it('fills a closed polygon and makes every vertex draggable', () => {
-    render(<MapBoundaryEditor {...defaultProps} closed />)
+    render(
+      <MapBoundaryEditor {...defaultProps} active={{ ...defaultProps.active, closed: true }} />,
+    )
 
     expect(screen.getByTestId('boundary-line')).toHaveAttribute('data-fill', 'transparent')
     for (const vertex of screen.getAllByTestId('boundary-vertex')) {
@@ -201,16 +273,21 @@ describe('MapBoundaryEditor', () => {
     render(
       <MapBoundaryEditor
         {...defaultProps}
-        boundaryClosed
-        boundaryPoints={[
-          [0, 0],
-          [20, 0],
-          [20, 12],
-          [0, 12],
-        ]}
-        interactive={false}
-        points={[]}
-        showBoundary
+        active={{ ...defaultProps.active, points: [] }}
+        layout={{
+          boundary: {
+            points: [
+              [0, 0],
+              [20, 0],
+              [20, 12],
+              [0, 12],
+            ],
+            closed: true,
+          },
+          zones: [],
+          showBoundary: true,
+        }}
+        interaction={{ mode: 'view' }}
       />,
     )
 
@@ -221,12 +298,15 @@ describe('MapBoundaryEditor', () => {
     render(
       <MapBoundaryEditor
         {...defaultProps}
-        closed
-        points={[
-          [2, 2],
-          [10, 2],
-          [6, 8],
-        ]}
+        active={{
+          ...defaultProps.active,
+          closed: true,
+          points: [
+            [2, 2],
+            [10, 2],
+            [6, 8],
+          ],
+        }}
       />,
     )
     fireEvent.dragEnd(screen.getAllByTestId('boundary-vertex')[0])
@@ -276,30 +356,34 @@ describe('MapBoundaryEditor', () => {
     render(
       <MapBoundaryEditor
         {...defaultProps}
-        activeZoneType={DOCKING_STATION_TOOL}
-        fixedPlacementSize={10}
-        points={[]}
-        selectedZoneId="dock-1"
-        selectionMode
-        zones={[
-          {
-            clientId: 'dock-1',
-            to_delete: false,
-            zoneType: DOCKING_STATION_TOOL,
-            geometry: {
-              type: GeometryType.POLYGON,
-              coordinates: [
-                [
-                  [5, 1],
-                  [15, 1],
-                  [15, 11],
-                  [5, 11],
-                  [5, 1],
+        active={{ points: [], closed: true, zoneType: DOCKING_STATION_TOOL }}
+        interaction={{ ...defaultProps.interaction, fixedPlacementSize: 10 }}
+        layout={{
+          boundary: defaultProps.layout.boundary,
+          selectedZoneId: 'dock-1',
+          selectionMode: true,
+          zones: [
+            {
+              clientId: 'dock-1',
+              to_delete: false,
+              zoneType: DOCKING_STATION_TOOL,
+              geometry: {
+                type: GeometryType.POLYGON,
+                coordinates: [
+                  [
+                    [5, 1],
+                    [15, 1],
+                    [15, 11],
+                    [5, 11],
+                    [5, 1],
+                  ],
                 ],
-              ],
+              },
+              heading: DockingStationHeading.SOUTH,
+              robot_id: null,
             },
-          },
-        ]}
+          ],
+        }}
       />,
     )
 
@@ -333,44 +417,48 @@ describe('MapBoundaryEditor', () => {
     render(
       <MapBoundaryEditor
         {...defaultProps}
-        activeZoneType={MapZoneType.OBSTACLE}
-        boundaryClosed
-        boundaryPoints={[
-          [0, 0],
-          [20, 0],
-          [20, 12],
-          [0, 12],
-        ]}
-        drafts={{
-          OBSTACLE: { points: [] },
-          NO_GO: {
+        active={{ ...defaultProps.active, zoneType: MapZoneType.OBSTACLE }}
+        layout={{
+          boundary: {
             points: [
-              [3, 3],
-              [4, 3],
+              [0, 0],
+              [20, 0],
+              [20, 12],
+              [0, 12],
             ],
+            closed: true,
           },
-          CLEANING_ZONE: { points: [] },
-        }}
-        selectionMode
-        zones={[
-          {
-            clientId: 'zone-1',
-            to_delete: false,
-            zoneType: MapZoneType.NO_GO,
-            geometry: {
-              type: GeometryType.POLYGON,
-              coordinates: [
-                [
-                  [2, 2],
-                  [5, 2],
-                  [3, 5],
-                  [2, 2],
-                ],
+          drafts: {
+            OBSTACLE: { points: [] },
+            NO_GO: {
+              points: [
+                [3, 3],
+                [4, 3],
               ],
             },
+            CLEANING_ZONE: { points: [] },
           },
-        ]}
-        onSelectZone={onSelectZone}
+          selectionMode: true,
+          zones: [
+            {
+              clientId: 'zone-1',
+              to_delete: false,
+              zoneType: MapZoneType.NO_GO,
+              geometry: {
+                type: GeometryType.POLYGON,
+                coordinates: [
+                  [
+                    [2, 2],
+                    [5, 2],
+                    [3, 5],
+                    [2, 2],
+                  ],
+                ],
+              },
+            },
+          ],
+        }}
+        interaction={{ ...defaultProps.interaction, onSelectZone }}
       />,
     )
 
@@ -402,7 +490,9 @@ describe('MapBoundaryEditor', () => {
         outsideBoundary: true,
       },
     ]
-    const { rerender } = render(<MapBoundaryEditor {...defaultProps} issues={issues} />)
+    const { rerender } = render(
+      <MapBoundaryEditor {...defaultProps} layout={{ ...defaultProps.layout, issues }} />,
+    )
     const marker = screen.getByRole('button', { name: /This zone overlaps/ })
     expect(marker).toHaveStyle({ left: '64px', top: '88px' })
     await user.hover(marker)
@@ -416,9 +506,11 @@ describe('MapBoundaryEditor', () => {
       scale: 2,
       geometry: { stageHeight: 280, stageWidth: 440, mapWidth: 400 },
     })
-    rerender(<MapBoundaryEditor {...defaultProps} issues={issues} />)
+    rerender(<MapBoundaryEditor {...defaultProps} layout={{ ...defaultProps.layout, issues }} />)
     expect(marker).toHaveStyle({ left: '104px', top: '168px' })
-    rerender(<MapBoundaryEditor {...defaultProps} issues={[]} />)
+    rerender(
+      <MapBoundaryEditor {...defaultProps} layout={{ ...defaultProps.layout, issues: [] }} />,
+    )
     expect(screen.queryByRole('button', { name: /This zone overlaps/ })).not.toBeInTheDocument()
   })
 })

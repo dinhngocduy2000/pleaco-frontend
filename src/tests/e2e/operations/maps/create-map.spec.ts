@@ -70,7 +70,7 @@ async function setupMapsPage(page: Page, options: MapsPageOptions = {}) {
     }),
   )
   await page.route(API_MAPS, async (route) => {
-    if (new URL(route.request().url()).pathname.endsWith('/maps/layout')) {
+    if (new URL(route.request().url()).pathname.endsWith('/maps/layouts')) {
       layoutRequests.push(route.request().postDataJSON() as ISaveMapLayoutRequest)
       if (options.boundaryError) {
         await route.fulfill({
@@ -345,7 +345,7 @@ test.describe('Create map', () => {
     const listRequestsBeforeSave = getMapListRequestCount()
     const boundaryResponse = page.waitForResponse(
       (response) =>
-        response.url().endsWith('/api/v1/maps/layout') && response.request().method() === 'POST',
+        response.url().endsWith('/api/v1/maps/layouts') && response.request().method() === 'POST',
     )
     const mapListResponse = page.waitForResponse(
       (response) =>
@@ -359,7 +359,7 @@ test.describe('Create map', () => {
       { map_id: mapData.newMap.id, boundary: { source: 'DIMENSIONS' } },
     ])
     expect(getMapListRequestCount()).toBeGreaterThan(listRequestsBeforeSave)
-    await expect(page.getByText('Boundary saved successfully.')).toBeVisible()
+    await expect(page.getByText('Layout saved successfully.')).toBeVisible()
     await expect(dialog).toHaveCount(0)
   })
 
@@ -395,7 +395,7 @@ test.describe('Create map', () => {
     await expect(dialog.getByText('Polygon closed')).toBeAttached()
     const boundaryResponse = page.waitForResponse(
       (response) =>
-        response.url().endsWith('/api/v1/maps/layout') && response.request().method() === 'POST',
+        response.url().endsWith('/api/v1/maps/layouts') && response.request().method() === 'POST',
     )
     await saveButton.click()
     expect((await boundaryResponse).status()).toBe(204)
@@ -417,7 +417,7 @@ test.describe('Create map', () => {
         },
       },
     })
-    await expect(page.getByText('Boundary saved successfully.')).toBeVisible()
+    await expect(page.getByText('Layout saved successfully.')).toBeVisible()
   })
 
   test('shows the boundary API error and keeps the modal open', async ({ page }) => {
@@ -430,7 +430,7 @@ test.describe('Create map', () => {
 
     const boundaryResponse = page.waitForResponse(
       (response) =>
-        response.url().endsWith('/api/v1/maps/layout') && response.request().method() === 'POST',
+        response.url().endsWith('/api/v1/maps/layouts') && response.request().method() === 'POST',
     )
     await dialog.getByRole('button', { name: 'Save' }).click()
 
