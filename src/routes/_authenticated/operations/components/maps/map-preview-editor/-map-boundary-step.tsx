@@ -3,9 +3,12 @@ import { AppSelectComponent } from '@/components/reusable/app-select-component/a
 import { Button } from '@/components/ui/button'
 import { MapZoneType } from '@/enum/maps'
 import { getTranslations } from '@/lib/translation'
+import {
+  type MapBoundaryStepProps,
+  useBoundaryStep,
+} from '../../../../../../hooks/map-preview-editor/-use-boundary-step'
 import { MapBoundaryEditor } from './-map-boundary-editor'
 import { MapLayoutToolbar } from './-map-layout-toolbar'
-import { type MapBoundaryStepProps, useBoundaryStep } from './hooks/-use-boundary-step'
 import { DOCKING_STATION_SIZE_METERS, DOCKING_STATION_TOOL } from './model/-layout-types'
 
 const t = getTranslations()
