@@ -18,15 +18,15 @@ const handlers = vi.hoisted(() => ({
   handleZoomOut: vi.fn(),
 }))
 
-vi.mock(
-  '@/routes/_authenticated/operations/components/maps/map-preview-editor/hooks/-use-map-boundary-editor',
-  () => ({
-    useMapBoundaryEditor,
-  }),
-)
+vi.mock('@/hooks/map-preview-editor/-use-map-boundary-editor', () => ({
+  useMapBoundaryEditor,
+}))
 vi.mock(
   '@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-grid-preview',
-  () => ({
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@/routes/_authenticated/operations/components/maps/map-preview-editor/-map-grid-preview')
+    >()),
     MAP_CANVAS_PADDING: 20,
     MapGridLayer: () => <div data-testid="map-grid-layer" />,
   }),
