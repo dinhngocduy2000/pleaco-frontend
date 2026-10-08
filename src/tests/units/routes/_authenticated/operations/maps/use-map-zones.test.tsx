@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { DockingStationHeading, GeometryType, MapZoneType } from '@/enum/maps'
-import { useMapZones } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/hooks/-use-map-zones'
+import { useMapZones } from '@/hooks/map-preview-editor/-use-map-zones'
 import {
   DOCKING_STATION_TOOL,
   type IMapDockingStationShape,

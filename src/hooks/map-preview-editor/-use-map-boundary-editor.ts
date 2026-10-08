@@ -6,15 +6,18 @@ import {
   getMapGridPreviewGeometry,
   MAP_CANVAS_PADDING,
   MAP_PIXELS_PER_METER,
-} from '../-map-grid-preview'
+} from '../../routes/_authenticated/operations/components/maps/map-preview-editor/-map-grid-preview'
 import {
   canvasPointToWorld,
   clampCanvasPoint,
   hasMinimumCanvasMovement,
   type MapCanvasPoint,
   worldPointToCanvas,
-} from '../geometry/-coordinates'
-import { getBoundaryPointUpdate, getMovedBoundaryPoints } from '../model/-editor-proposals'
+} from '../../routes/_authenticated/operations/components/maps/map-preview-editor/geometry/-coordinates'
+import {
+  getBoundaryPointUpdate,
+  getMovedBoundaryPoints,
+} from '../../routes/_authenticated/operations/components/maps/map-preview-editor/model/-editor-proposals'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 3

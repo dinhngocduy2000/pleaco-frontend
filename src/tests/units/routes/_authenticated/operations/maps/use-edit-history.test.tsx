@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { useEditHistory } from '@/routes/_authenticated/operations/components/maps/map-preview-editor/hooks/-use-edit-history'
+import { useEditHistory } from '@/hooks/map-preview-editor/-use-edit-history'
 
 describe('useEditHistory', () => {
   it('records distinct edits, undoes one step, and resets to its baseline', () => {

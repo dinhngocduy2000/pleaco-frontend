@@ -5,9 +5,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { MapZoneType } from '@/enum/maps'
 import type { IMapBoundaryCoordinate } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
+import {
+  type MapBoundaryEditorProps,
+  useMapBoundaryEditor,
+} from '../../../../../../hooks/map-preview-editor/-use-map-boundary-editor'
 import { MAP_CANVAS_PADDING, MapGridLayer } from './-map-grid-preview'
 import { flattenCanvasPoints, worldPointToCanvas } from './geometry/-coordinates'
-import { type MapBoundaryEditorProps, useMapBoundaryEditor } from './hooks/-use-map-boundary-editor'
 import type { MapLayoutIssue } from './model/-layout-issues'
 import { MAP_ZONE_STYLES } from './model/-layout-styles'
 import {

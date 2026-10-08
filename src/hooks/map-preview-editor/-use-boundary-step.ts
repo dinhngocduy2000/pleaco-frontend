@@ -5,19 +5,19 @@ import type { Geometry, IDockingStationInfo, IMapDetailZoneInfo } from '@/interf
 import type { IAxiosError, IOption } from '@/interface/utils'
 import { getTranslations } from '@/lib/translation'
 import { useSaveMapLayoutMutation } from '@/queries/use-maps-query'
-import { isValidBoundaryPolygon } from '../geometry/-polygons'
+import { isValidBoundaryPolygon } from '../../routes/_authenticated/operations/components/maps/map-preview-editor/geometry/-polygons'
 import {
   getFullMapBoundaries,
   getInitialBoundary,
   type IMapBoundaryEditorMap,
   type InitialBoundaryState,
-} from '../model/-boundary-format'
+} from '../../routes/_authenticated/operations/components/maps/map-preview-editor/model/-boundary-format'
 import {
   boundaryGeometriesEqual,
   createBoundaryGeometry,
   createMapLayoutPayload,
-} from '../model/-layout-payload'
-import { DOCKING_STATION_TOOL } from '../model/-layout-types'
+} from '../../routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-payload'
+import { DOCKING_STATION_TOOL } from '../../routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-types'
 import { useEditHistory } from './-use-edit-history'
 import { type MapLayoutValidationError, useMapZones } from './-use-map-zones'
 
