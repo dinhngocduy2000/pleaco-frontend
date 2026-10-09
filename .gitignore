@@ -24,12 +24,8 @@ blob-report
 
 # TanStack Router (generated)
 src/routeTree.gen.ts
-# Cursor rules (auto-generated from .github/instructions)
-.cursor/rules/
-.cursor/skills/
+
 
 .pnpm-store
-
-.agents/
 
 skills-lock.json
