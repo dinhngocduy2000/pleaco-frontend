@@ -155,11 +155,13 @@ export function MapBoundaryEditor({
                     }
                     const style = MAP_ZONE_STYLES[zone.zoneType]
                     const zonePoints = zone.geometry.coordinates[0] ?? []
+                    const selectedDockingStation =
+                      zone.zoneType === DOCKING_STATION_TOOL && zone.clientId === selectedZoneId
                     return (
                       <Line
                         key={zone.clientId}
                         closed
-                        dash={style.dash}
+                        dash={selectedDockingStation ? [8, 6] : style.dash}
                         fill={style.fill}
                         listening={selectionMode}
                         name={`map-zone-${zone.zoneType}`}
