@@ -6,9 +6,17 @@ import type {
   IMapListInfo,
   IMapListRequest,
   ISaveMapLayoutRequest,
+  IUpdateMapMetadataRequest,
 } from '@/interface/maps'
 import { paramsSerializer } from '@/lib/utils'
 import axiosConfig from '.'
+
+export const updateMapMetadataApi = async ({
+  map_id,
+  ...metadata
+}: IUpdateMapMetadataRequest): Promise<void> => {
+  await axiosConfig.put(`${MAPS_ENDPOINTS.UPDATE_METADATA}/${map_id}`, metadata)
+}
 
 export const createMapApi = async (
   data: ICreateMapRequest,

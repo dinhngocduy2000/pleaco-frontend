@@ -25,7 +25,11 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   }
 })
 vi.mock('@/queries/use-auth-query', () => ({ useProfileQuery: useProfileQueryMock }))
-vi.mock('@/queries/use-maps-query', () => ({ useMapDetailQuery: useMapDetailQueryMock }))
+vi.mock('@/queries/use-maps-query', () => ({
+  useMapDetailQuery: useMapDetailQueryMock,
+  useUpdateMapMetadataMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
+vi.mock('@/queries/use-tags-query', () => ({ useTagsQuery: () => ({ data: { data: [] } }) }))
 vi.mock('@/routes/_authenticated/operations/components/maps/detail/-map-detail-grid', () => ({
   MapDetailGrid: ({ map }: { map: IMapDetailInfo }) => (
     <section className="order-first" data-testid="map-detail-grid">
@@ -185,7 +189,7 @@ describe('MapDetailPage', () => {
     expect(screen.getByText('PLC-PRO-00018')).toBeInTheDocument()
     expect(screen.getByText('Executing')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Online' })).toHaveClass('bg-green-600')
-    expect(screen.getByRole('button', { name: 'Edit Metadata' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit Metadata' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Manage Robot Assignment' })).toBeInTheDocument()
   })
 
@@ -196,6 +200,7 @@ describe('MapDetailPage', () => {
     })
 
     await renderMapDetailPage()
+    expect(screen.getByRole('button', { name: 'Edit Metadata' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Adjust layout' }))
 
     expect(screen.getByTestId('map-boundary-step')).toHaveAttribute(
@@ -225,6 +230,7 @@ describe('MapDetailPage', () => {
       await renderMapDetailPage()
 
       expect(screen.queryByRole('button', { name: 'Adjust layout' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Edit Metadata' })).not.toBeInTheDocument()
     },
   )
 
@@ -235,6 +241,37 @@ describe('MapDetailPage', () => {
     expect(screen.getByText('Unable to load map details.')).toBeInTheDocument()
     expect(screen.getByText('Try returning to Maps and opening the map again.')).toBeInTheDocument()
   })
+
+  it.each(['group', 'map'])(
+    'discards metadata drafts when the active %s changes',
+    async (scope) => {
+      const user = userEvent.setup()
+      useProfileQueryMock.mockReturnValue({
+        data: { data: { group_id: 'group-1', group: { role: 'owner' } } },
+      })
+      const view = await renderMapDetailPage()
+      await user.click(screen.getByRole('button', { name: 'Edit Metadata' }))
+      await user.type(screen.getByRole('textbox', { name: 'Name' }), ' draft')
+      useProfileQueryMock.mockReturnValue({
+        data: {
+          data: { group_id: scope === 'group' ? 'group-2' : 'group-1', group: { role: 'owner' } },
+        },
+      })
+      useMapDetailQueryMock.mockReturnValue({
+        data: { data: { ...map, id: scope === 'map' ? 'map-2' : map.id, name: 'New scope map' } },
+        isError: false,
+        isLoading: false,
+      })
+      view.rerender(
+        <Suspense fallback={null}>
+          <MapDetailPage />
+        </Suspense>,
+      )
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Edit Metadata' }))
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('New scope map')
+    },
+  )
 
   it('renders a loading state before map data is available', async () => {
     useMapDetailQueryMock.mockReturnValue({ data: undefined, isError: false, isLoading: true })

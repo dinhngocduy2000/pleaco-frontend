@@ -210,6 +210,7 @@ export function AppSelectComponent(props: ComboboxSelectProps) {
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger data-testid="select-trigger" asChild disabled={disabled}>
         <Button
+          type="button"
           variant="outline"
           role="combobox"
           aria-label={ariaLabel}

@@ -105,7 +105,11 @@ function MapDetailPage() {
       <div className="flex min-h-0 flex-1 flex-wrap items-stretch gap-4 overflow-y-auto pr-2">
         <MapDetailGrid map={map} />
         <aside className="flex min-w-72 flex-1 basis-[calc((100%-1rem)/2)] flex-col gap-4">
-          <MapDetailMetadataCard map={map} />
+          <MapDetailMetadataCard
+            key={`${profileResponse?.data.group_id}:${map.id}`}
+            map={map}
+            canEdit={canAdjustBoundary}
+          />
           <MapDetailRobotsCard robots={map.robots} />
         </aside>
       </div>

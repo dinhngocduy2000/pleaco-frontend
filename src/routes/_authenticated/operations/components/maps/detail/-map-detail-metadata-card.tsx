@@ -1,16 +1,17 @@
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { TypographyMuted, TypographySmall } from '@/components/ui/typography'
 import { MapZoneType } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
 import { getCurrentLanguage, getTranslations } from '@/lib/translation'
 import { getMapDetailStatusClassName, getZoneCounts } from './-map-detail-utils'
+import { MapMetadataDialog } from './-map-metadata-dialog'
 
 const t = getTranslations()
 
 type MapDetailMetadataCardProps = {
   map: IMapDetailInfo
+  canEdit?: boolean
 }
 
 const getUpdatedDate = (updatedAt: string) => {
@@ -24,7 +25,7 @@ const getUpdatedDate = (updatedAt: string) => {
   }).format(date)
 }
 
-export function MapDetailMetadataCard({ map }: MapDetailMetadataCardProps) {
+export function MapDetailMetadataCard({ map, canEdit = false }: MapDetailMetadataCardProps) {
   const zoneCounts = getZoneCounts(map.zones)
   const regionLabels = {
     [MapZoneType.OBSTACLE]: t.map_detail_regions_obstacles(),
@@ -92,11 +93,11 @@ export function MapDetailMetadataCard({ map }: MapDetailMetadataCardProps) {
           {t.map_detail_updated({ date: getUpdatedDate(map.updated_at) })}
         </TypographySmall>
       </CardContent>
-      <CardFooter>
-        <Button type="button" variant="outline" onClick={() => undefined}>
-          {t.map_detail_edit_metadata()}
-        </Button>
-      </CardFooter>
+      {canEdit && (
+        <CardFooter>
+          <MapMetadataDialog map={map} />
+        </CardFooter>
+      )}
     </Card>
   )
 }

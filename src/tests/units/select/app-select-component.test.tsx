@@ -30,6 +30,18 @@ const ITEMS: IOption[] = [
 const hasClass = (el: HTMLElement, cls: string) => el.className.split(/\s+/).includes(cls)
 
 describe('AppSelectComponent', () => {
+  it('does not submit the enclosing form when opening the selector', async () => {
+    const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
+    render(
+      <form onSubmit={onSubmit}>
+        <AppSelectComponent options={ITEMS} value={undefined} onChange={vi.fn()} />
+      </form>,
+    )
+    await userEvent.setup().click(screen.getByRole('combobox'))
+    expect(screen.getByRole('option', { name: 'Apple' })).toBeVisible()
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   describe('single mode (default)', () => {
     it('renders the trigger with the default placeholder', () => {
       render(<AppSelectComponent options={ITEMS} value={undefined} onChange={vi.fn()} />)
