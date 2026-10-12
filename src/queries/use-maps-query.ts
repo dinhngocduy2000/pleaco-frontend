@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createMapApi, getMapDetailApi, getMapsApi, saveMapLayoutApi } from '@/api/maps'
+import {
+  createMapApi,
+  getMapDetailApi,
+  getMapsApi,
+  saveMapLayoutApi,
+  updateMapMetadataApi,
+} from '@/api/maps'
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
@@ -8,10 +14,30 @@ import type {
   IMapListInfo,
   IMapListRequest,
   ISaveMapLayoutRequest,
+  IUpdateMapMetadataRequest,
 } from '@/interface/maps'
 import type { IMutation, ReactQueryHookParams } from '@/interface/utils'
 
 export const getMapsQueryKey = (queryKey: unknown[] = []) => [MAPS_ENDPOINTS.LIST, ...queryKey]
+
+export const useUpdateMapMetadataMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<void, IUpdateMapMetadataRequest> = {}) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: updateMapMetadataApi,
+    onSuccess: async (data, variables) => {
+      // List and detail keys both start with /maps, so this refreshes both.
+      await queryClient.invalidateQueries({ queryKey: getMapsQueryKey() })
+      onSuccess?.(data, variables)
+    },
+    onError,
+    onMutate,
+  })
+}
 
 export const getMapListQueryKey = (params: IMapListRequest, queryKey: unknown[] = []) => [
   MAPS_ENDPOINTS.LIST,

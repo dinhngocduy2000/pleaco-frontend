@@ -12,10 +12,19 @@ import type {
   RobotModelType,
   RobotOperationStatusType,
 } from '@/enum/robot'
-import type { createMapFormSchema } from '@/schemas/map-schemas'
+import type { createMapFormSchema, updateMapMetadataFormSchema } from '@/schemas/map-schemas'
 import type { ITagInfo } from './tags'
 
 export type ICreateMapFormType = z.infer<ReturnType<typeof createMapFormSchema>>
+
+export type IUpdateMapMetadataFormType = z.infer<ReturnType<typeof updateMapMetadataFormSchema>>
+
+export type IUpdateMapMetadataRequest = {
+  map_id: string
+  name: string
+  description?: string | null
+  tags?: string[] | null
+}
 
 export type IMapBoundaryCoordinate = [x: number, y: number]
 

@@ -297,5 +297,15 @@
   "map_boundary_adjust_unsupported": "Không thể chỉnh sửa ranh giới đã lưu. Chỉ hỗ trợ một đa giác hợp lệ nằm trong bản đồ.",
   "map_layout_conflicts_error": "Hãy xử lý các xung đột vùng được đánh dấu trước khi lưu.",
   "map_layout_warning_overlap": "Vùng này chồng lấn hoặc tiếp xúc với một vùng khác.",
-  "map_layout_warning_boundary": "Vùng này nằm ngoài đường biên bản đồ đã khép kín."
+  "map_layout_warning_boundary": "Vùng này nằm ngoài đường biên bản đồ đã khép kín.",
+  "map_metadata_name": "Tên",
+  "map_metadata_cancel": "Hủy",
+  "map_metadata_save": "Lưu",
+  "map_metadata_save_success": "Cập nhật thông tin bản đồ thành công",
+  "map_metadata_save_error": "Không thể cập nhật thông tin bản đồ. Vui lòng thử lại.",
+  "map_metadata_name_exists": "Tên bản đồ đã tồn tại trong nhóm đang hoạt động",
+  "map_metadata_tags_error": "Không thể tải nhãn. Các lựa chọn hiện tại được giữ nguyên.",
+  "validation_map_metadata_name_max": "Tên không được vượt quá 50 ký tự",
+  "validation_map_metadata_description_max": "Mô tả không được vượt quá 250 ký tự",
+  "validation_map_metadata_tag_invalid": "Vui lòng chọn nhãn hợp lệ"
 }

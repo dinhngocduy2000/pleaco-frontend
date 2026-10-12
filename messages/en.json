@@ -297,5 +297,15 @@
   "map_boundary_adjust_unsupported": "This saved boundary cannot be edited. Only a valid single polygon within the map is supported.",
   "map_layout_conflicts_error": "Resolve the highlighted zone conflicts before saving.",
   "map_layout_warning_overlap": "This zone overlaps or touches another zone.",
-  "map_layout_warning_boundary": "This zone is outside the closed map boundary."
+  "map_layout_warning_boundary": "This zone is outside the closed map boundary.",
+  "map_metadata_name": "Name",
+  "map_metadata_cancel": "Cancel",
+  "map_metadata_save": "Save",
+  "map_metadata_save_success": "Map metadata updated successfully",
+  "map_metadata_save_error": "Could not update map metadata. Please try again.",
+  "map_metadata_name_exists": "A map with this name already exists in the active group",
+  "map_metadata_tags_error": "Could not load tags. Current selections are preserved.",
+  "validation_map_metadata_name_max": "Name must be at most 50 characters",
+  "validation_map_metadata_description_max": "Description must be at most 250 characters",
+  "validation_map_metadata_tag_invalid": "Select valid tags"
 }
