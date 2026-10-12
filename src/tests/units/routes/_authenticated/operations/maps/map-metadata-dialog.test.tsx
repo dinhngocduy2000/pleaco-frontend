@@ -86,13 +86,13 @@ describe('MapMetadataDialog', () => {
   it('defaults from map detail and gates unchanged or reverted values', async () => {
     render(<MapMetadataDialog map={map} />)
     const user = await openEditor()
-    expect(screen.getByLabelText('Name')).toHaveValue(map.name)
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue(map.name)
     expect(screen.getByLabelText('Description')).toHaveValue(map.description)
     expect(screen.getByLabelText('Tags')).toHaveValue([tag.id])
     expect(save()).toBeDisabled()
-    await user.type(screen.getByLabelText('Name'), ' edited')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' edited')
     await waitFor(() => expect(save()).toBeEnabled())
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: map.name } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: map.name } })
     await waitFor(() => expect(save()).toBeDisabled())
   })
 
@@ -121,7 +121,7 @@ describe('MapMetadataDialog', () => {
   ])('rejects invalid %s input', async (label, value, message) => {
     render(<MapMetadataDialog map={map} />)
     await openEditor()
-    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    fireEvent.change(screen.getByRole('textbox', { name: label }), { target: { value } })
     expect(await screen.findByText(message)).toBeVisible()
     expect(save()).toBeDisabled()
     expect(mocks.mutateAsync).not.toHaveBeenCalled()
@@ -132,13 +132,13 @@ describe('MapMetadataDialog', () => {
     async (action) => {
       const view = render(<MapMetadataDialog map={map} />)
       const user = await openEditor()
-      await user.type(screen.getByLabelText('Name'), ' edited')
+      await user.type(screen.getByRole('textbox', { name: 'Name' }), ' edited')
       if (action === 'Escape') await user.keyboard('{Escape}')
       else await user.click(screen.getByRole('button', { name: action }))
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       view.rerender(<MapMetadataDialog map={{ ...map, name: 'Latest map' }} />)
       await openEditor()
-      expect(screen.getByLabelText('Name')).toHaveValue('Latest map')
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Latest map')
       expect(save()).toBeDisabled()
     },
   )
@@ -146,7 +146,9 @@ describe('MapMetadataDialog', () => {
   it('submits trimmed name and explicit empty description/tags, then closes', async () => {
     render(<MapMetadataDialog map={map} />)
     const user = await openEditor()
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: ' Updated map ' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: ' Updated map ' },
+    })
     await user.clear(screen.getByLabelText('Description'))
     await user.deselectOptions(screen.getByLabelText('Tags'), tag.id)
     await waitFor(() => expect(save()).toBeEnabled())
@@ -164,9 +166,9 @@ describe('MapMetadataDialog', () => {
   it('does not overwrite edits on background refetch', async () => {
     const view = render(<MapMetadataDialog map={map} />)
     const user = await openEditor()
-    await user.type(screen.getByLabelText('Name'), ' edited')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' edited')
     view.rerender(<MapMetadataDialog map={{ ...map, name: 'Background update' }} />)
-    expect(screen.getByLabelText('Name')).toHaveValue(`${map.name} edited`)
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue(`${map.name} edited`)
   })
 
   it('blocks dismissal and duplicate submissions while saving', async () => {
@@ -179,15 +181,17 @@ describe('MapMetadataDialog', () => {
     )
     render(<MapMetadataDialog map={map} />)
     const user = await openEditor()
-    await user.type(screen.getByLabelText('Name'), ' edited')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' edited')
     await waitFor(() => expect(save()).toBeEnabled())
     await user.click(save())
     expect(save()).toBeDisabled()
-    expect(screen.getByLabelText('Name')).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Close' }))
     await user.keyboard('{Escape}')
     expect(screen.getByRole('dialog')).toBeVisible()
-    fireEvent.submit(screen.getByLabelText('Name').closest('form') as HTMLFormElement)
+    fireEvent.submit(
+      screen.getByRole('textbox', { name: 'Name' }).closest('form') as HTMLFormElement,
+    )
     expect(mocks.mutateAsync).toHaveBeenCalledTimes(1)
     finish?.()
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -197,11 +201,11 @@ describe('MapMetadataDialog', () => {
     mocks.mutateAsync.mockRejectedValueOnce(new Error('Offline'))
     render(<MapMetadataDialog map={map} />)
     const user = await openEditor()
-    await user.type(screen.getByLabelText('Name'), ' edited')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' edited')
     await waitFor(() => expect(save()).toBeEnabled())
     await user.click(save())
     await waitFor(() => expect(mocks.toast.error).toHaveBeenCalled())
-    expect(screen.getByLabelText('Name')).toHaveValue(`${map.name} edited`)
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue(`${map.name} edited`)
     await waitFor(() => expect(save()).toBeEnabled())
     await user.click(save())
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -212,14 +216,14 @@ describe('MapMetadataDialog', () => {
     mocks.mutateAsync.mockRejectedValueOnce(error)
     render(<MapMetadataDialog map={map} />)
     const user = await openEditor()
-    await user.type(screen.getByLabelText('Name'), ' edited')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' edited')
     await waitFor(() => expect(save()).toBeEnabled())
     await user.click(save())
     expect(
       await screen.findByText('A map with this name already exists in the active group'),
     ).toBeVisible()
     expect(save()).toBeDisabled()
-    await user.type(screen.getByLabelText('Name'), ' again')
+    await user.type(screen.getByRole('textbox', { name: 'Name' }), ' again')
     await waitFor(() => expect(save()).toBeEnabled())
   })
 })

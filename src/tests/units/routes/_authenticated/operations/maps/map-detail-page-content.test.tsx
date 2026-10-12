@@ -251,7 +251,7 @@ describe('MapDetailPage', () => {
       })
       const view = await renderMapDetailPage()
       await user.click(screen.getByRole('button', { name: 'Edit Metadata' }))
-      await user.type(screen.getByLabelText('Name'), ' draft')
+      await user.type(screen.getByRole('textbox', { name: 'Name' }), ' draft')
       useProfileQueryMock.mockReturnValue({
         data: {
           data: { group_id: scope === 'group' ? 'group-2' : 'group-1', group: { role: 'owner' } },
@@ -269,7 +269,7 @@ describe('MapDetailPage', () => {
       )
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Edit Metadata' }))
-      expect(screen.getByLabelText('Name')).toHaveValue('New scope map')
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('New scope map')
     },
   )
 

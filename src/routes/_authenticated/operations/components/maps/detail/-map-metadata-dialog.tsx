@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
 import { Pencil } from 'lucide-react'
-import { type Dispatch, type SetStateAction, useId, useRef, useState } from 'react'
+import { type Dispatch, type SetStateAction, useId, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
@@ -38,7 +38,7 @@ export function MapMetadataDialog({ map }: MapMetadataDialogProps) {
         <Pencil aria-hidden="true" />
         {t.map_detail_edit_metadata()}
       </Button>
-      {open && <MapMetadataEditor map={map} setOpen={setOpen} />}
+      {open && <MapMetadataEditor map={map} setOpen={setOpen} open={open} />}
     </>
   )
 }
@@ -46,8 +46,10 @@ export function MapMetadataDialog({ map }: MapMetadataDialogProps) {
 function MapMetadataEditor({
   map,
   setOpen,
+  open,
 }: MapMetadataDialogProps & {
   setOpen: Dispatch<SetStateAction<boolean>>
+  open: boolean
 }) {
   const formId = useId()
   const submitting = useRef(false)
@@ -64,10 +66,15 @@ function MapMetadataEditor({
   const { mutateAsync, isPending } = useUpdateMapMetadataMutation()
   const { isDirty, isValid, isSubmitting } = form.formState
   const saving = isPending || isSubmitting
-  const options = new Map<string, IOption>()
-  for (const tag of [...map.tags, ...(tagsResponse?.data ?? [])]) {
-    options.set(tag.id, { value: tag.id, label: tag.name })
-  }
+  const { options, tagOptions } = useMemo(() => {
+    const options = new Map<string, IOption>(
+      [...map.tags, ...(tagsResponse?.data ?? [])].map((tag) => [
+        tag.id,
+        { value: tag.id, label: tag.name },
+      ]),
+    )
+    return { options, tagOptions: [...options.values()] }
+  }, [map.tags, tagsResponse?.data])
 
   const submit = async (values: IUpdateMapMetadataFormType) => {
     if (!isDirty || submitting.current) return
@@ -94,7 +101,7 @@ function MapMetadataEditor({
 
   return (
     <AppDialogComponent
-      open
+      open={open}
       setOpen={(next) => {
         if (!submitting.current && !saving) setOpen(next)
       }}
@@ -157,7 +164,7 @@ function MapMetadataEditor({
                   searchable
                   ariaLabel={t.map_create_tags_label()}
                   placeholder={t.map_create_tags_placeholder()}
-                  options={[...options.values()]}
+                  options={tagOptions}
                   value={(field.value ?? []).flatMap((id) => {
                     const option = options.get(id)
                     return option ? [option] : []
