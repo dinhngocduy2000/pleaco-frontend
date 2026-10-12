@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
+import { Pencil } from 'lucide-react'
 import { type Dispatch, type SetStateAction, useId, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -34,6 +35,7 @@ export function MapMetadataDialog({ map }: MapMetadataDialogProps) {
   return (
     <>
       <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+        <Pencil aria-hidden="true" />
         {t.map_detail_edit_metadata()}
       </Button>
       {open && <MapMetadataEditor map={map} setOpen={setOpen} />}
