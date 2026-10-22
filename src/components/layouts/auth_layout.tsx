@@ -1,4 +1,3 @@
-import { useRouterState } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useGroupRobotStatusSocket } from '@/hooks/use-robot-status-socket'
@@ -11,17 +10,11 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
-  const hasMapId = useRouterState({
-    select: (state) =>
-      state.matches.some(
-        (match) => 'map_id' in match.params && typeof match.params.map_id === 'string',
-      ),
-  })
   const { data: profileResponse, isSuccess } = useProfileQuery()
 
   useGroupRobotStatusSocket({
     activeGroupId: profileResponse?.data.group_id ?? undefined,
-    enabled: isSuccess && !hasMapId,
+    enabled: isSuccess,
   })
 
   return (

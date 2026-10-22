@@ -2,21 +2,10 @@ import { render } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const context = vi.hoisted(() => ({
-  mapId: undefined as string | undefined,
   profile: { data: { data: { group_id: 'group-1' } }, isSuccess: true },
   useGroupRobotStatusSocket: vi.fn(),
 }))
 
-vi.mock('@tanstack/react-router', () => ({
-  useRouterState: ({
-    select,
-  }: {
-    select: (state: { matches: Array<{ params: Record<string, string> }> }) => boolean
-  }) =>
-    select({
-      matches: [{ params: context.mapId ? { map_id: context.mapId } : {} }],
-    }),
-}))
 vi.mock('@/components/ui/sidebar', () => ({
   SidebarInset: ({ children }: React.PropsWithChildren) => <main>{children}</main>,
   SidebarProvider: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
@@ -37,26 +26,15 @@ import { AuthLayout } from '@/components/layouts/auth_layout'
 describe('AuthLayout realtime ownership', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    context.mapId = undefined
     context.profile = { data: { data: { group_id: 'group-1' } }, isSuccess: true }
   })
 
-  it('enables the group socket when the URL has no map_id, including the maps index', () => {
+  it('keeps the group socket enabled at the authenticated layout boundary', () => {
     render(<AuthLayout>Content</AuthLayout>)
 
     expect(context.useGroupRobotStatusSocket).toHaveBeenCalledWith({
       activeGroupId: 'group-1',
       enabled: true,
-    })
-  })
-
-  it('suspends the group socket when the URL matches a map detail route', () => {
-    context.mapId = 'map-1'
-    render(<AuthLayout>Content</AuthLayout>)
-
-    expect(context.useGroupRobotStatusSocket).toHaveBeenCalledWith({
-      activeGroupId: 'group-1',
-      enabled: false,
     })
   })
 
