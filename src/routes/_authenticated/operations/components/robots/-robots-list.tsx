@@ -4,7 +4,6 @@ import { useMemo } from 'react'
 import { AppPagination } from '@/components/reusable/pagination/app-pagination'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
-import { useRobotStatusSocket } from '@/hooks/use-robot-status-socket'
 import type { IRobotListRequest } from '@/interface/robots'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
@@ -18,16 +17,8 @@ const t = getTranslations()
 export function RobotsList() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
-  const {
-    data: profileResponse,
-    isSuccess: isProfileReady,
-    isLoading: isProfileLoading,
-  } = useProfileQuery()
+  const { data: profileResponse, isLoading: isProfileLoading } = useProfileQuery()
   const groupId = profileResponse?.data.group_id
-  useRobotStatusSocket({
-    activeGroupId: profileResponse?.data.group_id ?? '',
-    enabled: isProfileReady,
-  })
   const robotParams = useMemo<IRobotListRequest | undefined>(() => {
     if (!groupId) return undefined
 

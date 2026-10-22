@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { TypographyH3 } from '@/components/ui/typography'
 import { GroupRole } from '@/enum/group'
 import { MapOrderDirection } from '@/enum/maps'
+import { useMapRobotStatusSocket } from '@/hooks/use-robot-status-socket'
 import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
@@ -25,7 +26,12 @@ export const Route = createFileRoute('/_authenticated/operations/maps/$map_id')(
 
 function MapDetailPage() {
   const { map_id: mapId } = Route.useParams()
-  const { data: profileResponse } = useProfileQuery()
+  const { data: profileResponse, isSuccess: isProfileReady } = useProfileQuery()
+  useMapRobotStatusSocket({
+    activeGroupId: profileResponse?.data.group_id ?? undefined,
+    enabled: isProfileReady,
+    mapId,
+  })
   const [adjustLayoutOpen, setAdjustLayoutOpen] = useState(false)
   const [isSavingLayout, setIsSavingLayout] = useState(false)
   const {
