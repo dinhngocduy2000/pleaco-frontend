@@ -68,26 +68,33 @@ const waitForConnection = (socket: RealtimeSocket): Promise<void> => {
   if (socket.connected) return Promise.resolve()
 
   return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
+    const timeout = setTimeout(() => {
       socket.off('connect', handleConnect)
       reject(new Error('Socket.IO connection timed out'))
     }, ROOM_OPERATION_TIMEOUT_MS)
     const handleConnect = () => {
-      window.clearTimeout(timeout)
+      clearTimeout(timeout)
       resolve()
     }
     socket.once('connect', handleConnect)
   })
 }
 
-export const createMapRoomManager = (socket: RealtimeSocket, connect: () => void) => {
+export const createMapRoomManager = (
+  socket: RealtimeSocket,
+  connect: () => void,
+  onSubscribed?: () => void,
+) => {
   const subscriptions = new Map<string, MapRoomState>()
 
-  const ensureSubscribed = (mapId: string, state: MapRoomState) => {
-    if (state.joined) return Promise.resolve<RoomAcknowledgement>({ success: true })
+  const ensureSubscribed = (mapId: string, state: MapRoomState): Promise<RoomAcknowledgement> => {
+    if (state.joined) {
+      onSubscribed?.()
+      return Promise.resolve<RoomAcknowledgement>({ success: true })
+    }
     if (state.pending) return state.pending
 
-    state.pending = (async () => {
+    state.pending = (async (): Promise<RoomAcknowledgement> => {
       if (!socket.connected) {
         connect()
         await waitForConnection(socket)
@@ -98,18 +105,15 @@ export const createMapRoomManager = (socket: RealtimeSocket, connect: () => void
 
       const acknowledgement = await emitRoomOperation(socket, 'map.subscribe', mapId)
       if (subscriptions.get(mapId) === state) {
-        if (acknowledgement.success) state.joined = true
-        else subscriptions.delete(mapId)
+        if (acknowledgement.success) {
+          state.joined = true
+          onSubscribed?.()
+        }
       }
       return acknowledgement
-    })()
-      .catch((error: unknown) => {
-        if (subscriptions.get(mapId) === state) subscriptions.delete(mapId)
-        throw error
-      })
-      .finally(() => {
-        state.pending = undefined
-      })
+    })().finally(() => {
+      state.pending = undefined
+    })
 
     return state.pending
   }
@@ -137,21 +141,13 @@ export const createMapRoomManager = (socket: RealtimeSocket, connect: () => void
     if (state.references > 0) return { success: true }
 
     subscriptions.delete(mapId)
-    let joined = state.joined
-    if (state.pending) {
-      try {
-        joined = (await state.pending).success
-      } catch {
-        joined = false
-      }
-    }
-    if (!socket.connected || !joined) return { success: true }
+    if (!socket.connected || (!state.joined && !state.pending)) return { success: true }
     return await emitRoomOperation(socket, 'map.unsubscribe', mapId)
   }
 
   const handleConnect = () => {
     for (const [mapId, state] of subscriptions) {
-      void ensureSubscribed(mapId, state).catch(() => undefined)
+      ensureSubscribed(mapId, state).catch(() => undefined)
     }
   }
 

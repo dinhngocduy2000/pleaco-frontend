@@ -1,13 +1,13 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS } from '@/enum/robot'
 import type { IResponseDataWithPage } from '@/interface/api-response'
 import type { IRobotInfo, IRobotStatus } from '@/interface/robots'
-import { connectRealtime, disconnectRealtime, reconnectRealtime, socket } from '@/realtime/socket'
+import { acquireRealtimeConnection } from '@/realtime/socket'
 
-type UseRobotStatusSocketParams = {
+type UseGroupRobotStatusSocketParams = {
   activeGroupId?: string
   enabled: boolean
 }
@@ -51,47 +51,107 @@ export const applyRobotStatusEvent = (queryClient: QueryClient, status: IRobotSt
   }
 }
 
-export const useRobotStatusSocket = ({ activeGroupId, enabled }: UseRobotStatusSocketParams) => {
+const useRobotStatusEvents = () => {
   const queryClient = useQueryClient()
-  const connectedGroupId = useRef<string | null | undefined>(undefined)
-
-  useEffect(() => {
-    const handleRobotStatus = (status: IRobotStatus) => {
+  const handleRobotStatus = useCallback(
+    (status: IRobotStatus) => {
       if (isRobotStatus(status)) applyRobotStatusEvent(queryClient, status)
-    }
-    const handleConnect = () => {
-      void queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
-    }
-
-    socket.on('robot.status', handleRobotStatus)
-    socket.on('connect', handleConnect)
-    return () => {
-      socket.off('robot.status', handleRobotStatus)
-      socket.off('connect', handleConnect)
-    }
+    },
+    [queryClient],
+  )
+  const handleConnect = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
   }, [queryClient])
 
+  return {
+    queryClient,
+    handleRobotStatus,
+    handleConnect,
+  }
+}
+
+export const useGroupRobotStatusSocket = ({
+  activeGroupId,
+  enabled,
+}: UseGroupRobotStatusSocketParams) => {
+  const { handleRobotStatus, handleConnect } = useRobotStatusEvents()
+
   useEffect(() => {
-    if (!enabled) {
-      connectedGroupId.current = undefined
-      disconnectRealtime()
-      return
-    }
+    if (!enabled || !activeGroupId) return
 
-    const nextGroupId = activeGroupId ?? null
-    if (connectedGroupId.current === undefined) {
-      connectRealtime()
-    } else if (connectedGroupId.current !== nextGroupId) {
-      reconnectRealtime()
+    const lease = acquireRealtimeConnection()
+    const { connection } = lease
+    const handleConnectionError = (error: Error) => {
+      console.error('Socket.IO connection failed:', error.message)
     }
-    connectedGroupId.current = nextGroupId
-  }, [activeGroupId, enabled])
+    connection.socket.on('robot.status', handleRobotStatus)
+    connection.socket.on('connect', handleConnect)
+    connection.socket.on('connect_error', handleConnectionError)
+    if (connection.socket.connected) handleConnect()
+    else connection.connect()
 
-  useEffect(
-    () => () => {
-      connectedGroupId.current = undefined
-      disconnectRealtime()
-    },
-    [],
-  )
+    return () => {
+      connection.socket.off('robot.status', handleRobotStatus)
+      connection.socket.off('connect', handleConnect)
+      connection.socket.off('connect_error', handleConnectionError)
+      lease.release()
+    }
+  }, [activeGroupId, enabled, handleConnect, handleRobotStatus])
+}
+
+type UseMapRobotStatusSocketParams = {
+  activeGroupId?: string
+  enabled: boolean
+  mapId: string
+}
+
+export const useMapRobotStatusSocket = ({
+  activeGroupId,
+  enabled,
+  mapId,
+}: UseMapRobotStatusSocketParams) => {
+  const queryClient = useQueryClient()
+  const { handleRobotStatus, handleConnect } = useRobotStatusEvents()
+
+  useEffect(() => {
+    if (!enabled || !activeGroupId) return
+
+    let disposed = false
+    const onMapSubscribed = () => {
+      if (!disposed) {
+        void queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
+      }
+    }
+    const lease = acquireRealtimeConnection(onMapSubscribed)
+    const { connection } = lease
+    const { socket } = connection
+    const handleConnectionError = (error: Error) => {
+      console.error('Socket.IO connection failed:', error.message)
+    }
+    socket.on('robot.status', handleRobotStatus)
+    socket.on('connect', handleConnect)
+    socket.on('connect_error', handleConnectionError)
+
+    void connection
+      .subscribeToMap(mapId)
+      .then((acknowledgement) => {
+        if (!disposed && !acknowledgement.success) {
+          console.error('Map room subscription failed:', acknowledgement.error)
+        }
+      })
+      .catch((error: unknown) => {
+        if (!disposed) console.error('Map room subscription failed:', error)
+      })
+
+    return () => {
+      disposed = true
+      socket.off('robot.status', handleRobotStatus)
+      socket.off('connect', handleConnect)
+      socket.off('connect_error', handleConnectionError)
+      void connection
+        .unsubscribeFromMap(mapId)
+        .catch((error: unknown) => console.error('Map room unsubscribe failed:', error))
+        .finally(lease.release)
+    }
+  }, [activeGroupId, enabled, handleConnect, handleRobotStatus, mapId, queryClient])
 }
