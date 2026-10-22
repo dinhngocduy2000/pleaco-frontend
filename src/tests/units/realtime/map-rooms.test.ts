@@ -82,13 +82,17 @@ describe('map room manager', () => {
 
   it('reference-counts duplicate consumers and leaves after the final unsubscribe', async () => {
     const harness = createSocketHarness()
+    const onSubscribed = vi.fn()
     const manager = createMapRoomManager(
       harness.socket as unknown as Socket<ServerToClientEvents, ClientToServerEvents>,
       connect,
+      onSubscribed,
     )
 
-    await Promise.all([manager.subscribe(MAP_ID), manager.subscribe(MAP_ID)])
+    await manager.subscribe(MAP_ID)
+    await manager.subscribe(MAP_ID)
     expect(harness.socket.emit).toHaveBeenCalledTimes(1)
+    expect(onSubscribed).toHaveBeenCalledTimes(2)
     expect(harness.socket.emit).toHaveBeenLastCalledWith(
       'map.subscribe',
       { mapId: MAP_ID },
@@ -107,11 +111,14 @@ describe('map room manager', () => {
 
   it('restores desired rooms after a transient Socket.IO reconnect', async () => {
     const harness = createSocketHarness()
+    const onSubscribed = vi.fn()
     const manager = createMapRoomManager(
       harness.socket as unknown as Socket<ServerToClientEvents, ClientToServerEvents>,
       connect,
+      onSubscribed,
     )
     await manager.subscribe(MAP_ID)
+    expect(onSubscribed).toHaveBeenCalledOnce()
 
     harness.socket.connected = false
     harness.trigger('disconnect')
@@ -124,6 +131,35 @@ describe('map room manager', () => {
       { mapId: MAP_ID },
       expect.any(Function),
     )
+    expect(onSubscribed).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries a rejected room operation only after a new socket connection', async () => {
+    const harness = createSocketHarness()
+    harness.acknowledgements.push({
+      acknowledgement: { success: false, error: 'MAP_ACCESS_DENIED' },
+      error: null,
+    })
+    const onSubscribed = vi.fn()
+    const manager = createMapRoomManager(
+      harness.socket as unknown as Socket<ServerToClientEvents, ClientToServerEvents>,
+      connect,
+      onSubscribed,
+    )
+
+    await expect(manager.subscribe(MAP_ID)).resolves.toEqual({
+      success: false,
+      error: 'MAP_ACCESS_DENIED',
+    })
+    expect(onSubscribed).not.toHaveBeenCalled()
+    expect(harness.socket.emit).toHaveBeenCalledTimes(1)
+
+    harness.socket.connected = false
+    harness.trigger('disconnect')
+    harness.socket.connected = true
+    harness.trigger('connect')
+    await vi.waitFor(() => expect(harness.socket.emit).toHaveBeenCalledTimes(2))
+    expect(onSubscribed).toHaveBeenCalledOnce()
   })
 
   it('clears desired rooms before an explicit application disconnect', async () => {
@@ -176,7 +212,7 @@ describe('map room manager', () => {
 
     const malformedHarness = createSocketHarness()
     malformedHarness.acknowledgements.push({
-      acknowledgement: { success: false, error: 'UNKNOWN_ERROR' } as RoomAcknowledgement,
+      acknowledgement: { success: false, error: 'UNKNOWN_ERROR' } as unknown as RoomAcknowledgement,
       error: null,
     })
     const malformedManager = createMapRoomManager(
