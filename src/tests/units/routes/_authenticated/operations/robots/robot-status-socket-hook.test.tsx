@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BOTS_ENDPOINTS } from '@/enum/endpoints'
+import { BOTS_ENDPOINTS, MAPS_ENDPOINTS } from '@/enum/endpoints'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS, RobotModel } from '@/enum/robot'
 
 const realtime = vi.hoisted(() => {
@@ -114,7 +114,7 @@ describe('robot status socket hooks', () => {
     await waitFor(() => expect(realtime.instances[0].release).toHaveBeenCalledOnce())
   })
 
-  it('subscribes the map URL ID, refreshes after connect and join, and leaves on unmount', async () => {
+  it('subscribes the map URL ID without snapshot refresh and leaves on unmount', async () => {
     const client = new QueryClient()
     const invalidateQueries = vi.spyOn(client, 'invalidateQueries')
     const { unmount } = renderHook(
@@ -129,17 +129,108 @@ describe('robot status socket hooks', () => {
     const instance = realtime.instances[0]
 
     expect(realtime.connection.subscribeToMap).toHaveBeenCalledWith('map-123')
-    await waitFor(() => expect(instance.onMapSubscribed).toBeDefined())
-
     act(() => realtime.connection.socket.emit('connect'))
-    instance.onMapSubscribed?.()
-    expect(invalidateQueries).toHaveBeenCalledTimes(2)
+    expect(invalidateQueries).not.toHaveBeenCalled()
+    expect(realtime.listeners.get('map.robot.status')).toHaveLength(1)
+    expect(realtime.listeners.get('robot.status')).toBeUndefined()
 
     unmount()
     await waitFor(() =>
       expect(realtime.connection.unsubscribeFromMap).toHaveBeenCalledWith('map-123'),
     )
     await waitFor(() => expect(instance.release).toHaveBeenCalledOnce())
+    expect(realtime.listeners.get('map.robot.status')).toHaveLength(0)
+  })
+
+  it('updates only the matching map robot from valid map status events', () => {
+    const client = new QueryClient()
+    const queryKey = [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1']
+    client.setQueryData(queryKey, {
+      data: {
+        id: 'map-1',
+        robots: [
+          {
+            id: 'robot-1',
+            connection_status: ROBOT_CONNECTION_STATUS.OFFLINE,
+            operational_status: ROBOT_OPERATION_STATUS.IDLE,
+          },
+          {
+            id: 'robot-2',
+            connection_status: ROBOT_CONNECTION_STATUS.STALE,
+            operational_status: ROBOT_OPERATION_STATUS.CHARGING,
+          },
+        ],
+      },
+    })
+    renderHook(
+      () => useMapRobotStatusSocket({ activeGroupId: 'group-1', enabled: true, mapId: 'map-1' }),
+      { wrapper: createWrapper(client) },
+    )
+
+    act(() =>
+      realtime.connection.socket.emit('map.robot.status', {
+        map_id: 'map-1',
+        robot_id: 'robot-1',
+        ip_address: '192.168.1.2',
+        connection_status: ROBOT_CONNECTION_STATUS.ONLINE,
+        operational_status: ROBOT_OPERATION_STATUS.EXECUTING,
+        last_seen_at: '2026-10-23T04:08:10.052820Z',
+      }),
+    )
+
+    expect(
+      client.getQueryData<{ data: { robots: Array<Record<string, unknown>> } }>(queryKey)?.data
+        .robots,
+    ).toEqual([
+      {
+        id: 'robot-1',
+        ip_address: '192.168.1.2',
+        connection_status: ROBOT_CONNECTION_STATUS.ONLINE,
+        operational_status: ROBOT_OPERATION_STATUS.EXECUTING,
+        last_seen_at: '2026-10-23T04:08:10.052820Z',
+      },
+      {
+        id: 'robot-2',
+        connection_status: ROBOT_CONNECTION_STATUS.STALE,
+        operational_status: ROBOT_OPERATION_STATUS.CHARGING,
+      },
+    ])
+  })
+
+  it.each([
+    { map_id: 'map-1', robot_id: 'robot-1', connection_status: 'INVALID' },
+    {
+      map_id: 'map-2',
+      robot_id: 'robot-1',
+      ip_address: '192.168.1.2',
+      connection_status: ROBOT_CONNECTION_STATUS.ONLINE,
+      operational_status: ROBOT_OPERATION_STATUS.IDLE,
+      last_seen_at: '2026-10-23T04:08:10.052820Z',
+    },
+  ])('ignores invalid or out-of-map status payloads', (payload) => {
+    const client = new QueryClient()
+    const queryKey = [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1']
+    const original = {
+      data: {
+        id: 'map-1',
+        robots: [
+          {
+            id: 'robot-1',
+            connection_status: ROBOT_CONNECTION_STATUS.OFFLINE,
+            operational_status: ROBOT_OPERATION_STATUS.IDLE,
+          },
+        ],
+      },
+    }
+    client.setQueryData(queryKey, original)
+    renderHook(
+      () => useMapRobotStatusSocket({ activeGroupId: 'group-1', enabled: true, mapId: 'map-1' }),
+      { wrapper: createWrapper(client) },
+    )
+
+    act(() => realtime.connection.socket.emit('map.robot.status', payload))
+
+    expect(client.getQueryData(queryKey)).toEqual(original)
   })
 
   it('applies valid status events and ignores malformed payloads', () => {

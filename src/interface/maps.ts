@@ -111,8 +111,10 @@ export type IMapDetailRobotInfo = {
   name: string
   serial_num: string
   model: RobotModelType
+  ip_address?: string | null
   connection_status: RobotConnectionStatusType
   operational_status: RobotOperationStatusType
+  last_seen_at?: string | null
 }
 
 export type IMapDetailZoneInfo = {

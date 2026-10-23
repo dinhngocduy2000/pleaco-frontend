@@ -3,8 +3,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import { BOTS_ENDPOINTS } from '@/enum/endpoints'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS } from '@/enum/robot'
-import type { IResponseDataWithPage } from '@/interface/api-response'
-import type { IRobotInfo, IRobotStatus } from '@/interface/robots'
+import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
+import type { IMapDetailInfo } from '@/interface/maps'
+import type { IMapRobotStatus, IRobotInfo, IRobotStatus } from '@/interface/robots'
+import { getMapDetailQueryKey } from '@/queries/use-maps-query'
 import { acquireRealtimeConnection } from '@/realtime/socket'
 
 type UseGroupRobotStatusSocketParams = {
@@ -30,6 +32,12 @@ export const isRobotStatus = (status: unknown): status is IRobotStatus => {
   )
 }
 
+export const isMapRobotStatus = (status: unknown): status is IMapRobotStatus => {
+  if (!status || typeof status !== 'object') return false
+  const value = status as Record<string, unknown>
+  return typeof value.map_id === 'string' && isRobotStatus(status)
+}
+
 export const applyRobotStatusEvent = (queryClient: QueryClient, status: IRobotStatus) => {
   for (const [queryKey, response] of queryClient.getQueriesData<IResponseDataWithPage<IRobotInfo>>({
     queryKey: [BOTS_ENDPOINTS.LIST],
@@ -49,6 +57,32 @@ export const applyRobotStatusEvent = (queryClient: QueryClient, status: IRobotSt
     })
     if (updated) queryClient.setQueryData(queryKey, { ...response, items })
   }
+}
+
+export const applyMapRobotStatusEvent = (
+  queryClient: QueryClient,
+  groupId: string,
+  status: IMapRobotStatus,
+) => {
+  const queryKey = getMapDetailQueryKey(status.map_id, groupId)
+  queryClient.setQueryData<IResponseData<IMapDetailInfo>>(queryKey, (response) => {
+    if (!response || response.data.id !== status.map_id) return response
+
+    let updated = false
+    const robots = response.data.robots.map((robot) => {
+      if (robot.id !== status.robot_id) return robot
+      updated = true
+      return {
+        ...robot,
+        ip_address: status.ip_address,
+        connection_status: status.connection_status,
+        operational_status: status.operational_status,
+        last_seen_at: status.last_seen_at,
+      }
+    })
+
+    return updated ? { ...response, data: { ...response.data, robots } } : response
+  })
 }
 
 const useRobotStatusEvents = () => {
@@ -111,25 +145,23 @@ export const useMapRobotStatusSocket = ({
   mapId,
 }: UseMapRobotStatusSocketParams) => {
   const queryClient = useQueryClient()
-  const { handleRobotStatus, handleConnect } = useRobotStatusEvents()
 
   useEffect(() => {
     if (!enabled || !activeGroupId) return
 
     let disposed = false
-    const onMapSubscribed = () => {
-      if (!disposed) {
-        void queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
+    const handleMapRobotStatus = (status: IMapRobotStatus) => {
+      if (isMapRobotStatus(status) && status.map_id === mapId) {
+        applyMapRobotStatusEvent(queryClient, activeGroupId, status)
       }
     }
-    const lease = acquireRealtimeConnection(onMapSubscribed)
+    const lease = acquireRealtimeConnection()
     const { connection } = lease
     const { socket } = connection
     const handleConnectionError = (error: Error) => {
       console.error('Socket.IO connection failed:', error.message)
     }
-    socket.on('robot.status', handleRobotStatus)
-    socket.on('connect', handleConnect)
+    socket.on('map.robot.status', handleMapRobotStatus)
     socket.on('connect_error', handleConnectionError)
 
     void connection
@@ -145,13 +177,12 @@ export const useMapRobotStatusSocket = ({
 
     return () => {
       disposed = true
-      socket.off('robot.status', handleRobotStatus)
-      socket.off('connect', handleConnect)
+      socket.off('map.robot.status', handleMapRobotStatus)
       socket.off('connect_error', handleConnectionError)
       void connection
         .unsubscribeFromMap(mapId)
         .catch((error: unknown) => console.error('Map room unsubscribe failed:', error))
         .finally(lease.release)
     }
-  }, [activeGroupId, enabled, handleConnect, handleRobotStatus, mapId, queryClient])
+  }, [activeGroupId, enabled, mapId, queryClient])
 }
