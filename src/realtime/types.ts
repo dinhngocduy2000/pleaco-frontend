@@ -1,4 +1,4 @@
-import type { IRobotStatus } from '@/interface/robots'
+import type { IMapRobotStatus, IRobotStatus } from '@/interface/robots'
 
 export type RoomOperationError =
   | 'AUTHENTICATION_REQUIRED'
@@ -17,6 +17,7 @@ export type MapRoomPayload = {
 
 export type ServerToClientEvents = {
   'robot.status': (status: IRobotStatus) => void
+  'map.robot.status': (status: IMapRobotStatus) => void
 }
 
 export type ClientToServerEvents = {

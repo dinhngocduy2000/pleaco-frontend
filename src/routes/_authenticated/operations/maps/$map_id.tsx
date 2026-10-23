@@ -116,7 +116,7 @@ function MapDetailPage() {
             map={map}
             canEdit={canAdjustBoundary}
           />
-          <MapDetailRobotsCard robots={map.robots} />
+          <MapDetailRobotsCard />
         </aside>
       </div>
       <AppDialogComponent

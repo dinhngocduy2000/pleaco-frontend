@@ -1,3 +1,4 @@
+import { useParams } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,13 +11,11 @@ import {
 } from '@/enum/robot'
 import type { IMapDetailRobotInfo } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
+import { useProfileQuery } from '@/queries/use-auth-query'
+import { useMapDetailQuery } from '@/queries/use-maps-query'
 import RobotImageByModel from '../../robots/-robot-img-model'
 
 const t = getTranslations()
-
-type MapDetailRobotsCardProps = {
-  robots: IMapDetailRobotInfo[]
-}
 
 const getConnectionDotClassName = (status: RobotConnectionStatusType) => {
   const classByStatus: Record<RobotConnectionStatusType, string> = {
@@ -84,7 +83,12 @@ function MapDetailRobotItem({ robot }: { robot: IMapDetailRobotInfo }) {
   )
 }
 
-export function MapDetailRobotsCard({ robots }: MapDetailRobotsCardProps) {
+export function MapDetailRobotsCard() {
+  const { map_id: mapId } = useParams({ from: '/_authenticated/operations/maps/$map_id' })
+  const { data: profileResponse } = useProfileQuery()
+  const { data: mapResponse } = useMapDetailQuery(mapId, profileResponse?.data.group_id ?? '')
+  const robots = mapResponse?.data.robots ?? []
+
   return (
     <Card>
       <CardHeader>

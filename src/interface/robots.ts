@@ -42,6 +42,10 @@ export type IRobotStatus = Pick<
   last_seen_at: string
 }
 
+export type IMapRobotStatus = IRobotStatus & {
+  map_id: string
+}
+
 export type IRobotKeyValue = {
   serial_num: string
 } & IOption
