@@ -110,7 +110,6 @@ export const useMapRobotStatusSocket = ({
   enabled,
   mapId,
 }: UseMapRobotStatusSocketParams) => {
-  const queryClient = useQueryClient()
   const { handleRobotStatus, handleConnect } = useRobotStatusEvents()
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export const useMapRobotStatusSocket = ({
     let disposed = false
     const onMapSubscribed = () => {
       if (!disposed) {
-        void queryClient.invalidateQueries({ queryKey: [BOTS_ENDPOINTS.LIST] })
+        handleConnect()
       }
     }
     const lease = acquireRealtimeConnection(onMapSubscribed)
@@ -153,5 +152,5 @@ export const useMapRobotStatusSocket = ({
         .catch((error: unknown) => console.error('Map room unsubscribe failed:', error))
         .finally(lease.release)
     }
-  }, [activeGroupId, enabled, handleConnect, handleRobotStatus, mapId, queryClient])
+  }, [activeGroupId, enabled, handleConnect, handleRobotStatus, mapId])
 }

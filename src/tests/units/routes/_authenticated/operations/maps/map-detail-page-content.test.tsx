@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { type ComponentType, type ReactNode, Suspense } from 'react'
+import { type ComponentType, type PropsWithChildren, type ReactNode, Suspense } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DockingStationHeading, GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import { ROBOT_CONNECTION_STATUS, ROBOT_OPERATION_STATUS, RobotModel } from '@/enum/robot'
@@ -68,6 +69,16 @@ import { Route } from '@/routes/_authenticated/operations/maps/$map_id'
 const MapDetailPage = (Route as unknown as { options: { component: ComponentType } }).options
   .component
 
+const createQueryWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+
+  return ({ children }: PropsWithChildren) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+}
+
 const renderMapDetailPage = async () => {
   const preloadablePage = MapDetailPage as ComponentType & { preload?: () => Promise<void> }
   await preloadablePage.preload?.()
@@ -76,6 +87,7 @@ const renderMapDetailPage = async () => {
     <Suspense fallback={null}>
       <MapDetailPage />
     </Suspense>,
+    { wrapper: createQueryWrapper() },
   )
 }
 
