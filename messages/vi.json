@@ -307,5 +307,12 @@
   "map_metadata_tags_error": "Không thể tải nhãn. Các lựa chọn hiện tại được giữ nguyên.",
   "validation_map_metadata_name_max": "Tên không được vượt quá 50 ký tự",
   "validation_map_metadata_description_max": "Mô tả không được vượt quá 250 ký tự",
-  "validation_map_metadata_tag_invalid": "Vui lòng chọn nhãn hợp lệ"
+  "validation_map_metadata_tag_invalid": "Vui lòng chọn nhãn hợp lệ",
+  "map_docking_edit": "Chỉnh sửa",
+  "map_docking_assign": "Gán robot",
+  "map_docking_occupied": "Trạm sạc này đã được gán robot.",
+  "map_docking_select_robot": "Chọn robot được gán cho bản đồ này",
+  "map_docking_robot_unavailable": "Đã được gán cho một trạm sạc",
+  "map_docking_save_success": "Đã gán robot cho trạm sạc",
+  "map_docking_save_error": "Không thể gán robot. Vui lòng thử lại."
 }

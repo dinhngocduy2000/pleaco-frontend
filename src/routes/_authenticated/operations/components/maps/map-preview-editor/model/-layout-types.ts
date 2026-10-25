@@ -10,7 +10,7 @@ export const MAP_DRAWING_ZONE_TYPES = [
 ] as const
 
 export const DOCKING_STATION_TOOL = 'DOCKING_STATION' as const
-export const DOCKING_STATION_SIZE_METERS = 4
+export const DOCKING_STATION_SIZE_METERS = 2
 
 export const MAP_AREA_ZONE_TYPES = [
   MapZoneType.OBSTACLE,

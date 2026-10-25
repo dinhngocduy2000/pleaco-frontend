@@ -12,7 +12,11 @@ import type {
   RobotModelType,
   RobotOperationStatusType,
 } from '@/enum/robot'
-import type { createMapFormSchema, updateMapMetadataFormSchema } from '@/schemas/map-schemas'
+import type {
+  assignDockingRobotSchema,
+  createMapFormSchema,
+  updateMapMetadataFormSchema,
+} from '@/schemas/map-schemas'
 import type { ITagInfo } from './tags'
 
 export type ICreateMapFormType = z.infer<ReturnType<typeof createMapFormSchema>>
@@ -138,3 +142,6 @@ export type IMapDetailInfo = {
   zones: IMapDetailZoneInfo[]
   docking_stations: IDockingStationInfo[]
 }
+
+export type IAssignDockingRobotRequest = { map_id: string; docking_id: string; robot_id: string }
+export type IAssignDockingRobotForm = z.infer<ReturnType<typeof assignDockingRobotSchema>>
