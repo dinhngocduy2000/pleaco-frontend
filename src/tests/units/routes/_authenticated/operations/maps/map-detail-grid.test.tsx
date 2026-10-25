@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { DockingStationHeading, GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
@@ -78,12 +78,19 @@ const map = {
 
 describe('MapDetailGrid', () => {
   it('configures the boundary editor as read-only with saved boundary and zones', () => {
-    render(<MapDetailGrid map={map} />)
+    render(
+      <MapDetailGrid
+        canManageDockingStations
+        map={map}
+        onAssignRobot={vi.fn()}
+        onEditLayout={vi.fn()}
+      />,
+    )
 
     expect(screen.getByTestId('map-boundary-editor')).toBeInTheDocument()
     expect(editor).toHaveBeenCalledWith(
       expect.objectContaining({
-        interaction: { mode: 'view' },
+        interaction: expect.objectContaining({ mode: 'view' }),
         layout: expect.objectContaining({
           showBoundary: true,
           boundary: {
@@ -107,5 +114,75 @@ describe('MapDetailGrid', () => {
         }),
       }),
     )
+  })
+
+  it('opens actions for a docking station and ignores other zones', () => {
+    const onAssignRobot = vi.fn()
+    const onEditLayout = vi.fn()
+    render(
+      <MapDetailGrid
+        canManageDockingStations
+        map={map}
+        onAssignRobot={onAssignRobot}
+        onEditLayout={onEditLayout}
+      />,
+    )
+    const editorProps = editor.mock.calls.at(-1)?.[0]
+    expect(editorProps).toBeDefined()
+    const interaction = (
+      editorProps as {
+        interaction: {
+          onZoneContextMenu: (zoneId: string, position: { x: number; y: number }) => void
+          onBackgroundContextMenu: () => void
+        }
+      }
+    ).interaction
+    const mapRegion = screen.getByRole('region', { name: 'Warehouse' })
+
+    fireEvent.contextMenu(mapRegion, { button: 2, clientX: 10, clientY: 20 })
+    act(() => interaction.onZoneContextMenu('zone-1', { x: 10, y: 20 }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    fireEvent.contextMenu(mapRegion, { button: 2, clientX: 10, clientY: 20 })
+    act(() => interaction.onZoneContextMenu('station-1', { x: 10, y: 20 }))
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument()
+    act(() => interaction.onBackgroundContextMenu())
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    fireEvent.contextMenu(mapRegion, { button: 2, clientX: 10, clientY: 20 })
+    act(() => interaction.onZoneContextMenu('station-1', { x: 10, y: 20 }))
+    act(() => screen.getByRole('menuitem', { name: 'Edit' }).click())
+    expect(onEditLayout).toHaveBeenCalledOnce()
+
+    act(() => interaction.onZoneContextMenu('station-1', { x: 10, y: 20 }))
+    act(() => screen.getByRole('menuitem', { name: 'Assign Robot' }).click())
+    expect(onAssignRobot).toHaveBeenCalledWith('station-1')
+  })
+
+  it('does not show actions for a docking station without management access', () => {
+    render(
+      <MapDetailGrid
+        canManageDockingStations={false}
+        map={map}
+        onAssignRobot={vi.fn()}
+        onEditLayout={vi.fn()}
+      />,
+    )
+    const editorProps = editor.mock.calls.at(-1)?.[0]
+    expect(editorProps).toBeDefined()
+    const interaction = (
+      editorProps as {
+        interaction: {
+          onZoneContextMenu: (zoneId: string, position: { x: number; y: number }) => void
+          onBackgroundContextMenu: () => void
+        }
+      }
+    ).interaction
+    fireEvent.contextMenu(screen.getByRole('region', { name: 'Warehouse' }), {
+      button: 2,
+      clientX: 10,
+      clientY: 20,
+    })
+    act(() => interaction.onZoneContextMenu('station-1', { x: 10, y: 20 }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 })

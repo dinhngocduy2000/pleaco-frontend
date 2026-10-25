@@ -38,7 +38,13 @@ import {
   inviteGroupMembersApi,
   updateGroupMemberAPI,
 } from '@/api/groups'
-import { createMapApi, getMapDetailApi, getMapsApi, saveMapLayoutApi } from '@/api/maps'
+import {
+  assignDockingStationRobotApi,
+  createMapApi,
+  getMapDetailApi,
+  getMapsApi,
+  saveMapLayoutApi,
+} from '@/api/maps'
 import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
 import { getTagsApi } from '@/api/tags'
 
@@ -85,6 +91,11 @@ describe('API functions', () => {
     }
     await createMapApi({} as never)
     await saveMapLayoutApi(layoutRequest as never)
+    await assignDockingStationRobotApi({
+      map_id: 'map-1',
+      docking_id: 'station-1',
+      robot_id: 'robot-1',
+    })
     await getMapsApi({ page: 1, page_size: 10 } as never, signal)
     await getMapDetailApi('map-1', signal)
     await createRobotApi({} as never)
@@ -108,6 +119,10 @@ describe('API functions', () => {
 
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.CREATE, {})
     expect(authenticatedClient.post).toHaveBeenCalledWith(MAPS_ENDPOINTS.SAVE_LAYOUT, layoutRequest)
+    expect(authenticatedClient.put).toHaveBeenCalledWith(
+      `${MAPS_ENDPOINTS.ASSIGN_DOCKING_STATION_ROBOT}/map-1/docking/station-1/`,
+      { robot_id: 'robot-1' },
+    )
     expect(authenticatedClient.get).toHaveBeenCalledWith(
       MAPS_ENDPOINTS.LIST,
       expect.objectContaining({ signal }),
