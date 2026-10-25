@@ -70,6 +70,12 @@ export type IDockingStationInfo = {
   heading: DockingStationHeading
 }
 
+export type IAssignDockingStationRobotRequest = {
+  map_id: string
+  docking_id: string
+  robot_id: string
+}
+
 export type ICreateMapRequest = {
   group_id: string
   name: string

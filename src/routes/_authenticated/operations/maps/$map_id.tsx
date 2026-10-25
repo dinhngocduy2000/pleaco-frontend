@@ -13,6 +13,7 @@ import { hasRoleAccess } from '@/lib/role-access'
 import { getTranslations } from '@/lib/translation'
 import { useProfileQuery } from '@/queries/use-auth-query'
 import { useMapDetailQuery } from '@/queries/use-maps-query'
+import { MapAssignRobotDialog } from '@/routes/_authenticated/operations/components/maps/detail/-map-assign-robot-dialog'
 import { MapDetailGrid } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-grid'
 import { MapDetailMetadataCard } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-metadata-card'
 import { MapDetailRobotsCard } from '@/routes/_authenticated/operations/components/maps/detail/-map-detail-robots-card'
@@ -33,6 +34,7 @@ function MapDetailPage() {
     mapId,
   })
   const [adjustLayoutOpen, setAdjustLayoutOpen] = useState(false)
+  const [assignDockingStationId, setAssignDockingStationId] = useState<string | null>(null)
   const [isSavingLayout, setIsSavingLayout] = useState(false)
   const {
     data: mapResponse,
@@ -75,6 +77,7 @@ function MapDetailPage() {
     dimension_y: map.dimension_y,
     geometry: map.boundary ?? undefined,
   }
+  const assignmentStation = map.docking_stations.find(({ id }) => id === assignDockingStationId)
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-6">
@@ -109,7 +112,12 @@ function MapDetailPage() {
         )}
       </div>
       <div className="flex min-h-0 flex-1 flex-wrap items-stretch gap-4 overflow-y-auto pr-2">
-        <MapDetailGrid map={map} />
+        <MapDetailGrid
+          map={map}
+          canManageDockingStations={canAdjustBoundary}
+          onEditLayout={() => setAdjustLayoutOpen(true)}
+          onAssignRobot={setAssignDockingStationId}
+        />
         <aside className="flex min-w-72 flex-1 basis-[calc((100%-1rem)/2)] flex-col gap-4">
           <MapDetailMetadataCard
             key={`${profileResponse?.data.group_id}:${map.id}`}
@@ -141,6 +149,17 @@ function MapDetailPage() {
           onSavingChange={setIsSavingLayout}
         />
       </AppDialogComponent>
+      {assignmentStation && (
+        <MapAssignRobotDialog
+          key={assignmentStation.id}
+          map={map}
+          station={assignmentStation}
+          open
+          setOpen={(open) => {
+            if (!open) setAssignDockingStationId(null)
+          }}
+        />
+      )}
     </section>
   )
 }

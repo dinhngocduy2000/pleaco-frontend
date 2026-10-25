@@ -36,7 +36,11 @@ type MapLayoutEditorProps = {
     showBoundary?: boolean
   }
   interaction:
-    | { mode: 'view' }
+    | {
+        mode: 'view'
+        onZoneContextMenu?: (zoneId: string, position: { x: number; y: number }) => void
+        onBackgroundContextMenu?: () => void
+      }
     | ({ mode: 'edit' } & Pick<
         MapBoundaryEditorProps,
         | 'interactive'
@@ -71,6 +75,9 @@ export function MapBoundaryEditor({
   const editable = interaction.mode === 'edit'
   const interactive = editable && interaction.interactive
   const onSelectZone = editable ? interaction.onSelectZone : undefined
+  const onZoneContextMenu = interaction.mode === 'view' ? interaction.onZoneContextMenu : undefined
+  const onBackgroundContextMenu =
+    interaction.mode === 'view' ? interaction.onBackgroundContextMenu : undefined
   const {
     canvasPoints,
     canZoomIn,
@@ -126,6 +133,12 @@ export function MapBoundaryEditor({
                 height={geometry.stageHeight}
                 width={geometry.stageWidth}
                 onClick={handleStageClick}
+                onContextMenu={(event) => {
+                  if (!onBackgroundContextMenu) event.evt.preventDefault()
+                  if (event.target === event.target.getStage()) {
+                    onBackgroundContextMenu?.()
+                  }
+                }}
                 onMouseLeave={handleStageMouseLeave}
                 onMouseMove={handleStageMouseMove}
                 onMouseUp={handleStageMouseUp}
@@ -163,7 +176,7 @@ export function MapBoundaryEditor({
                         closed
                         dash={selectedDockingStation ? [8, 6] : style.dash}
                         fill={style.fill}
-                        listening={selectionMode}
+                        listening={selectionMode || Boolean(onZoneContextMenu)}
                         name={`map-zone-${zone.zoneType}`}
                         points={getCanvasPoints(zonePoints)}
                         stroke={style.stroke}
@@ -171,6 +184,13 @@ export function MapBoundaryEditor({
                         onClick={(event) => {
                           event.cancelBubble = true
                           onSelectZone?.(zone.clientId)
+                        }}
+                        onContextMenu={(event) => {
+                          if (!onZoneContextMenu) event.evt.preventDefault()
+                          onZoneContextMenu?.(zone.clientId, {
+                            x: event.evt.clientX,
+                            y: event.evt.clientY,
+                          })
                         }}
                       />
                     )
