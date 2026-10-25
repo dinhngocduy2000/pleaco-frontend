@@ -29,6 +29,7 @@ export type MapBoundaryStepProps = {
   map: IMapBoundaryEditorMap
   zones?: IMapDetailZoneInfo[]
   dockingStations?: IDockingStationInfo[]
+  initialSelectedZoneId?: string
   onClose: () => void
   mode?: 'create' | 'adjust'
   onSavingChange?: (saving: boolean) => void
@@ -61,6 +62,7 @@ export function useBoundaryStep({
   map,
   zones,
   dockingStations,
+  initialSelectedZoneId,
   mode = 'create',
   onClose,
   onSavingChange,
@@ -102,6 +104,7 @@ export function useBoundaryStep({
   const boundaryIsValid = isValidBoundaryPolygon(boundaryPoints, boundaryClosed)
 
   const zoneEditor = useMapZones({
+    initialSelectedZoneId: mode === 'adjust' ? initialSelectedZoneId : undefined,
     boundaryPoints,
     boundaryClosed,
     boundaryEditable: isCustom,

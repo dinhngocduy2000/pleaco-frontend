@@ -38,7 +38,13 @@ import {
   inviteGroupMembersApi,
   updateGroupMemberAPI,
 } from '@/api/groups'
-import { createMapApi, getMapDetailApi, getMapsApi, saveMapLayoutApi } from '@/api/maps'
+import {
+  assignDockingRobotApi,
+  createMapApi,
+  getMapDetailApi,
+  getMapsApi,
+  saveMapLayoutApi,
+} from '@/api/maps'
 import { createRobotApi, deleteRobotApi, getRobotsApi, getRobotsKeyValueApi } from '@/api/robots'
 import { getTagsApi } from '@/api/tags'
 
@@ -137,5 +143,15 @@ describe('API functions', () => {
     expect(authenticatedClient.delete).toHaveBeenCalledWith(
       `${GROUPS_ENDPOINTS.LIST_GROUP}/group-1/members/member-1`,
     )
+  })
+})
+
+it('assigns a docking robot with the exact PUT path and a robot-only body', async () => {
+  authenticatedClient.put.mockResolvedValueOnce(undefined)
+  await expect(
+    assignDockingRobotApi({ map_id: 'map-1', docking_id: 'dock-1', robot_id: 'robot-1' }),
+  ).resolves.toBeUndefined()
+  expect(authenticatedClient.put).toHaveBeenLastCalledWith('/maps/map-1/docking/dock-1/', {
+    robot_id: 'robot-1',
   })
 })

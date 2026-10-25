@@ -27,6 +27,7 @@ type UseMapZonesOptions = {
   boundaryCanClear: boolean
   boundaryValid: boolean
   disabled: boolean
+  initialSelectedZoneId?: string
   initialZones?: IMapZoneShape[]
   initialDockingStations?: IMapDockingStationShape[]
   onBoundaryChange: (points: IMapBoundaryCoordinate[], closed: boolean) => void
@@ -76,6 +77,7 @@ export function useMapZones({
   boundaryCanUndo,
   boundaryCanClear,
   disabled,
+  initialSelectedZoneId,
   initialZones = [],
   initialDockingStations = [],
   onBoundaryChange,
@@ -84,7 +86,12 @@ export function useMapZones({
 }: UseMapZonesOptions) {
   const nextId = useRef(1)
   const invalidReason = useRef<MapLayoutValidationError | undefined>(undefined)
-  const [activeTool, setActiveTool] = useState<MapLayoutTool>(MapZoneType.BOUNDARY)
+  const validInitialSelection = [...initialZones, ...initialDockingStations].find(
+    (zone) => zone.clientId === initialSelectedZoneId && !zone.to_delete,
+  )?.clientId
+  const [activeTool, setActiveTool] = useState<MapLayoutTool>(
+    validInitialSelection ? 'SELECT' : MapZoneType.BOUNDARY,
+  )
   const initialType = (type: IMapZoneShape['zoneType']) => ({
     zones: initialZones.filter((zone) => zone.zoneType === type),
     draft: { points: [] as IMapBoundaryCoordinate[] },
@@ -103,7 +110,7 @@ export function useMapZones({
     [MapZoneType.NO_GO]: histories.NO_GO.value.draft,
     [MapZoneType.CLEANING_ZONE]: histories.CLEANING_ZONE.value.draft,
   }
-  const [selectedZoneId, setSelectedZoneId] = useState<string>()
+  const [selectedZoneId, setSelectedZoneId] = useState<string | undefined>(validInitialSelection)
   const [validationError, setValidationError] = useState<MapLayoutValidationError>()
   const visibleZones = zones.filter((zone) => !zone.to_delete)
   const visibleLayoutShapes = [...visibleZones, ...dockingStations]

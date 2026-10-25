@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { DockingStationHeading, GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
@@ -9,7 +9,21 @@ vi.mock(
   () => ({
     MapBoundaryEditor: (props: unknown) => {
       editor(props)
-      return <div data-testid="map-boundary-editor" />
+      const editorProps = props as {
+        onZoneContextMenu?: (zone: unknown) => void
+        layout: { zones: { zoneType: string }[] }
+      }
+      return (
+        <button
+          type="button"
+          data-testid="map-boundary-editor"
+          onContextMenu={() =>
+            editorProps.onZoneContextMenu?.(
+              editorProps.layout.zones.find((zone) => zone.zoneType === 'DOCKING_STATION'),
+            )
+          }
+        />
+      )
     },
   }),
 )
@@ -108,4 +122,13 @@ describe('MapDetailGrid', () => {
       }),
     )
   })
+})
+
+it('opens docking actions, disables occupied assignment and edits the target station', async () => {
+  const edit = vi.fn()
+  render(<MapDetailGrid map={map} canManage groupId="group-1" onEdit={edit} />)
+  fireEvent.contextMenu(screen.getByTestId('map-boundary-editor'), { clientX: 120, clientY: 80 })
+  expect(screen.getByRole('menuitem', { name: 'Assign robot' })).toHaveAttribute('data-disabled')
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }))
+  await waitFor(() => expect(edit).toHaveBeenCalledWith('station-1'))
 })

@@ -425,7 +425,7 @@ describe('MapBoundaryStep', () => {
     render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Docking station' }))
-    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '4')
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '2')
     expect(screen.getByText(/fixed 10 × 10 m docking station/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
 

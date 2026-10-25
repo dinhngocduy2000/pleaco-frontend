@@ -393,3 +393,39 @@ describe('useMapZones', () => {
     ])
   })
 })
+
+it('initializes the requested docking selection without changing the saved robot', () => {
+  const station: IMapDockingStationShape = {
+    clientId: 'dock-1',
+    id: 'dock-1',
+    to_delete: false,
+    zoneType: DOCKING_STATION_TOOL,
+    heading: DockingStationHeading.NORTH,
+    robot_id: 'robot-1',
+    geometry: {
+      type: GeometryType.POLYGON,
+      coordinates: [
+        [
+          [1, 1],
+          [3, 1],
+          [3, 3],
+          [1, 3],
+          [1, 1],
+        ],
+      ],
+    },
+  }
+  const { result } = renderMapZones({
+    initialDockingStations: [station],
+    initialSelectedZoneId: 'dock-1',
+  })
+  expect(result.current.activeTool).toBe('SELECT')
+  expect(result.current.selectedZoneId).toBe('dock-1')
+  expect(result.current.hasDockingStationChanges).toBe(false)
+  expect(result.current.dockingStations[0].robot_id).toBe('robot-1')
+})
+it('ignores missing initial selection and retains the boundary default', () => {
+  const { result } = renderMapZones({ initialSelectedZoneId: 'removed-dock' })
+  expect(result.current.activeTool).toBe(MapZoneType.BOUNDARY)
+  expect(result.current.selectedZoneId).toBeUndefined()
+})

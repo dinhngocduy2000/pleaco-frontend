@@ -307,5 +307,12 @@
   "map_metadata_tags_error": "Could not load tags. Current selections are preserved.",
   "validation_map_metadata_name_max": "Name must be at most 50 characters",
   "validation_map_metadata_description_max": "Description must be at most 250 characters",
-  "validation_map_metadata_tag_invalid": "Select valid tags"
+  "validation_map_metadata_tag_invalid": "Select valid tags",
+  "map_docking_edit": "Edit",
+  "map_docking_assign": "Assign robot",
+  "map_docking_occupied": "This docking station already has an assigned robot.",
+  "map_docking_select_robot": "Select a robot assigned to this map",
+  "map_docking_robot_unavailable": "Already assigned to a docking station",
+  "map_docking_save_success": "Robot assigned to docking station",
+  "map_docking_save_error": "Could not assign robot. Please try again."
 }
