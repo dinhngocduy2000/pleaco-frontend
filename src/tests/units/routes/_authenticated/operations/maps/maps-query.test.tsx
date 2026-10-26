@@ -9,9 +9,11 @@ const createMapApi = vi.hoisted(() => vi.fn())
 const getMapDetailApi = vi.hoisted(() => vi.fn())
 const getMapsApi = vi.hoisted(() => vi.fn())
 const saveMapLayoutApi = vi.hoisted(() => vi.fn())
+const assignDockingStationRobotApi = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api/maps', () => ({
   createMapApi,
+  assignDockingStationRobotApi,
   getMapDetailApi,
   getMapsApi,
   saveMapLayoutApi,
@@ -21,6 +23,7 @@ import {
   getMapDetailQueryKey,
   getMapListQueryKey,
   getMapsQueryKey,
+  useAssignDockingStationRobotMutation,
   useCreateMapMutation,
   useSaveMapLayoutMutation,
 } from '@/queries/use-maps-query'
@@ -31,6 +34,7 @@ describe('useCreateMapMutation', () => {
     getMapDetailApi.mockReset()
     getMapsApi.mockReset()
     saveMapLayoutApi.mockReset()
+    assignDockingStationRobotApi.mockReset()
   })
 
   it('creates a map and invalidates all map lists', async () => {
@@ -124,5 +128,59 @@ describe('useCreateMapMutation', () => {
     expect(getMapDetailQueryKey('map-1', 'group-2')).not.toEqual(
       getMapDetailQueryKey('map-1', 'group-1'),
     )
+  })
+})
+
+describe('useAssignDockingStationRobotMutation', () => {
+  it('waits for the active group map detail refresh after assignment', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue([])
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const payload = {
+      map_id: 'map-1',
+      docking_id: 'station-1',
+      group_id: 'group-1',
+      robot_id: 'robot-1',
+    }
+    assignDockingStationRobotApi.mockResolvedValue(undefined)
+    const { result } = renderHook(() => useAssignDockingStationRobotMutation(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync(payload)
+    })
+
+    expect(assignDockingStationRobotApi).toHaveBeenCalledWith(payload, expect.anything())
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1'],
+      exact: true,
+    })
+  })
+
+  it('invalidates the scoped detail after a conflict', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue([])
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    assignDockingStationRobotApi.mockRejectedValueOnce({ response: { status: 409 } })
+    const { result } = renderHook(() => useAssignDockingStationRobotMutation(), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          map_id: 'map-1',
+          docking_id: 'station-1',
+          group_id: 'group-1',
+          robot_id: 'robot-1',
+        }),
+      ).rejects.toBeDefined()
+    })
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1'],
+      exact: true,
+    })
   })
 })

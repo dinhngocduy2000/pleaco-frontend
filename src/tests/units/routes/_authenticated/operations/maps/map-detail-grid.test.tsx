@@ -78,7 +78,7 @@ const map = {
 
 describe('MapDetailGrid', () => {
   it('configures the boundary editor as read-only with saved boundary and zones', () => {
-    render(<MapDetailGrid map={map} />)
+    render(<MapDetailGrid map={map} groupId="group-1" />)
 
     expect(screen.getByTestId('map-boundary-editor')).toBeInTheDocument()
     expect(editor).toHaveBeenCalledWith(
