@@ -1,7 +1,6 @@
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
-  IAssignDockingRobotRequest,
   ICreateMapRequest,
   IMapDetailInfo,
   IMapListInfo,
@@ -41,14 +40,4 @@ export const getMapDetailApi = async (
   signal?: AbortSignal,
 ): Promise<IResponseData<IMapDetailInfo>> => {
   return await axiosConfig.get(`${MAPS_ENDPOINTS.DETAIL}/${mapId}`, { signal })
-}
-
-export const assignDockingRobotApi = async ({
-  map_id,
-  docking_id,
-  robot_id,
-}: IAssignDockingRobotRequest): Promise<void> => {
-  await axiosConfig.put(`${MAPS_ENDPOINTS.ASSIGN_DOCKING_ROBOT}/${map_id}/docking/${docking_id}/`, {
-    robot_id,
-  })
 }

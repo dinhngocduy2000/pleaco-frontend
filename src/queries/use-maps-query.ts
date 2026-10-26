@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { isAxiosError } from 'axios'
 import {
-  assignDockingRobotApi,
   createMapApi,
   getMapDetailApi,
   getMapsApi,
@@ -111,23 +109,5 @@ export const useSaveMapLayoutMutation = ({
     },
     onError,
     onMutate,
-  })
-}
-
-export const useAssignDockingRobotMutation = (groupId: string) => {
-  const queryClient = useQueryClient()
-  const refresh = (mapId: string) =>
-    queryClient.invalidateQueries({
-      queryKey: getMapDetailQueryKey(mapId, groupId),
-      exact: true,
-    })
-  return useMutation({
-    mutationFn: assignDockingRobotApi,
-    onSuccess: async (_, variables) => {
-      await refresh(variables.map_id)
-    },
-    onError: async (error, variables) => {
-      if (isAxiosError(error) && error.response?.status === 409) await refresh(variables.map_id)
-    },
   })
 }

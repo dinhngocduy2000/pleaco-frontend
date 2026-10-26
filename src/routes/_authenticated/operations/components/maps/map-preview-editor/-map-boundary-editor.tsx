@@ -35,8 +35,6 @@ type MapLayoutEditorProps = {
     selectionMode?: boolean
     showBoundary?: boolean
   }
-  onZoneContextMenu?: (zone: IMapLayoutShape) => void
-  canOpenZoneContextMenu?: (zone: IMapLayoutShape) => boolean
   interaction:
     | { mode: 'view' }
     | ({ mode: 'edit' } & Pick<
@@ -58,8 +56,6 @@ export function MapBoundaryEditor({
   active,
   layout,
   interaction,
-  onZoneContextMenu,
-  canOpenZoneContextMenu,
 }: MapLayoutEditorProps) {
   const { x: dimensionX, y: dimensionY } = dimensions
   const { points, closed, zoneType: activeZoneType } = active
@@ -167,17 +163,11 @@ export function MapBoundaryEditor({
                         closed
                         dash={selectedDockingStation ? [8, 6] : style.dash}
                         fill={style.fill}
-                        listening={
-                          selectionMode ||
-                          Boolean(onZoneContextMenu && canOpenZoneContextMenu?.(zone))
-                        }
+                        listening={selectionMode}
                         name={`map-zone-${zone.zoneType}`}
                         points={getCanvasPoints(zonePoints)}
                         stroke={style.stroke}
                         strokeWidth={style.strokeWidth}
-                        onContextMenu={() => {
-                          if (canOpenZoneContextMenu?.(zone)) onZoneContextMenu?.(zone)
-                        }}
                         onClick={(event) => {
                           event.cancelBubble = true
                           onSelectZone?.(zone.clientId)

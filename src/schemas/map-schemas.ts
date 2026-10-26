@@ -43,8 +43,3 @@ export const createMapFormSchema = () => {
     tag_ids: z.array(z.string().uuid()),
   })
 }
-
-export const assignDockingRobotSchema = () =>
-  z.object({
-    robot_id: z.uuid({ message: getTranslations().map_docking_select_robot() }),
-  })
