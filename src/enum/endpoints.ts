@@ -47,5 +47,4 @@ export enum MAPS_ENDPOINTS {
   DETAIL = '/maps',
   UPDATE_METADATA = '/maps',
   SAVE_LAYOUT = '/maps/layouts',
-  ASSIGN_DOCKING_ROBOT = '/maps',
 }

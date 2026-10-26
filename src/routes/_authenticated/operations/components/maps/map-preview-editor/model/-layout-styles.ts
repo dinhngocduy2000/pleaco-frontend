@@ -13,7 +13,7 @@ export const MAP_ZONE_STYLES: Record<MapCanvasZoneType, IMapZoneStyle> = {
   [MapZoneType.BOUNDARY]: {
     stroke: '#7C3AED',
     fill: 'transparent',
-    strokeWidth: 2,
+    strokeWidth: 3,
   },
   [MapZoneType.OBSTACLE]: {
     stroke: '#F59E0B',

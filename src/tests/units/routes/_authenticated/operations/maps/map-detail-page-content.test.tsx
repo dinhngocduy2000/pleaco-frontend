@@ -286,30 +286,6 @@ describe('MapDetailPage', () => {
     },
   )
 
-  it('discards an open layout target when switching groups and returning', async () => {
-    const user = userEvent.setup()
-    const profile = (group_id: string) => ({
-      data: { data: { group_id, group: { role: 'owner' } } },
-    })
-    useProfileQueryMock.mockReturnValue(profile('group-1'))
-    const view = await renderMapDetailPage()
-    await user.click(screen.getByRole('button', { name: 'Adjust layout' }))
-    expect(screen.getByTestId('map-boundary-step')).toBeInTheDocument()
-    useProfileQueryMock.mockReturnValue(profile('group-2'))
-    view.rerender(
-      <Suspense fallback={null}>
-        <MapDetailPage />
-      </Suspense>,
-    )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    useProfileQueryMock.mockReturnValue(profile('group-1'))
-    view.rerender(
-      <Suspense fallback={null}>
-        <MapDetailPage />
-      </Suspense>,
-    )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
   it('renders a loading state before map data is available', async () => {
     useMapDetailQueryMock.mockReturnValue({ data: undefined, isError: false, isLoading: true })
     await renderMapDetailPage()

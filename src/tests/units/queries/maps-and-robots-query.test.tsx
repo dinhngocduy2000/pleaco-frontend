@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BOTS_ENDPOINTS, MAPS_ENDPOINTS } from '@/enum/endpoints'
 
 const mapApi = vi.hoisted(() => ({
-  assignDockingRobotApi: vi.fn(),
   createMapApi: vi.fn(),
   getMapDetailApi: vi.fn(),
   getMapsApi: vi.fn(),
@@ -21,7 +20,6 @@ vi.mock('@/api/maps', () => mapApi)
 vi.mock('@/api/robots', () => robotApi)
 
 import {
-  useAssignDockingRobotMutation,
   useCreateMapMutation,
   useMapDetailQuery,
   useMapsQuery,
@@ -128,30 +126,4 @@ describe('maps and robots query hooks', () => {
     expect(robotApi.createRobotApi).toHaveBeenCalledWith({ name: 'Milo' }, expect.anything())
     expect(invalidate).toHaveBeenCalledWith({ queryKey: [BOTS_ENDPOINTS.LIST] })
   })
-})
-
-describe('docking assignment mutation', () => {
-  it.each([false, true])(
-    'refreshes only the originating detail after success/conflict (%s)',
-    async (conflict) => {
-      const { client, wrapper } = createWrapper()
-      const invalidate = vi.spyOn(client, 'invalidateQueries')
-      const payload = { map_id: 'map-1', docking_id: 'dock-1', robot_id: 'robot-1' }
-      mapApi.assignDockingRobotApi.mockReset()
-      if (conflict)
-        mapApi.assignDockingRobotApi.mockRejectedValue({
-          isAxiosError: true,
-          response: { status: 409 },
-        })
-      else mapApi.assignDockingRobotApi.mockResolvedValue(undefined)
-      const { result } = renderHook(() => useAssignDockingRobotMutation('group-1'), { wrapper })
-      await act(async () => {
-        await result.current.mutateAsync(payload).catch(() => undefined)
-      })
-      expect(invalidate).toHaveBeenCalledWith({
-        queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1'],
-        exact: true,
-      })
-    },
-  )
 })

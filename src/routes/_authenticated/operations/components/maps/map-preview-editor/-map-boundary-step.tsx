@@ -17,7 +17,6 @@ export function MapBoundaryStep({
   map,
   zones,
   dockingStations,
-  initialSelectedZoneId,
   onClose,
   mode = 'create',
   onSavingChange,
@@ -39,15 +38,7 @@ export function MapBoundaryStep({
     validationMessage,
     zoneEditor,
     zoneToolsDisabled,
-  } = useBoundaryStep({
-    map,
-    zones,
-    dockingStations,
-    initialSelectedZoneId,
-    mode,
-    onClose,
-    onSavingChange,
-  })
+  } = useBoundaryStep({ map, zones, dockingStations, mode, onClose, onSavingChange })
 
   return (
     <div className="flex min-h-0 h-full flex-col">

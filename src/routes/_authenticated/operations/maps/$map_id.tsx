@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, Map as MapIcon, ScanLine } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import AppDialogComponent from '@/components/reusable/app-dialog/app-dialog-component'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -32,29 +32,8 @@ function MapDetailPage() {
     enabled: isProfileReady,
     mapId,
   })
-  const [layoutTarget, setLayoutTarget] = useState<{
-    mapId: string
-    groupId: string
-    zoneId?: string
-  } | null>(null)
-  const adjustLayoutOpen =
-    layoutTarget?.mapId === mapId &&
-    layoutTarget?.groupId === (profileResponse?.data.group_id ?? '')
-  const setAdjustLayoutOpen = (open: boolean | ((previous: boolean) => boolean)) => {
-    const next = typeof open === 'function' ? open(adjustLayoutOpen) : open
-    if (!next) setLayoutTarget(null)
-    else setLayoutTarget({ mapId, groupId: profileResponse?.data.group_id ?? '' })
-  }
+  const [adjustLayoutOpen, setAdjustLayoutOpen] = useState(false)
   const [isSavingLayout, setIsSavingLayout] = useState(false)
-  const layoutScope = `${profileResponse?.data.group_id ?? ''}:${mapId}`
-  const previousLayoutScope = useRef(layoutScope)
-  useEffect(() => {
-    if (previousLayoutScope.current !== layoutScope) {
-      setLayoutTarget(null)
-      setIsSavingLayout(false)
-      previousLayoutScope.current = layoutScope
-    }
-  }, [layoutScope])
   const {
     data: mapResponse,
     isError,
@@ -130,15 +109,7 @@ function MapDetailPage() {
         )}
       </div>
       <div className="flex min-h-0 flex-1 flex-wrap items-stretch gap-4 overflow-y-auto pr-2">
-        <MapDetailGrid
-          key={`${profileResponse?.data.group_id}:${map.id}`}
-          map={map}
-          canManage={canAdjustBoundary}
-          groupId={profileResponse?.data.group_id ?? ''}
-          onEdit={(zoneId) =>
-            setLayoutTarget({ mapId, groupId: profileResponse?.data.group_id ?? '', zoneId })
-          }
-        />
+        <MapDetailGrid map={map} />
         <aside className="flex min-w-72 flex-1 basis-[calc((100%-1rem)/2)] flex-col gap-4">
           <MapDetailMetadataCard
             key={`${profileResponse?.data.group_id}:${map.id}`}
@@ -161,18 +132,14 @@ function MapDetailPage() {
         setOpen={setAdjustLayoutOpen}
         title={t.map_boundary_adjust_title()}
       >
-        {adjustLayoutOpen && (
-          <MapBoundaryStep
-            key={`${profileResponse?.data.group_id}:${map.id}`}
-            initialSelectedZoneId={layoutTarget?.zoneId}
-            map={boundaryEditorMap}
-            mode="adjust"
-            zones={map.zones}
-            dockingStations={map.docking_stations}
-            onClose={() => setAdjustLayoutOpen(false)}
-            onSavingChange={setIsSavingLayout}
-          />
-        )}
+        <MapBoundaryStep
+          map={boundaryEditorMap}
+          mode="adjust"
+          zones={map.zones}
+          dockingStations={map.docking_stations}
+          onClose={() => setAdjustLayoutOpen(false)}
+          onSavingChange={setIsSavingLayout}
+        />
       </AppDialogComponent>
     </section>
   )
