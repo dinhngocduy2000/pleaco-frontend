@@ -18,6 +18,10 @@ import {
   getBoundaryPointUpdate,
   getMovedBoundaryPoints,
 } from '../../routes/_authenticated/operations/components/maps/map-preview-editor/model/-editor-proposals'
+import type {
+  IMapLayoutShape,
+  MapCanvasZoneType,
+} from '../../routes/_authenticated/operations/components/maps/map-preview-editor/model/-layout-types'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 3
@@ -47,6 +51,11 @@ export type MapBoundaryEditorProps = {
   onBackgroundClick?: () => void
   /** Places a fixed world-coordinate square instead of appending polygon vertices. */
   fixedPlacementSize?: number
+  /** Reports right-clicks on configured zone shapes without enabling drawing. */
+  zoneContextMenu?: {
+    zoneTypes: readonly MapCanvasZoneType[]
+    onOpen: (shape: IMapLayoutShape, nativeEvent: MouseEvent) => void
+  }
 }
 
 /** Initial and preview map-local pixel positions for an endpoint extension gesture. */
