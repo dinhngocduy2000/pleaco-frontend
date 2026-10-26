@@ -46,6 +46,7 @@ type MapLayoutEditorProps = {
         | 'onBackgroundClick'
         | 'fixedPlacementSize'
       > & { onSelectZone?: (clientId: string) => void })
+  zoneContextMenu?: MapBoundaryEditorProps['zoneContextMenu']
 }
 
 const ignoreChange: MapBoundaryEditorProps['onChange'] = () => undefined
@@ -56,6 +57,7 @@ export function MapBoundaryEditor({
   active,
   layout,
   interaction,
+  zoneContextMenu,
 }: MapLayoutEditorProps) {
   const { x: dimensionX, y: dimensionY } = dimensions
   const { points, closed, zoneType: activeZoneType } = active
@@ -163,7 +165,10 @@ export function MapBoundaryEditor({
                         closed
                         dash={selectedDockingStation ? [8, 6] : style.dash}
                         fill={style.fill}
-                        listening={selectionMode}
+                        listening={
+                          selectionMode ||
+                          Boolean(zoneContextMenu?.zoneTypes.includes(zone.zoneType))
+                        }
                         name={`map-zone-${zone.zoneType}`}
                         points={getCanvasPoints(zonePoints)}
                         stroke={style.stroke}
@@ -171,6 +176,12 @@ export function MapBoundaryEditor({
                         onClick={(event) => {
                           event.cancelBubble = true
                           onSelectZone?.(zone.clientId)
+                        }}
+                        onContextMenu={(event) => {
+                          if (!zoneContextMenu?.zoneTypes.includes(zone.zoneType)) return
+                          event.evt.preventDefault()
+                          event.cancelBubble = true
+                          zoneContextMenu.onOpen(zone, event.evt)
                         }}
                       />
                     )

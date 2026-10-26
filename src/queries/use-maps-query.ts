@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  assignDockingStationRobotApi,
   createMapApi,
   getMapDetailApi,
   getMapsApi,
@@ -9,6 +10,7 @@ import {
 import { MAPS_ENDPOINTS } from '@/enum/endpoints'
 import type { IResponseData, IResponseDataWithPage } from '@/interface/api-response'
 import type {
+  IAssignDockingStationRobotRequest,
   ICreateMapRequest,
   IMapDetailInfo,
   IMapListInfo,
@@ -56,6 +58,40 @@ export const useMapDetailQuery = (mapId: string, groupId?: string) => {
     queryKey: getMapDetailQueryKey(mapId, groupId),
     queryFn: ({ signal }) => getMapDetailApi(mapId, signal),
     enabled: Boolean(mapId),
+  })
+}
+
+export const useAssignDockingStationRobotMutation = ({
+  onSuccess,
+  onError,
+  onMutate,
+}: IMutation<void, IAssignDockingStationRobotRequest> = {}) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: assignDockingStationRobotApi,
+    onSuccess: async (data, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: getMapDetailQueryKey(variables.map_id, variables.group_id),
+        exact: true,
+      })
+      onSuccess?.(data, variables)
+    },
+    onError: async (error, variables) => {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        (error.response as { status?: number } | undefined)?.status === 409
+      ) {
+        await queryClient.invalidateQueries({
+          queryKey: getMapDetailQueryKey(variables.map_id, variables.group_id),
+          exact: true,
+        })
+      }
+      onError?.(error)
+    },
+    onMutate,
   })
 }
 
