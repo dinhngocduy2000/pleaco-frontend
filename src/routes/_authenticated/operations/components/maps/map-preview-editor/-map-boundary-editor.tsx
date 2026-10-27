@@ -9,6 +9,7 @@ import {
   type MapBoundaryEditorProps,
   useMapBoundaryEditor,
 } from '../../../../../../hooks/map-preview-editor/-use-map-boundary-editor'
+import { MapDockingStationRobot } from './-map-docking-station-robot'
 import { MAP_CANVAS_PADDING, MapGridLayer } from './-map-grid-preview'
 import { flattenCanvasPoints, worldPointToCanvas } from './geometry/-coordinates'
 import type { MapLayoutIssue } from './model/-layout-issues'
@@ -259,6 +260,17 @@ export function MapBoundaryEditor({
                   })}
                 </Layer>
               </Stage>
+              {zones.map((zone) => {
+                if (zone.zoneType !== DOCKING_STATION_TOOL) return null
+                return (
+                  <MapDockingStationRobot
+                    key={`robot-${zone.clientId}`}
+                    station={zone}
+                    dimensionY={dimensionY}
+                    pixelsPerMeter={pixelsPerMeter}
+                  />
+                )
+              })}
               {issues.map((issue) => {
                 const projected = issue.points.map((point) =>
                   worldPointToCanvas(point, dimensionY, pixelsPerMeter),
