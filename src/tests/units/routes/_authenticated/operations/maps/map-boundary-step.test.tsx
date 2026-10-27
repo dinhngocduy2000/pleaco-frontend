@@ -77,12 +77,15 @@ vi.mock(
                   [5, 4],
                   [4.5, 5],
                 ],
-                DOCKING_STATION: [
-                  [5, 1],
-                  [15, 1],
-                  [15, 11],
-                  [5, 11],
-                ],
+                DOCKING_STATION: (() => {
+                  const halfSize = (fixedPlacementSize ?? 0) / 2
+                  return [
+                    [10 - halfSize, 6 - halfSize],
+                    [10 + halfSize, 6 - halfSize],
+                    [10 + halfSize, 6 + halfSize],
+                    [10 - halfSize, 6 + halfSize],
+                  ]
+                })(),
               }
               const nextPoints = pointsByZoneType[activeZoneType]
               if (!canChange || canChange(nextPoints, true)) onChange(nextPoints, true)
@@ -94,11 +97,12 @@ vi.mock(
           <button
             type="button"
             onClick={() => {
+              const halfSize = (fixedPlacementSize ?? 0) / 2
               const stationPoints: IMapBoundaryCoordinate[] = [
-                [5, 1],
-                [15, 1],
-                [15, 11],
-                [5, 11],
+                [10 - halfSize, 6 - halfSize],
+                [10 + halfSize, 6 - halfSize],
+                [10 + halfSize, 6 + halfSize],
+                [10 - halfSize, 6 + halfSize],
               ]
               if (!canChange || canChange(stationPoints, true)) onChange(stationPoints, true)
               else onInvalid()
@@ -425,8 +429,8 @@ describe('MapBoundaryStep', () => {
     render(<MapBoundaryStep map={map} mode="adjust" onClose={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: 'Docking station' }))
-    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '4')
-    expect(screen.getByText(/fixed 10 × 10 m docking station/)).toBeInTheDocument()
+    expect(screen.getByTestId('boundary-editor')).toHaveAttribute('data-fixed-placement-size', '3')
+    expect(screen.getByText(/fixed 3 × 3 m docking station/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Place fixed square' }))
 
     await user.click(screen.getByRole('button', { name: 'Obstacle' }))
@@ -459,11 +463,11 @@ describe('MapBoundaryStep', () => {
             type: GeometryType.POLYGON,
             coordinates: [
               [
-                [5, 1],
-                [15, 1],
-                [15, 11],
-                [5, 11],
-                [5, 1],
+                [8.5, 4.5],
+                [11.5, 4.5],
+                [11.5, 7.5],
+                [8.5, 7.5],
+                [8.5, 4.5],
               ],
             ],
           },
