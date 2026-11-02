@@ -378,57 +378,7 @@ instead of guessing.
 
 ## Common Commands
 
-Install:
-
-```bash
-pnpm install
-```
-
-Development:
-
-```bash
-pnpm dev
-```
-
-Build:
-
-```bash
-pnpm build
-```
-
-Preview:
-
-```bash
-pnpm preview
-```
-
-Unit/component tests:
-
-```bash
-pnpm test
-```
-
-E2E tests:
-
-```bash
-pnpm test:e2e
-```
-
-Lint:
-
-```bash
-pnpm lint
-```
-
-Auto-fix/format:
-
-```bash
-pnpm lint:fix
-pnpm format
-```
-
-Use pnpm for repository package commands. Do not substitute npm or yarn in documentation or
-commands unless the task explicitly requires it.
+The commands commonly used in this project can be found in package.json file
 
 ## Verification Expectations
 
