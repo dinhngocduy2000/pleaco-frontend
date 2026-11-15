@@ -23,35 +23,28 @@ test.describe('Create group dialog', () => {
 
     test('shows dialog when user status is ACTIVE and user has no group', async ({ page }) => {
       await setupAuthenticatedPage(page, profileData.activeUserWithNoGroup)
-      await page.goto(HOME_URL)
-
-      await page.waitForResponse(API_PROFILE)
+      await Promise.all([page.waitForResponse(API_PROFILE), page.goto(HOME_URL)])
 
       await expect(page.getByText('Welcome to Pleaco!')).toBeVisible()
     })
 
     test('does not show dialog when user status is ACTIVE', async ({ page }) => {
       await setupAuthenticatedPage(page, profileData.activeUser)
-      await page.goto(HOME_URL)
-
-      await page.waitForResponse(API_PROFILE)
+      await Promise.all([page.waitForResponse(API_PROFILE), page.goto(HOME_URL)])
 
       await expect(page.getByText('Welcome to Pleaco!')).not.toBeVisible()
     })
 
     test('does not show dialog when user already has a group', async ({ page }) => {
       await setupAuthenticatedPage(page, profileData.userWithGroup)
-      await page.goto(HOME_URL)
-
-      await page.waitForResponse(API_PROFILE)
+      await Promise.all([page.waitForResponse(API_PROFILE), page.goto(HOME_URL)])
 
       await expect(page.getByText('Welcome to Pleaco!')).not.toBeVisible()
     })
 
     test('dialog cannot be dismissed by clicking overlay', async ({ page }) => {
       await setupAuthenticatedPage(page, profileData.pendingUser)
-      await page.goto(HOME_URL)
-      await page.waitForResponse(API_PROFILE)
+      await Promise.all([page.waitForResponse(API_PROFILE), page.goto(HOME_URL)])
       await expect(page.getByText('Welcome to Pleaco!')).toBeVisible()
 
       await page
@@ -81,8 +74,7 @@ test.describe('Create group dialog', () => {
   test.describe('form rendering', () => {
     test.beforeEach(async ({ page }) => {
       await setupAuthenticatedPage(page, profileData.pendingUser)
-      await page.goto(HOME_URL)
-      await page.waitForResponse(API_PROFILE)
+      await Promise.all([page.waitForResponse(API_PROFILE), page.goto(HOME_URL)])
     })
 
     test('displays the app logo', async ({ page }) => {
@@ -152,8 +144,7 @@ test.describe('Create group dialog', () => {
   test.describe('form submission', () => {
     test.beforeEach(async ({ page }) => {
       await setupAuthenticatedPage(page, profileData.pendingUser)
-      await page.goto(HOME_URL)
-      await page.waitForResponse(API_PROFILE)
+      await Promise.all([page.waitForResponse(API_PROFILE), page.goto(HOME_URL)])
     })
 
     test('sends correct payload on successful submission', async ({ page }) => {

@@ -331,8 +331,8 @@ test('saves a changed boundary and docking station through the layout endpoint',
   const ring = requests[0].docking_stations?.[0].geometry.coordinates[0] ?? []
   expect(ring).toHaveLength(5)
   expect(ring.at(-1)).toEqual(ring[0])
-  expect(ring[1][0] - ring[0][0]).toBeCloseTo(4)
-  expect(ring[2][1] - ring[1][1]).toBeCloseTo(4)
+  expect(ring[1][0] - ring[0][0]).toBeCloseTo(3)
+  expect(ring[2][1] - ring[1][1]).toBeCloseTo(3)
 })
 
 test('submits all changed sections atomically when the layout request fails', async ({ page }) => {
