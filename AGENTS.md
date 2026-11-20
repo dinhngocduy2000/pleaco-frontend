@@ -19,6 +19,8 @@ Route by **task intent**, not simple keyword matches. For non-trivial tasks, sel
 | Axios API functions, React Query, cache invalidation, response envelopes, Zod contracts, or choosing Redux vs server state | `pleco-data-layer` | `pleco-frontend` for component integration; `pleco-security` for auth/tenant data |
 | Pleco Playwright E2E specs, fixtures, page objects, auth storage state, `src/tests/`, or `playwright.config.ts` | `pleco-e2e` | `playwright-expert` for complex browser tooling, reliability, or CI |
 | General Playwright diagnostics, advanced locators, visual regression, reporter/CI setup, or flaky browser tests | `playwright-expert` | `pleco-e2e` for Pleco-specific patterns (takes precedence) |
+| Accessibility audits of existing UI, WCAG 2.2 AA findings, axe-core/pa11y results, keyboard or screen-reader issues, focus/contrast checks, or remediation of verified violations | `accessibility-engineering` | `pleco-frontend` for component fixes; `pleco-e2e` for regression coverage; `playwright-expert` for browser-tooling issues |
+| Reviewing a diff/PR, checking changes before merge, or performing final quality review after implementation, refactoring, or bug fixes | `code-review-and-quality` | `pleco-security` for security-sensitive changes; `accessibility-engineering` for accessibility issues; `vercel-react-best-practices` for React performance investigations |
 | WebSocket/Socket.IO clients, live telemetry, Teach Mode updates, reconnection, heartbeat, or realtime robot/task events | `websocket-engineer` | `pleco-data-layer` for server-state updates; `pleco-security` for authenticated realtime flows |
 | JSDoc, developer docs, API docs, user guides, or documentation-focused updates | `code-documenter` | Relevant domain skill for technical accuracy |
 | Authentication UI, RBAC, tenant scoping, unsafe inputs/URLs, client secrets, operational controls, or frontend security review | `pleco-security` | `pleco-frontend` or `pleco-data-layer` for implementation; `websocket-engineer` for realtime security |
@@ -30,8 +32,16 @@ Route by **task intent**, not simple keyword matches. For non-trivial tasks, sel
 - Teach Mode map updates: `websocket-engineer` + `pleco-frontend`; add `pleco-security` for authenticated remote control.
 - Secure robot command UI: `pleco-security` + `pleco-frontend`; add `websocket-engineer` for command acknowledgements and live state.
 - Flaky Playwright E2E test: `pleco-e2e` + `playwright-expert`.
+- Accessibility audit of the map editor or robot controls: `accessibility-engineering` + `pleco-frontend`; add `pleco-e2e` for lasting regression tests.
+- New form, dialog, or interactive control: start with `pleco-frontend`; use `accessibility-engineering` when the rendered UI needs auditing or a verified issue needs fixing.
+- Review a robot-command PR: `code-review-and-quality` + `pleco-security`; use `websocket-engineer` only if the review needs deeper realtime-protocol analysis.
+- Review a React rendering regression: `code-review-and-quality` + `vercel-react-best-practices`; preserve `pleco-frontend` conventions.
 
 Pleco-specific skill conventions and existing code win over generic examples (including Next.js/server-side examples in performance or security skills). For simple routine changes with no matching specialty, use repository conventions without forcing a skill.
+
+**Accessibility ownership:** `pleco-frontend` remains primary for building new UI, including semantic markup and accessible interaction patterns. `accessibility-engineering` is primary for evaluating an existing interface and remediating findings. If that skill refers to a generic `frontend-ui-engineering` skill, do not substitute it for Pleco's established frontend conventions; use it only if installed and genuinely needed as supporting guidance.
+
+**Code-review ownership:** `code-review-and-quality` supplies the five-axis review process (correctness, readability, architecture, security, performance). Section 7 supplies Pleco-specific priorities and finding format. For detailed security and React performance guidance, prefer `pleco-security` and `vercel-react-best-practices` over generic skills named in review examples. Review changes without treating a review request as permission to merge, rewrite unrelated code, or delete uncertain dead code.
 
 ## 3. Structure and generated files
 
@@ -70,13 +80,16 @@ Pleco-specific skill conventions and existing code win over generic examples (in
 1. Inspect target files, nearby patterns, tests, and relevant configuration. Select the smallest applicable skill set.
 2. Make the smallest coherent change; preserve strict typing, state ownership, API contracts, existing design tokens, generated-file boundaries, and unrelated behavior.
 3. Test the affected behavior with the existing tools: **Vitest + Testing Library** for unit/components; **Playwright** for E2E. Prefer independent tests, semantic locators, web-first assertions, and no arbitrary hard waits.
+   - For accessibility-sensitive UI changes or release audits, follow `accessibility-engineering`: run its pinned axe-core/pa11y checks against the **actual running app URL** (inspect the Vite configuration rather than assuming port 3000). Use the skill's bundled `audit-a11y.sh` only after confirming its path exists in the repository.
+   - Automated audits alone do not establish WCAG conformance. Check relevant keyboard/focus behavior, accessible names, screen-reader announcements, contrast, zoom, and touch targets; report the browser/assistive-technology combination used. Mark unavailable manual checks as **not verified**, and treat missing/failed audit tooling as an incomplete audit, not a pass.
 4. Run relevant scripts actually defined in `package.json` (typically `pnpm lint`, targeted tests, and `pnpm build` for routing/build-sensitive changes). For broad refactors, run broader checks when practical.
-5. Review the diff and report what changed, checks **actually run**, failures, and unverified areas. Never claim unrun tests passed or weaken assertions/type/lint settings to hide a failure. Do not leave avoidable TODO placeholders or unrelated edits.
+5. Review the diff using `code-review-and-quality` before marking implementation complete or merge-ready; inspect test coverage, correctness, simplicity, architecture, security, performance, and potential regressions. For explicit PR reviews, first confirm the checked-out revision and note any uncommitted changes. Any suggested mutation experiment must use an isolated/disposable copy and must not overwrite existing user changes.
+6. Report what changed, checks **actually run**, failures, review findings, and unverified areas. Never claim unrun tests passed or weaken assertions/type/lint settings to hide a failure. Do not leave avoidable TODO placeholders or unrelated edits.
 
 
 ## 7. Code Review Rules
 
-When reviewing frontend code changes, prioritize:
+Use `code-review-and-quality` for review procedure and its five quality axes. Apply the following Pleco-specific priorities when reviewing frontend code changes:
 
 - Group isolation, RBAC, and permission-aware UI behavior.
 - API contract compatibility, response envelopes, and robot UUID identity.
@@ -85,13 +98,15 @@ When reviewing frontend code changes, prioritize:
 - Map geometry, workspace constraints, and world-to-canvas coordinate transformations.
 - WebSocket/Socket.IO lifecycle, reconnection, and stale or out-of-order telemetry.
 - Robot command acknowledgement, execution states, timeouts, and emergency-stop UI safety.
-- Loading, error, and empty states, accessibility, and unintended UI regressions.
+- Loading, error, and empty states; accessibility regressions in semantic controls, keyboard/focus order, screen-reader feedback, contrast, and touch targets; unintended UI regressions.
 
 Report actionable defects with:
 - Severity (Critical, High, Medium, Low).
 - File path and line number.
 - Impact and supporting evidence.
 - Recommended fix when applicable.
+
+Distinguish regressions introduced by the reviewed change from pre-existing issues. Mark non-blocking suggestions as optional; never invent findings to fill a checklist. For dependency changes, review `package.json` and `pnpm-lock.yaml`, use the repository's pnpm tooling, and do not hand-edit the lockfile or adopt npm commands solely because a generic skill example uses them.
 
 Prioritize correctness, security, reliability, and user safety.
 Avoid stylistic comments unless they cause real issues.
