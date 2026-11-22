@@ -83,13 +83,13 @@ const waitForConnection = (socket: RealtimeSocket): Promise<void> => {
 export const createMapRoomManager = (
   socket: RealtimeSocket,
   connect: () => void,
-  onSubscribed?: () => void,
+  onSubscribed?: (mapId: string) => void,
 ) => {
   const subscriptions = new Map<string, MapRoomState>()
 
   const ensureSubscribed = (mapId: string, state: MapRoomState): Promise<RoomAcknowledgement> => {
     if (state.joined) {
-      onSubscribed?.()
+      onSubscribed?.(mapId)
       return Promise.resolve<RoomAcknowledgement>({ success: true })
     }
     if (state.pending) return state.pending
@@ -107,7 +107,7 @@ export const createMapRoomManager = (
       if (subscriptions.get(mapId) === state) {
         if (acknowledgement.success) {
           state.joined = true
-          onSubscribed?.()
+          onSubscribed?.(mapId)
         }
       }
       return acknowledgement

@@ -169,6 +169,42 @@ describe('MapBoundaryEditor', () => {
     useMapBoundaryEditor.mockReturnValue(editorState)
   })
 
+  it('moves confirmed markers using map coordinates and omits unknown positions', () => {
+    const robot = { id: 'r1', name: 'Cleaner', position: { x: 2, y: 3, updated_at: '2026-01-01' } }
+    const unknown = { id: 'r2', name: 'Unknown', position: null }
+    const view = render(<MapBoundaryEditor {...defaultProps} robotPositions={[robot, unknown]} />)
+    const marker = screen.getByLabelText('Cleaner').parentElement
+    const before = marker?.getAttribute('style')
+    expect(screen.queryByText('Cleaner')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Unknown')).not.toBeInTheDocument()
+    view.rerender(
+      <MapBoundaryEditor
+        {...defaultProps}
+        robotPositions={[{ ...robot, position: { ...robot.position, x: 4 } }]}
+      />,
+    )
+    expect(screen.getByLabelText('Cleaner').parentElement?.getAttribute('style')).not.toBe(before)
+  })
+
+  it('shows the sonar rings for a cleaning robot and removes them when cleaning ends', () => {
+    const robot = { id: 'r1', name: 'Cleaner', position: { x: 2, y: 3, updated_at: '2026-01-01' } }
+    const view = render(
+      <MapBoundaryEditor
+        {...defaultProps}
+        robotPositions={[{ ...robot, cleaning_task_active: true }]}
+      />,
+    )
+    const marker = screen.getByLabelText('Cleaner')
+    const rings = marker.parentElement?.querySelectorAll('.map-robot-sonar')
+    expect(rings).toHaveLength(1)
+    expect(rings?.[0]).toHaveAttribute('aria-hidden', 'true')
+    expect(marker).toHaveAttribute('aria-description')
+
+    view.rerender(<MapBoundaryEditor {...defaultProps} robotPositions={[robot]} />)
+    expect(marker.parentElement?.querySelector('.map-robot-sonar')).toBeNull()
+    expect(marker).not.toHaveAttribute('aria-description')
+  })
+
   it('accepts grouped edit inputs and forwards the active path to the canvas hook', () => {
     const onChange = vi.fn()
     const onInvalid = vi.fn()

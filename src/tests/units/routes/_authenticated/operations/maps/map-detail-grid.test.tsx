@@ -2,6 +2,30 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { DockingStationHeading, GeometryType, MapStatus, MapZoneType } from '@/enum/maps'
 import type { IMapDetailInfo } from '@/interface/maps'
+import { getLocale, setLocale } from '@/paraglide/runtime.js'
+
+const positionQuery = vi.hoisted(() =>
+  vi.fn(
+    (): {
+      data?: {
+        requestRevision?: number
+        data: {
+          robots: {
+            id: string
+            name: string
+            position: { x: number; y: number; updated_at: string } | null
+          }[]
+        }
+      }
+      error: { response: { status: number } } | null
+      isError: boolean
+    } => ({ data: undefined, error: null, isError: false }),
+  ),
+)
+vi.mock('@/queries/use-maps-query', () => ({ useMapRobotPositionsQuery: positionQuery }))
+vi.mock('@/hooks/use-map-robot-positions-socket', () => ({
+  useMapRobotPositionsSocket: (_mapId: string, _groupId: string, robots: unknown[]) => robots,
+}))
 
 const editor = vi.hoisted(() => vi.fn())
 vi.mock(
@@ -77,6 +101,39 @@ const map = {
 } satisfies IMapDetailInfo
 
 describe('MapDetailGrid', () => {
+  it('passes fresh positions and hides them after access is denied', () => {
+    const robots = [{ id: 'r1', name: 'Robot', position: { x: 2, y: 3, updated_at: '2026-01-01' } }]
+    positionQuery.mockReturnValue({ data: { data: { robots } }, error: null, isError: false })
+    const view = render(<MapDetailGrid map={map} groupId="group-1" />)
+    expect(editor).toHaveBeenLastCalledWith(expect.objectContaining({ robotPositions: robots }))
+    positionQuery.mockReturnValue({
+      data: { data: { robots } },
+      error: { response: { status: 403 } },
+      isError: true,
+    })
+    view.rerender(<MapDetailGrid map={map} groupId="group-1" />)
+    expect(editor).toHaveBeenLastCalledWith(expect.objectContaining({ robotPositions: [] }))
+    positionQuery.mockReturnValue({ data: undefined, error: null, isError: false })
+  })
+
+  it.each([
+    ['en', 'Robot positions could not refresh.'],
+    ['vi', 'Không thể cập nhật vị trí robot.'],
+  ] as const)('announces a position refresh error in %s', async (locale, message) => {
+    positionQuery.mockReturnValueOnce({
+      error: { response: { status: 500 } },
+      isError: true,
+    })
+    const previous = getLocale()
+    await setLocale(locale, { reload: false })
+    try {
+      render(<MapDetailGrid map={map} groupId="group-1" />)
+      expect(screen.getByRole('status')).toHaveTextContent(message)
+    } finally {
+      await setLocale(previous, { reload: false })
+    }
+  })
+
   it('configures the boundary editor as read-only with saved boundary and zones', () => {
     render(<MapDetailGrid map={map} groupId="group-1" />)
 

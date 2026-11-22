@@ -132,3 +132,29 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.map-robot-sonar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  border: 2px solid #2dd4bf;
+  border-radius: 50%;
+  background: transparent;
+  animation: map-robot-sonar-expand 1s ease-out infinite;
+}
+
+@keyframes map-robot-sonar-expand {
+  from {
+    width: 20px;
+    height: 20px;
+    opacity: 0.75;
+  }
+
+  to {
+    width: 180px;
+    height: 180px;
+    opacity: 0;
+  }
+}

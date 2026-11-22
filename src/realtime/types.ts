@@ -15,9 +15,16 @@ export type MapRoomPayload = {
   mapId: string
 }
 
+export type MapRobotPositionEvent = {
+  map_id: string
+  robot_id: string
+  position: { x: number; y: number; updated_at: string }
+}
+
 export type ServerToClientEvents = {
   'robot.status': (status: IRobotStatus) => void
   'map.robot.status': (status: IMapRobotStatus) => void
+  'map.robot.position': (position: MapRobotPositionEvent) => void
 }
 
 export type ClientToServerEvents = {

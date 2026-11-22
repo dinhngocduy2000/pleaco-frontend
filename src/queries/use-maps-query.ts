@@ -3,6 +3,7 @@ import {
   assignDockingStationRobotApi,
   createMapApi,
   getMapDetailApi,
+  getMapRobotPositionsApi,
   getMapsApi,
   saveMapLayoutApi,
   updateMapMetadataApi,
@@ -53,6 +54,11 @@ export const getMapDetailQueryKey = (mapId: string, groupId?: string) => [
   groupId,
 ]
 
+export const getMapRobotPositionsQueryKey = (mapId: string, groupId: string) => [
+  ...getMapDetailQueryKey(mapId, groupId),
+  'robot-positions',
+]
+
 export const useMapDetailQuery = (mapId: string, groupId?: string) => {
   return useQuery<IResponseData<IMapDetailInfo>>({
     queryKey: getMapDetailQueryKey(mapId, groupId),
@@ -71,10 +77,16 @@ export const useAssignDockingStationRobotMutation = ({
   return useMutation({
     mutationFn: assignDockingStationRobotApi,
     onSuccess: async (data, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: getMapDetailQueryKey(variables.map_id, variables.group_id),
-        exact: true,
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: getMapDetailQueryKey(variables.map_id, variables.group_id),
+          exact: true,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getMapRobotPositionsQueryKey(variables.map_id, variables.group_id),
+          exact: true,
+        }),
+      ])
       onSuccess?.(data, variables)
     },
     onError: async (error, variables) => {
@@ -147,3 +159,21 @@ export const useSaveMapLayoutMutation = ({
     onMutate,
   })
 }
+
+let positionRevision = 0
+
+// Order request starts and socket events independently of server/client clocks.
+export const nextMapRobotPositionRevision = () => ++positionRevision
+
+export const useMapRobotPositionsQuery = (mapId: string, groupId: string) =>
+  useQuery({
+    queryKey: getMapRobotPositionsQueryKey(mapId, groupId),
+    queryFn: async ({ signal }) => {
+      const requestRevision = nextMapRobotPositionRevision()
+      const response = await getMapRobotPositionsApi(mapId, signal)
+      return { ...response, requestRevision }
+    },
+    enabled: Boolean(mapId && groupId),
+    refetchInterval: 3_000,
+    retry: false,
+  })
