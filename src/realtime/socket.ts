@@ -18,15 +18,15 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(rea
   randomizationFactor: 0.5,
 })
 
-const mapSubscriptionListeners = new Map<() => void, number>()
+const mapSubscriptionListeners = new Map<(mapId: string) => void, number>()
 let connectionConsumers = 0
 
 export const connectRealtime = () => {
   if (!socket.active) socket.connect()
 }
 
-const mapRooms = createMapRoomManager(socket, connectRealtime, () => {
-  for (const listener of mapSubscriptionListeners.keys()) listener()
+const mapRooms = createMapRoomManager(socket, connectRealtime, (mapId) => {
+  for (const listener of mapSubscriptionListeners.keys()) listener(mapId)
 })
 
 export const subscribeToMap = mapRooms.subscribe
@@ -44,7 +44,7 @@ export const realtimeConnection = {
   unsubscribeFromMap,
 }
 
-export const acquireRealtimeConnection = (onMapSubscribed?: () => void) => {
+export const acquireRealtimeConnection = (onMapSubscribed?: (mapId: string) => void) => {
   connectionConsumers += 1
   if (onMapSubscribed) {
     mapSubscriptionListeners.set(

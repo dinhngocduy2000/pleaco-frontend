@@ -132,9 +132,11 @@ describe('useCreateMapMutation', () => {
 })
 
 describe('useAssignDockingStationRobotMutation', () => {
-  it('waits for the active group map detail refresh after assignment', async () => {
+  it('refreshes the active group map detail and positions after assignment', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue([])
+    const invalidateQueries = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockResolvedValue(undefined)
     const wrapper = ({ children }: PropsWithChildren) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )
@@ -156,11 +158,17 @@ describe('useAssignDockingStationRobotMutation', () => {
       queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1'],
       exact: true,
     })
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [MAPS_ENDPOINTS.DETAIL, 'map-1', 'group-1', 'robot-positions'],
+      exact: true,
+    })
   })
 
   it('invalidates the scoped detail after a conflict', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue([])
+    const invalidateQueries = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockResolvedValue(undefined)
     const wrapper = ({ children }: PropsWithChildren) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )

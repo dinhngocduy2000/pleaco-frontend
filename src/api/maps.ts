@@ -53,3 +53,16 @@ export const getMapDetailApi = async (
 ): Promise<IResponseData<IMapDetailInfo>> => {
   return await axiosConfig.get(`${MAPS_ENDPOINTS.DETAIL}/${mapId}`, { signal })
 }
+
+export interface MapRobotPosition {
+  id: string
+  name: string
+  position: { x: number; y: number; updated_at: string; source?: 'confirmed' | 'dock' } | null
+}
+
+export const getMapRobotPositionsApi = async (
+  mapId: string,
+  signal?: AbortSignal,
+): Promise<IResponseData<{ robots: MapRobotPosition[] }>> => {
+  return await axiosConfig.get(`${MAPS_ENDPOINTS.DETAIL}/${mapId}/robot-positions`, { signal })
+}

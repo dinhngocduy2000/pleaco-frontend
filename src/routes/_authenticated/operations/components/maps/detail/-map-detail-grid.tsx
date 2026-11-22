@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { MapZoneType } from '@/enum/maps'
+import { useMapRobotPositionsSocket } from '@/hooks/use-map-robot-positions-socket'
 import type { IMapDetailInfo } from '@/interface/maps'
 import { getTranslations } from '@/lib/translation'
+import { useMapRobotPositionsQuery } from '@/queries/use-maps-query'
 import { MapBoundaryEditor } from '../map-preview-editor/-map-boundary-editor'
 import {
   DOCKING_STATION_TOOL,
@@ -27,6 +29,15 @@ export function MapDetailGrid({
   onEditLayout = () => undefined,
 }: MapDetailGridProps) {
   const [assignDockingStationId, setAssignDockingStationId] = useState<string>()
+  const positions = useMapRobotPositionsQuery(map.id, groupId)
+  const status = (positions.error as { response?: { status?: number } } | null)?.response?.status
+  const accessError = status === 401 || status === 403 || status === 404
+  const robotsPosition = useMapRobotPositionsSocket(
+    map.id,
+    groupId,
+    accessError ? [] : (positions.data?.data?.robots ?? []),
+    positions.data?.requestRevision,
+  )
   const boundaryPoints = getBoundaryEditorPoints(map.boundary)
   const actionsByZoneType = canManageDockingStations
     ? {
@@ -49,9 +60,15 @@ export function MapDetailGrid({
       aria-label={map.name}
       className="order-first flex h-full min-w-0 flex-1 basis-[calc((100%-1rem)/2)] overflow-auto"
     >
+      {positions.isError && !accessError && (
+        <span role="status" className="absolute z-10 rounded bg-background p-2 text-sm">
+          {t.map_detail_robot_positions_refresh_error()}
+        </span>
+      )}
       <MapZoneContextMenu actionsByZoneType={actionsByZoneType}>
         {({ onZoneContextMenu }) => (
           <MapBoundaryEditor
+            robotPositions={robotsPosition}
             dimensions={{ x: map.dimension_x, y: map.dimension_y }}
             active={{ points: [], closed: false, zoneType: MapZoneType.BOUNDARY }}
             layout={{

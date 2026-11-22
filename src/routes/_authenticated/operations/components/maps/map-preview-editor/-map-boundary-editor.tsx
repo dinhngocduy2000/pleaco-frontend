@@ -1,5 +1,7 @@
 import { CircleAlert, Minus, Plus } from 'lucide-react'
 import { Circle, Layer, Line, Stage } from 'react-konva'
+import type { MapRobotPosition } from '@/api/maps'
+import AppLogo from '@/assets/svgs/app-logo-without-text'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { MapZoneType } from '@/enum/maps'
@@ -25,6 +27,7 @@ const VERTEX_RADIUS = 5
 const t = getTranslations()
 
 type MapLayoutEditorProps = {
+  robotPositions?: MapRobotPosition[]
   dimensions: { x: number; y: number }
   active: { points: IMapBoundaryCoordinate[]; closed: boolean; zoneType: MapCanvasZoneType }
   layout: {
@@ -55,6 +58,7 @@ const ignoreInvalid: MapBoundaryEditorProps['onInvalid'] = () => undefined
 
 export function MapBoundaryEditor({
   dimensions,
+  robotPositions,
   active,
   layout,
   interaction,
@@ -260,15 +264,37 @@ export function MapBoundaryEditor({
                   })}
                 </Layer>
               </Stage>
-              {zones.map((zone) => {
-                if (zone.zoneType !== DOCKING_STATION_TOOL) return null
+              {robotPositions === undefined &&
+                zones.map((zone) => {
+                  if (zone.zoneType !== DOCKING_STATION_TOOL) return null
+                  return (
+                    <MapDockingStationRobot
+                      key={`robot-${zone.clientId}`}
+                      station={zone}
+                      dimensionY={dimensionY}
+                      pixelsPerMeter={pixelsPerMeter}
+                    />
+                  )
+                })}
+              {robotPositions?.map((robot) => {
+                if (!robot.position) return null
+                const point = worldPointToCanvas(
+                  [robot.position.x, robot.position.y],
+                  dimensionY,
+                  pixelsPerMeter,
+                )
                 return (
-                  <MapDockingStationRobot
-                    key={`robot-${zone.clientId}`}
-                    station={zone}
-                    dimensionY={dimensionY}
-                    pixelsPerMeter={pixelsPerMeter}
-                  />
+                  <div
+                    key={robot.id}
+                    className="pointer-events-none absolute z-50 flex flex-col items-center"
+                    style={{
+                      left: MAP_CANVAS_PADDING + point.x,
+                      top: MAP_CANVAS_PADDING + point.y,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  >
+                    <AppLogo aria-label={robot.name} width={24} height={24} />
+                  </div>
                 )
               })}
               {issues.map((issue) => {
