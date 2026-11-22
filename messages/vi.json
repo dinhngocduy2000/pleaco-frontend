@@ -71,6 +71,7 @@
   "map_detail_loading": "Đang tải chi tiết bản đồ…",
   "map_detail_error": "Không thể tải chi tiết bản đồ.",
   "map_detail_error_description": "Hãy quay lại Bản đồ và mở lại bản đồ này.",
+  "map_detail_robot_positions_refresh_error": "Không thể cập nhật vị trí robot.",
   "map_detail_back_to_maps": "Quay lại Bản đồ",
   "map_detail_title": "Chi tiết bản đồ",
   "map_detail_dimensions": "Kích thước",
