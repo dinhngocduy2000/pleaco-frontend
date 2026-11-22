@@ -57,6 +57,7 @@ export const getMapDetailApi = async (
 export interface MapRobotPosition {
   id: string
   name: string
+  cleaning_task_active?: boolean
   position: { x: number; y: number; updated_at: string; source?: 'confirmed' | 'dock' } | null
 }
 

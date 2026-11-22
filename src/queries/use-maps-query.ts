@@ -174,5 +174,6 @@ export const useMapRobotPositionsQuery = (mapId: string, groupId: string) =>
       return { ...response, requestRevision }
     },
     enabled: Boolean(mapId && groupId),
+    refetchInterval: 3_000,
     retry: false,
   })

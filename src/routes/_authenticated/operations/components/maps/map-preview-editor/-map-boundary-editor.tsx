@@ -293,7 +293,21 @@ export function MapBoundaryEditor({
                       transform: 'translate(-50%, -50%)',
                     }}
                   >
-                    <AppLogo aria-label={robot.name} width={24} height={24} />
+                    {robot.cleaning_task_active && (
+                      <span
+                        aria-hidden="true"
+                        className="map-robot-sonar hidden motion-safe:block"
+                      />
+                    )}
+                    <AppLogo
+                      aria-label={robot.name}
+                      aria-description={
+                        robot.cleaning_task_active ? t.map_detail_robot_cleaning() : undefined
+                      }
+                      className="relative"
+                      width={24}
+                      height={24}
+                    />
                   </div>
                 )
               })}

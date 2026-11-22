@@ -72,6 +72,7 @@
   "map_detail_error": "Unable to load map details.",
   "map_detail_error_description": "Try returning to Maps and opening the map again.",
   "map_detail_robot_positions_refresh_error": "Robot positions could not refresh.",
+  "map_detail_robot_cleaning": "Cleaning task in progress",
   "map_detail_back_to_maps": "Back to Maps",
   "map_detail_title": "Map Details",
   "map_detail_dimensions": "Dimensions",
